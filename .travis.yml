@@ -1,8 +1,16 @@
 language: minimal
 env: 
+  matrix:
   - WEAVIATE_VERSION: 1.7.2
+  global:
+  - secure: "bN876Vv+Zj3V8qMUcowQmxlBtUO2rxujHV/iX/K37ZJSm2/NVy8izdfP2mDVqpaIBdZoFhHmXHSO62LXCUnku6ZK+3WLCTC6qH+Rnq7QRMAJVa/prrj9E8aAqs087XmucmTiBX0SClRQ5CM4TpcApIrXL1+6FRWwC8KMof5eZqZJL6ccGN2GxW8RF+T/In1Ajo1WmnVwefcPwvNhqiRHKoFYNaAVLw1f44gQnXMegfeiDvTLI4Ay4UeAUt3fqndrQWnKbWnYdHRJgi6QSOC79rFxqTD0QuPyEs0oNQ6uDBEEMffvCc5SA8vrefvpSfKKwyptLt7VaMYUfyGJherlHOXyVL6Uo9wSzfYOQuXmQypbYLb9ZvdeUYi6M1vf2e5LlpGGi0s39pxH5whpcFu1cfKhQcuATe8f5m2zcas1SCver/GCph29aA3d5A9sbcoiVa0UbPlbS+4cF+iq2Y0ZaC++HvR4Zj/U2S5nhCSFZ9HPXw0S8pNIYts0zZVj5kpwhcSggaqSFIlZRACASmMZJXl6VTQK5bl5DYjLxWk27YiZK155LnL6jjOVxMOEjV7+a1yFmZueXMWWXUQuWti9AHtDwj8z4VgWve4ZVl73JoJmBvN33oUaZkQT0448f2aoqjklFRSYT/hC8okrMdKuxJ2mlnwUkEloVZ4fofdUuQI="
+  - secure: "nYozXv/DfjAKMZerRU/nzP89kuOcQpL98Gk8TwpSh8/RSfINpYiR6cN09t+bWZEz8C/pId2FxeyLoEyH0rFeXIkH+6wlfLndIPC426PY5CssWSlisn+v2MOz9YgESdyv92BT/5BLAaA9kFxGLX7GxI+ldYScaQY++HkUovnfecvOhvbFLA23OBCe9zcJ9F7z7PBrDsf7VzPk5KwuvKNknLc5RtRLBjrkwdCVeP+Fy7a02gS8wg3Zo3jBIlEUuG16poMjpCT94pivuImBwprlJhvYcD7R0ZicYvcWga77+WfU+fiHHEh4m0ePRs/V+YM06JIh+SZc3BxqS9fZ5TPYnUFQwpe0yzN+5ZwJgBQ67FRKs49EcfFj/zLc5tYg9CiGJLgLdjjMTr6P8LfKAHOb8tXcGBhqtio7ZtOqfMXYHNsySwGX4fiG3OKo5F7HYK06LQdyaH3WIZITIk9qg5IliNIh3n4qYhNzeZWJ0oLaXzdD/Y7iagIXA64X0YiRRcAlCVlO/QPKFBnZdA+x+PC36+SHqbQGLUnIQclK5bnDhYl5ZMKgSm+6Ik8yjUr7eBpDS19OPbLG5/1AYXZ3PxJ+mZsFFfVjLB8SKOxOAD/zoPWVJMb1hVbCm83wSf2T8mCoaifRsRA0VsmPtMAF0LGO8xqpeDuK7LJIg01V0NRo1/Y="
 
 jobs:
   include:
     - name: "Import during constant kills/crashes"
       script: ./import_while_crashing.sh
+
+before_script:
+  # login to docker at the very beginning, so we don't run into rate-limiting
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
