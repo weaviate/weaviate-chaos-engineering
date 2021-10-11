@@ -8,4 +8,4 @@ COPY run.sh .
 
 COPY --from=docker:latest /usr/local/bin/docker /usr/local/bin/docker
 
-CMD ["bash", "run.sh"]
+CMD ["bash", "/chaos/run.sh"]

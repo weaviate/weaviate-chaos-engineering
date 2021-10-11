@@ -1,0 +1,8 @@
+language: minimal
+env: 
+  - WEAVIATE_VERSION: 1.7.2
+
+jobs:
+  include:
+    - name: "Import during constant kills/crashes"
+      script: ./import_while_crashing.sh
