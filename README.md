@@ -5,7 +5,7 @@
 
 ## What this does
 
-Currently there are two independent pipelines
+Currently there are two independent pipelines:
 
 ### Pipeline 1: Importing while Crashing
 
@@ -27,7 +27,7 @@ condensing, etc.) do not degrade the quality of the vector index.
 ### Requirements
 
 - Bash
-- Docker
+- Docker / Docker Compose
 - `jq`
 
 ### Run the scripts
