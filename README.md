@@ -40,6 +40,6 @@ check the travis file for an example.
 ## Links 
 
 - [Weaviate Main Repo](https://github.com/semi-technologies/weaviate).
-- [Documentation](https://www.semi.technology/documentation/weaviate/current/client-libraries/javascript.html).
+- [Documentation](https://weaviate.io/developers/weaviate/current/client-libraries/javascript.html).
 - [Stackoverflow for questions](https://stackoverflow.com/questions/tagged/weaviate).
 - [Github for issues](https://github.com/semi-technologies/weaviate/issues).
