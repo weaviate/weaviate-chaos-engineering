@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/semi-technologies/weaviate-go-client/v2/weaviate"
+	"github.com/semi-technologies/weaviate-go-client/v2/weaviate/batch"
 	"github.com/semi-technologies/weaviate/entities/models"
 )
 
@@ -60,6 +62,31 @@ func do(ctx context.Context) error {
 	beforeAll := time.Now()
 	batcher := client.Batch().ObjectsBatcher()
 	for count < size {
+		before := time.Now()
+
+		if err := buildAndSendBatchWithRetries(ctx, batcher, batchSize, 100, 2*time.Second); err != nil {
+			return err
+		}
+
+		log.Printf("%f%% complete - last batch took %s - total %s\n",
+			float32(count)/float32(size)*100,
+			time.Since(before), time.Since(beforeAll))
+		count += batchSize
+	}
+
+	return nil
+}
+
+func buildAndSendBatchWithRetries(ctx context.Context, batcher *batch.ObjectsBatcher, batchSize int,
+	maxAttempts int, backoff time.Duration) error {
+	var lastErr error
+
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		if attempt > 0 {
+			fmt.Printf("attempt %d, last error: %v\n", attempt, lastErr)
+			time.Sleep(backoff)
+		}
+
 		for i := 0; i < batchSize; i++ {
 			frequent := func() int { return rand.Intn(50-20) + 20 }
 			rare := func() int { return rand.Intn(200-20) + 20 }
@@ -77,9 +104,10 @@ func do(ctx context.Context) error {
 			})
 		}
 
-		before := time.Now()
-		if res, err := batcher.Do(ctx); err != nil {
-			return err
+		res, err := batcher.Do(ctx)
+		if err != nil {
+			lastErr = err
+			continue
 		} else {
 			for _, c := range res {
 				if c.Result != nil {
@@ -91,13 +119,10 @@ func do(ctx context.Context) error {
 			}
 		}
 
-		log.Printf("%f%% complete - last batch took %s - total %s\n",
-			float32(count)/float32(size)*100,
-			time.Since(before), time.Since(beforeAll))
-		count += batchSize
+		return nil
 	}
 
-	return nil
+	return errors.Errorf("ultimately failed after %d attempts, last error was %v", maxAttempts, lastErr)
 }
 
 func getIntVar(envName string) (int, error) {

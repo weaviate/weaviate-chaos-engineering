@@ -17,6 +17,6 @@ while true; do
   sleep "$sleepsec"
 
   echo killing now
-  docker exec -it $CONTAINER_ID /bin/sh -c 'ps aux | grep '"'"'weaviate'"'"' | grep -v grep | awk '"'"'{print $1}'"'"' | xargs kill -9'
+  docker exec $CONTAINER_ID /bin/sh -c 'ps aux | grep '"'"'weaviate'"'"' | grep -v grep | awk '"'"'{print $1}'"'"' | xargs kill -9'
 done
 

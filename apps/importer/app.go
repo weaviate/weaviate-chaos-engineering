@@ -216,6 +216,9 @@ func getClass(shards int) *models.Class {
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": shards,
 		},
+		VectorIndexConfig: map[string]interface{}{
+			"vectorCacheMaxObjects": 10000000000,
+		},
 		Properties: []*models.Property{
 			{
 				Name:     "itemId",
