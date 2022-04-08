@@ -11,6 +11,8 @@ jobs:
   include:
     - name: "Import during constant kills/crashes"
       script: ./import_while_crashing.sh
+    - name: "Heavy object store imports while crashing"
+      script: ./import_while_crashing_no_vector.sh
     - name: "Compare Recall after import to after restart"
       script: ./compare_recall_after_restart.sh
     - name: "Concurrent inverted index read/write"
