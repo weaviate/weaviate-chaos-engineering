@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/semi-technologies/weaviate-go-client/v2/weaviate"
-	"github.com/semi-technologies/weaviate-go-client/v2/weaviate/batch"
+	"github.com/semi-technologies/weaviate-go-client/v3/weaviate"
+	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/batch"
 	"github.com/semi-technologies/weaviate/entities/models"
 )
 

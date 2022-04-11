@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
 	"net/url"
@@ -11,7 +10,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/semi-technologies/weaviate-go-client/v2/weaviate"
+	"github.com/semi-technologies/weaviate-go-client/v3/weaviate"
+	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/graphql"
 	"github.com/semi-technologies/weaviate/entities/models"
 )
 
@@ -117,10 +117,17 @@ func queryLoad(stop chan bool, client *weaviate.Client) {
 
 func sendFilteredReadQuery(client *weaviate.Client) {
 	queryText := GetWords(3, 0)
+	where := client.GraphQL().WhereArgBuilder().
+		WithPath([]string{"text"}).
+		WithOperator(graphql.Equal).
+		WithValueText(queryText)
+
 	res, err := client.GraphQL().Get().Objects().WithClassName("InvertedIndexOnly").
 		WithLimit(10).
-		WithWhere(fmt.Sprintf(`{operator: Equal, valueText:"%s", path:["text"]}`, queryText)).
-		WithFields("_additional{ id }").
+		WithWhere(where).
+		WithFields([]graphql.Field{{Name: "_additional", Fields: []graphql.Field{
+			{Name: "id"},
+		}}}).
 		Do(context.Background())
 	if err != nil {
 		log.Fatalf("ready query failed: %v", err)
@@ -166,6 +173,11 @@ func getClass(shards int) *models.Class {
 		},
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": shards,
+		},
+		InvertedIndexConfig: &models.InvertedIndexConfig{
+			Stopwords: &models.StopwordConfig{
+				Preset: "none",
+			},
 		},
 		Properties: []*models.Property{
 			{
