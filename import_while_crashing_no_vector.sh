@@ -2,7 +2,7 @@
 
 set -e
 
-SIZE=600000
+SIZE=50000
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
