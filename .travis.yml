@@ -19,6 +19,8 @@ jobs:
       script: ./concurrent_inverted_index_read_write.sh
     - name: "Consecutive create and update operations"
       script: ./consecutive_create_and_update_operations.sh
+    - name: "Batch insert mismatch"
+      script: ./batch_insert_mismatch.sh
 
 before_script:
   # login to docker at the very beginning, so we don't run into rate-limiting
