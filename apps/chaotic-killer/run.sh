@@ -12,7 +12,7 @@ while true; do
     continue
   fi
 
-  sleepsec=$(python3 -c 'import random; print(random.randint(0,60))')
+  sleepsec=$(python3 -c "import random; print(random.randint(${SLEEP_START:=0},${SLEEP_END:=60}))")
   echo "waiting ${sleepsec}s for a kill"
   sleep "$sleepsec"
 
