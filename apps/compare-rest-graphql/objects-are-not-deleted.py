@@ -4,7 +4,7 @@ https://semi-technology.atlassian.net/browse/WEAVIATE-151
 
 import weaviate
 from loguru import logger
-import sys, traceback, time
+import sys, traceback, time, os
 
 class DiscrepancyError(Exception):
   """ Raised on REST and GraphQL mismatch """
@@ -50,17 +50,27 @@ def get_body(index: str, req_type: str):
 def create_object_if_it_doesnt_exist(class_name: str, object_id: str):
   try:
     exists = client.data_object.exists(object_id)
+    graphQLExists = existsGraphQLGet(object_id)
     if not exists:
+      if graphQLExists:
+        logger.info(f"Mismatch exists: head: {exists} graphql: {graphQLExists}")
+        raise Exception(f"Mismatch for: {object_id} exists: head: {exists} graphql: {graphQLExists}")
       client.data_object.create(get_body(0, "create"), class_name, object_id)
   except Exception as e:
       logger.error(f"Error adding {class_name} object - id: {object_id}")
       logger.error(e)
       logger.error(''.join(traceback.format_tb(e.__traceback__)))
+      raise e
 
-def delete_uuids(uuids, name):
-    for uuid in uuids:
-        client.data_object.delete(uuid)
-    logger.info(f"deleted {name} objects: {len(uuids)}")
+def existsGraphQLGet(object_id: str) -> bool:
+  equalId = { "path": ["id"], "operator": "Equal", "valueString": object_id }
+  objectGraphQLGet = (
+    client.query
+    .get("ObjectsAreNotDeleted", ['_additional{id}'])
+    .with_where(equalId)
+    .do()
+  )
+  return len(objectGraphQLGet['data']['Get']['ObjectsAreNotDeleted']) > 0
 
 def search_object(object_id: str, should_exist: bool):
     headExists = client.data_object.exists(object_id)
@@ -74,9 +84,12 @@ def search_object(object_id: str, should_exist: bool):
     )
 
     objectRestExists = objectGetById is not None and len(objectGetById) > 0
-    objectGraphQLExists = len(objectGraphQLGet['data']['Get']['ObjectsAreNotDeleted']) > 0
+    objectGraphQLCount = len(objectGraphQLGet['data']['Get']['ObjectsAreNotDeleted'])
+    objectGraphQLExists = objectGraphQLCount > 0
     if not (should_exist == headExists and should_exist == objectRestExists and should_exist == objectGraphQLExists):
         return f"search {object_id}: should_exist: {should_exist} head: {headExists} rest: {objectRestExists} graphql: {objectGraphQLExists}"
+    if should_exist and objectGraphQLCount > 1:
+      return f"COUNT: {objectGraphQLCount} {object_id}: should_exist: {should_exist} head: {headExists} rest: {objectRestExists} graphql: {objectGraphQLExists}"
     return ""
 
 def search_objects(uuids, should_exist: bool):
@@ -113,8 +126,7 @@ def delete_all_in_batch(uuids):
     raise Exception('Error occured during batch delete')
 
 def getUUIDs(param: str):
-  if param == "1":
-    return [
+  uuids1 = [
         "17e9828d-ff0a-5e47-8101-b52312345670",
         "17e9828d-ff0a-5e47-8101-b52312345671",
         "17e9828d-ff0a-5e47-8101-b52312345672",
@@ -123,7 +135,7 @@ def getUUIDs(param: str):
         "17e9828d-ff0a-5e47-8101-b52312345675",
         "17e9828d-ff0a-5e47-8101-b52312345678"
       ]
-  return [
+  uuids2 = [
         "07e9828d-ff0a-5e47-8101-b52312345670",
         "07e9828d-ff0a-5e47-8101-b52312345671",
         "07e9828d-ff0a-5e47-8101-b52312345672",
@@ -132,9 +144,18 @@ def getUUIDs(param: str):
         "07e9828d-ff0a-5e47-8101-b52312345675",
         "07e9828d-ff0a-5e47-8101-b52312345678"
       ]
+  uuids3 = ["00000000-ff0a-5e47-8101-b52312345670"]
+  if param == "0":
+    return uuids1
+  if param == "1":
+    return uuids2
+  if param == "3":
+    return uuids3
+  uuids1.extend(uuids2)
+  return uuids1
 
 if __name__ == "__main__":
-    max_attempts = 250
+    max_attempts = int(os.getenv("MAX_ATTEMPTS", 100)) 
     for attempt in range(max_attempts):
       try:
         client = weaviate.Client("http://localhost:8080")
@@ -159,5 +180,4 @@ if __name__ == "__main__":
       except Exception as e:
         logger.info(f"Attempt {attempt}: Caught exception {e} retrying")
         time.sleep(2)
-        attempt += 1
 

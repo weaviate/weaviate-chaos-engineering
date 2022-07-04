@@ -31,6 +31,8 @@ docker run \
   -v "$PWD:$PWD" \
   -e "SLEEP_START=2" \
   -e "SLEEP_END=5" \
+  -e "WEAVIATE_VERSION=${WEAVIATE_VERSION}" \
+  -e "CHAOTIC_KILL_DOCKER=y" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --name killer \
@@ -38,8 +40,11 @@ docker run \
 
 echo "Run compare script in foreground..."
 if ! docker run \
+  -e "MAX_ATTEMPTS=100" \
    --network host -it compare-rest-graphql python3 objects-are-not-deleted.py 0; then
-  echo "Discrepancy"
+  echo "Discrepancy error!"
+  echo "Stopping chaotic killer"
+  docker rm -f killer
   exit 1
 fi
 
