@@ -11,18 +11,25 @@ jobs:
   include:
     - name: "Import during constant kills/crashes"
       script: ./import_while_crashing.sh
+      if: type != pull_request
     - name: "Heavy object store imports while crashing"
       script: ./import_while_crashing_no_vector.sh
+      if: type != pull_request
     - name: "Compare Recall after import to after restart"
       script: ./compare_recall_after_restart.sh
+      if: type != pull_request
     - name: "Concurrent inverted index read/write"
       script: ./concurrent_inverted_index_read_write.sh
+      if: type != pull_request
     - name: "Consecutive create and update operations"
       script: ./consecutive_create_and_update_operations.sh
+      if: type != pull_request
     - name: "Batch insert mismatch"
       script: ./batch_insert_mismatch.sh
+      if: type != pull_request
     - name: "REST PATCH requests stop working after restart"
       script: ./rest_patch_stops_working_after_restart.sh
+      if: type != pull_request
 
 before_script:
   # login to docker at the very beginning, so we don't run into rate-limiting
