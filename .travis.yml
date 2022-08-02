@@ -38,6 +38,9 @@ jobs:
     # - name: "Compare REST and GraphQL while crashing"
     #   script: ./compare_rest_graphql_while_crashing.sh
     #   if: type != pull_request
+    - name: "Delete and recreate class with frequent updates"
+      script: ./delete_and_recreate_class.sh
+      if: type != pull_request
 
 before_script:
   # login to docker at the very beginning, so we don't run into rate-limiting
