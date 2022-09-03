@@ -105,8 +105,7 @@ def fatal(msg):
 def success(msg):
     logger.success(msg)
 
-
-def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0", expected_count=0):
+def validate_dataset(client: weaviate.Client, class_name, expected_count=0):
     # the filter removes 1/4 of elements
     expected_filtered_count = expected_count * 3 / 4
 
@@ -120,14 +119,14 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
     prop_count = result['data']['Aggregate'][class_name][0]['index_id']['count']
 
     if total_count != expected_count:
-        fatal(f"{class_name} {stage}: got {total_count} objects, wanted {expected_count}")
+        fatal(f"{class_name}: got {total_count} objects, wanted {expected_count}")
     else:
-        success(f"{class_name} {stage}: got {total_count} objects, wanted {expected_count}")
+        success(f"{class_name}: got {total_count} objects, wanted {expected_count}")
 
     if prop_count != expected_count:
-        fatal(f"{class_name} {stage}: got {prop_count} props, wanted {expected_count}")
+        fatal(f"{class_name}: got {prop_count} props, wanted {expected_count}")
     else:
-        success(f"{class_name} {stage}: got {prop_count} props, wanted {expected_count}")
+        success(f"{class_name}: got {prop_count} props, wanted {expected_count}")
 
     logger.info("Aggregation with filters")
     result = client.query.aggregate(class_name) \
@@ -140,26 +139,106 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
     prop_count = result['data']['Aggregate'][class_name][0]['index_id']['count']
 
     if total_count != expected_filtered_count:
-        fatal(f"{class_name} {stage}: got {total_count} objects, wanted {expected_filtered_count}")
+        fatal(f"{class_name}: got {total_count} objects, wanted {expected_filtered_count}")
     else:
-        success(f"{class_name} {stage}: got {total_count} objects, wanted {expected_filtered_count}")
+        success(f"{class_name}: got {total_count} objects, wanted {expected_filtered_count}")
 
     if prop_count != expected_filtered_count:
-        fatal(f"{class_name} {stage}: got {prop_count} props, wanted {expected_count}")
+        fatal(f"{class_name}: got {prop_count} props, wanted {expected_filtered_count}")
     else:
-        success(f"{class_name} {stage}: got {prop_count} props, wanted {expected_count}")
+        success(f"{class_name}: got {prop_count} props, wanted {expected_filtered_count}")
 
+def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0"):
+    start_without_deleted = int((end-start)*0.1 + start)
+
+    logger.info("Retrieve objects using their uuid:")
+    for i in range(start_without_deleted, end):
+        data_object = client.data_object.get_by_id(str(uuid.UUID(int=i)), class_name=class_name)
+        index_id = int(data_object['properties']['index_id'])
+        if index_id != i: 
+            fatal(f"object {str(uuid.UUID(int=i))} has index_id prop {index_id} instead of {i}")
+        if i % 10000 == 0:
+            success(f"validated {i}/{end} objects using their uuid")
+
+    logger.info("Retrieve objects using a filter on a unique prop")
+    for i in range(start_without_deleted, end):
+        where_filter = {
+          "path": ["index_id"],
+          "operator": "Equal",
+          "valueInt": i
+        }
+
+        result = (
+          client.query
+          .get(class_name, "index_id")
+          .with_where(where_filter)
+          .do()
+        )
+        index_id = int(result['data']['Get'][class_name][0]['index_id'])
+        if index_id != i: 
+            fatal(f"object has index_id prop {index_id} instead of {i}")
+        if i % 10000 == 0:
+            success(f"validated {i}/{end} objects using a filter")
+
+    logger.info("Perform vector search without filter")
+    logger.info("Note: This test currently does not validate the quality (e.g. recall) of the results, only that it works")
+    for i in range(start_without_deleted, end):
+        near_object = {
+                'id': str(uuid.UUID(int=i)),
+        }
+        limit = 20
+
+        result = (
+          client.query
+          .get(class_name, "index_id")
+          .with_near_object(near_object)
+          .with_limit(limit)
+          .do()
+        )
+        result_len = len(result['data']['Get'][class_name])
+        if result_len != limit: 
+            fatal(f"vector search has result len {result_len} wanted {limit}")
+        if i % 10000 == 0:
+            success(f"validated {i}/{end} vector searches")
+
+    logger.info("Perform vector search with filter")
+    logger.info("Note: This test currently does not validate the quality (e.g. recall) of the results, only that it works")
+    for i in range(start_without_deleted, end):
+        near_object = {
+                'id': str(uuid.UUID(int=i)),
+        }
+        where = {
+            'operator':'Equal',
+            'valueString': stage,
+            'path': ['stage'],
+
+                }
+        limit = 20
+
+        result = (
+          client.query
+          .get(class_name, "index_id")
+          .with_near_object(near_object)
+          .with_where(where)
+          .with_limit(limit)
+          .do()
+        )
+        result_len = len(result['data']['Get'][class_name])
+        if result_len != limit: 
+            fatal(f"vector search has result len {result_len} wanted {limit}")
+        if i % 10000 == 0:
+            success(f"validated {i}/{end} vector searches")
 
 
 client = weaviate.Client("http://localhost:8080")
 
 class_names=['Class_A', 'Class_B']
-objects_per_stage = 100_000
+objects_per_stage = 50_000
 start_stage_1 = 0
 end_stage_1 = objects_per_stage
 expected_count_stage_1 = 0.9 * end_stage_1 # because of 10% deletions
 start_stage_2 = end_stage_1
-end_stage_2 = start_stage_1 + objects_per_stage
+end_stage_2 = start_stage_2 + objects_per_stage
 expected_count_stage_2 = 0.9 * end_stage_2 # because of 10% deletions
 
 logger.info(f"Step 0, reset everything, import schema")
@@ -169,21 +248,55 @@ logger.info(f"Step 1, import first half of objects across {len(class_names)} cla
 for class_name in class_names:
     load_records(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1")
 
-logger.info("delete 10% of objects to make sure deletes are covered")
+logger.info("Step 2, delete 10% of objects to make sure deletes are covered")
 for class_name in class_names:
     delete_records(client, class_name)
 
 logger.info("Step 3, run control test on original instance validating all assumptions at stage 1")
 for class_name in class_names:
-    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", expected_count=expected_count_stage_1)
-# Step 4, create backup of current instance including all classes
-# Step 5, import second half of objects
-# Step 6, delete 10% of objects of new import
-# Step 7, run control test on original instance validating all assumptions at stage 2
-# Step 8, delete all classes
-# Step 9, restore backup at half-way mark
-# Step 10, run test and make sure results are same as on original instance at stage 1
-# Step 11, import second half of objects
-# Step 12, delete 10% of objects of new import
-# Step 13, run test and make sure results are same as on original instance at stage 2
+    logger.info(f"{class_name}:")
+    validate_dataset(client, class_name, expected_count=expected_count_stage_1)
+    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1")
+logger.info("Step 4, create backup of current instance including all classes")
+logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+
+logger.info(f"Step 5, import second half of objects across {len(class_names)} classes")
+for class_name in class_names:
+    load_records(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2")
+
+logger.info("Step 6, delete 10% of objects to make sure deletes are covered")
+for class_name in class_names:
+    delete_records(client, class_name)
+
+logger.info("Step 7, validate both stages on control instance")
+
+for class_name in class_names:
+    logger.info(f"{class_name} - Overall:")
+    validate_dataset(client, class_name, expected_count=expected_count_stage_2)
+
+for class_name in class_names:
+    logger.info(f"{class_name} - Stage 1:")
+    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1")
+
+for class_name in class_names:
+    logger.info(f"{class_name} - Stage 2:")
+    validate_stage(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2")
+
+logger.info("Step 8, delete all classes")
+client.schema.delete_all()
+
+logger.info("Step 9, restore backup at half-way mark")
+logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+
+logger.info("Step 10, run test and make sure results are same as on original instance at stage 1")
+logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+
+logger.info("Step 11, import second half of objects")
+logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+
+logger.info("Step 12, delete 10% of objects of new import")
+logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+
+logger.info("Step 13, run test and make sure results are same as on original instance at stage 2")
+logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
 
