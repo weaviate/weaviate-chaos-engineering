@@ -8,6 +8,9 @@ import numpy as np
 import uuid
 import sys
 
+def other_classes(all_classes, self):
+    return [c for c in all_classes if c != self]
+
 def reset_schema(client: weaviate.Client, class_names):
     client.schema.delete_all()
     for class_name in class_names:
@@ -45,6 +48,17 @@ def reset_schema(client: weaviate.Client, class_names):
 
         client.schema.create_class(class_obj)
 
+    for class_name in class_names:
+        for other in other_classes(class_names, class_name):
+            add_prop = {
+              "dataType": [
+                  other,
+              ],
+              "name": f"to_{other}"
+            }
+
+            client.schema.property.create(class_name, add_prop)
+
 def handle_errors(results: Optional[dict]) -> None:
     """
     Handle error message from batch requests logs the message as an info message.
@@ -64,7 +78,7 @@ def handle_errors(results: Optional[dict]) -> None:
                 for message in result['result']['errors']['error']:
                     logger.error(message['message'])
 
-def load_records(client: weaviate.Client, class_name="Class", start=0, end=100_000, stage="stage_0"):
+def load_records(client: weaviate.Client, class_name="Class", start=0, end=100_000, stage="stage_0", all_classes=[]):
 
     client.batch.configure(batch_size=100, callback=handle_errors)
     with client.batch as batch:
@@ -78,6 +92,7 @@ def load_records(client: weaviate.Client, class_name="Class", start=0, end=100_0
                 "stage": stage, # allows for setting filters that match the import stage
                 "is_divisible_by_four": i%4 == 0, # an arbitrary field that matches 1/4 of the dataset to allow filtered searches later on
             }
+
             vector=np.random.rand(32,1)
             batch.add_data_object(
                 data_object=data_object,
@@ -86,6 +101,26 @@ def load_records(client: weaviate.Client, class_name="Class", start=0, end=100_0
                 uuid=uuid.UUID(int=i),
             )
     logger.info(f"Finished writing {end-start} records")
+
+def set_crossrefs(client: weaviate.Client, start=0, end=100_000, classes=[]):
+    client.batch.configure(batch_size=100, callback=handle_errors)
+    with client.batch as batch:
+        for i in range(start, end):
+            if i % 10000 == 0:
+                logger.info(f"Set refs for record {i}/{end}")
+            for class_name in classes:
+                for other in other_classes(classes, class_name):
+                    # we're linking each object to an object of the same id in the
+                    # other class. This makes it very easy to asses the correctness
+                    # of refs later on. Essentially index_id on the source has to
+                    # match index_id on the target
+                    batch.add_reference(
+                      from_object_uuid=str(uuid.UUID(int=i)),
+                      from_object_class_name=class_name,
+                      from_property_name=f'to_{other}',
+                      to_object_uuid=str(uuid.UUID(int=i)),
+                      to_object_class_name=other,
+                    )
 
 def delete_records(client: weaviate.Client, class_name):
     client.batch.delete_objects(
@@ -152,7 +187,7 @@ def validate_dataset(client: weaviate.Client, class_name, expected_count=0):
 def sample_range(start, end, size):
     return enumerate(random.sample(range(start, end), size))
 
-def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0"):
+def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0", all_classes=[]):
     start_without_deleted = int((end-start)*0.1 + start)
     samples = 2000
     print_progress_step = 500
@@ -173,18 +208,29 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
           "operator": "Equal",
           "valueInt": object_id
         }
+        
+        refs_query=""
+        for other in other_classes(all_classes, class_name):
+            refs_query += f" to_{other} {{ ... on {other} {{ index_id }} }}"
 
         result = (
           client.query
-          .get(class_name, "index_id")
+          .get(class_name, f"index_id{refs_query}")
           .with_where(where_filter)
           .do()
         )
+
         index_id = int(result['data']['Get'][class_name][0]['index_id'])
         if index_id != object_id: 
             fatal(f"object has index_id prop {index_id} instead of {object_id}")
         if i % print_progress_step == 0:
             success(f"validated {i}/{samples} sample objects using a filter")
+
+        for other in other_classes(all_classes, class_name):
+            foreign_index_id = int(result['data']['Get'][class_name][0][f'to_{other}'][0]['index_id'])
+            if index_id != foreign_index_id: 
+                fatal(f"referenced object has index_id {foreign_index_id} instead of {object_id}")
+            
 
     logger.info("Perform vector search without filter")
     logger.info("Note: This test currently does not validate the quality (e.g. recall) of the results, only that it works")
@@ -250,9 +296,13 @@ expected_count_stage_2 = 0.9 * end_stage_2 # because of 10% deletions
 logger.info(f"Step 0, reset everything, import schema")
 reset_schema(client, class_names)
 
-logger.info(f"Step 1, import first half of objects across {len(class_names)} classes")
+logger.info(f"Step 1a, import first half of objects across {len(class_names)} classes")
 for class_name in class_names:
-    load_records(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1")
+    load_records(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", all_classes=class_names)
+
+logger.info(f"Step 1b, set cross refs for objects across {len(class_names)} classes")
+for class_name in class_names:
+    set_crossrefs(client, start=start_stage_1, end=end_stage_1, classes=class_names)
 
 logger.info("Step 2, delete 10% of objects to make sure deletes are covered")
 for class_name in class_names:
@@ -262,13 +312,17 @@ logger.info("Step 3, run control test on original instance validating all assump
 for class_name in class_names:
     logger.info(f"{class_name}:")
     validate_dataset(client, class_name, expected_count=expected_count_stage_1)
-    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1")
+    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", all_classes=class_names)
 logger.info("Step 4, create backup of current instance including all classes")
 logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
 
-logger.info(f"Step 5, import second half of objects across {len(class_names)} classes")
+logger.info(f"Step 5a, import second half of objects across {len(class_names)} classes")
 for class_name in class_names:
-    load_records(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2")
+    load_records(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2", all_classes=class_names)
+
+logger.info(f"Step 5b, set cross refs for objects across {len(class_names)} classes")
+for class_name in class_names:
+    set_crossrefs(client, start=start_stage_2, end=end_stage_2, classes=class_names)
 
 logger.info("Step 6, delete 10% of objects to make sure deletes are covered")
 for class_name in class_names:
@@ -282,11 +336,11 @@ for class_name in class_names:
 
 for class_name in class_names:
     logger.info(f"{class_name} - Stage 1:")
-    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1")
+    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", all_classes=class_names)
 
 for class_name in class_names:
     logger.info(f"{class_name} - Stage 2:")
-    validate_stage(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2")
+    validate_stage(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2", all_classes=class_names)
 
 logger.info("Step 8, delete all classes")
 client.schema.delete_all()
