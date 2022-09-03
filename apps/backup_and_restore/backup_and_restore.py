@@ -155,6 +155,7 @@ def sample_range(start, end, size):
 def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0"):
     start_without_deleted = int((end-start)*0.1 + start)
     samples = 2000
+    print_progress_step = 500
 
     logger.info("Retrieve objects using their uuid:")
     for i, object_id in sample_range(start_without_deleted, end, samples):
@@ -162,7 +163,7 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
         index_id = int(data_object['properties']['index_id'])
         if index_id != object_id: 
             fatal(f"object {str(uuid.UUID(int=i))} has index_id prop {index_id} instead of {object_id}")
-        if i % 100 == 0:
+        if i % print_progress_step == 0:
             success(f"validated {i}/{samples} sample objects using their uuid")
 
     logger.info("Retrieve objects using a filter on a unique prop")
@@ -182,7 +183,7 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
         index_id = int(result['data']['Get'][class_name][0]['index_id'])
         if index_id != object_id: 
             fatal(f"object has index_id prop {index_id} instead of {object_id}")
-        if i % 100 == 0:
+        if i % print_progress_step == 0:
             success(f"validated {i}/{samples} sample objects using a filter")
 
     logger.info("Perform vector search without filter")
@@ -203,7 +204,7 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
         result_len = len(result['data']['Get'][class_name])
         if result_len != limit: 
             fatal(f"vector search has result len {result_len} wanted {limit}")
-        if i % 100 == 0:
+        if i % print_progress_step == 0:
             success(f"validated {i}/{samples} sample vector searches")
 
     logger.info("Perform vector search with filter")
@@ -231,14 +232,14 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
         result_len = len(result['data']['Get'][class_name])
         if result_len != limit: 
             fatal(f"vector search has result len {result_len} wanted {limit}")
-        if i % 100 == 0:
+        if i % print_progress_step == 0:
             success(f"validated {i}/{samples} sample vector searches")
 
 
 client = weaviate.Client("http://localhost:8080")
 
 class_names=['Class_A', 'Class_B']
-objects_per_stage = 20_000
+objects_per_stage = 50_000
 start_stage_1 = 0
 end_stage_1 = objects_per_stage
 expected_count_stage_1 = 0.9 * end_stage_1 # because of 10% deletions
