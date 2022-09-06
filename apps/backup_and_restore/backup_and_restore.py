@@ -7,6 +7,7 @@ import random
 import numpy as np
 import uuid
 import sys
+import requests
 
 def other_classes(all_classes, self):
     return [c for c in all_classes if c != self]
@@ -282,7 +283,54 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
             success(f"validated {i}/{samples} sample vector searches")
 
 
+def temp_backup_url_create():
+    return f"http://localhost:8080/v1/backups/filesystem/"
+
+def temp_backup_url_create_status(backup_name):
+    return f"http://localhost:8080/v1/backups/filesystem/{backup_name}"
+
+def temp_backup_url_restore(backup_name):
+    return f"http://localhost:8080/v1/backups/filesystem/{backup_name}/restore"
+
+def temp_backup_url_restore_status(backup_name):
+    return f"http://localhost:8080/v1/backups/filesystem/{backup_name}/restore"
+
+def create_backup(client: weaviate.Client, name):
+    create_body = {'id': name }
+    res = requests.post(temp_backup_url_create(), json = create_body)
+    if res.status_code > 399:
+        fatal(f"Backup Create returned status code {res.status_code} with body: {res.json()}")
+
+    while True:
+        time.sleep(1)
+        res = requests.get(temp_backup_url_create_status(name))
+        res_json = res.json()
+        if res_json['status'] == 'SUCCESS':
+            success(f"Backup creation successful")
+            break
+        if res_json['status'] == 'FAILED':
+            fatal(f"Backup failed with res: {res_json}")
+
+def restore_backup(client: weaviate.Client, name):
+    restore_body = {'id': name }
+    res = requests.post(temp_backup_url_restore(name), json = restore_body)
+    if res.status_code > 399:
+        fatal(f"Backup Restore returned status code {res.status_code} with body: {res.json()}")
+
+    while True:
+        time.sleep(1)
+        res = requests.get(temp_backup_url_restore_status(name))
+        res_json = res.json()
+        if res_json['status'] == 'SUCCESS':
+            success(f"Restore succeeded")
+            break
+        if res_json['status'] == 'FAILED':
+            fatal(f"Restore failed with res: {res_json}")
+
+
 client = weaviate.Client("http://localhost:8080")
+
+backup_name = f"{int(datetime.datetime.now().timestamp())}_stage_1"
 
 class_names=['Class_A', 'Class_B']
 objects_per_stage = 50_000
@@ -314,7 +362,7 @@ for class_name in class_names:
     validate_dataset(client, class_name, expected_count=expected_count_stage_1)
     validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", all_classes=class_names)
 logger.info("Step 4, create backup of current instance including all classes")
-logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+create_backup(client, backup_name)
 
 logger.info(f"Step 5a, import second half of objects across {len(class_names)} classes")
 for class_name in class_names:
@@ -346,17 +394,36 @@ logger.info("Step 8, delete all classes")
 client.schema.delete_all()
 
 logger.info("Step 9, restore backup at half-way mark")
-logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+restore_backup(client, backup_name)
 
 logger.info("Step 10, run test and make sure results are same as on original instance at stage 1")
-logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+for class_name in class_names:
+    logger.info(f"{class_name}:")
+    validate_dataset(client, class_name, expected_count=expected_count_stage_1)
+    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", all_classes=class_names)
 
-logger.info("Step 11, import second half of objects")
-logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+logger.info("Step 11a, import second half of objects after restore")
+for class_name in class_names:
+    load_records(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2", all_classes=class_names)
+
+logger.info(f"Step 11b, set cross refs for objects across {len(class_names)} classes after restore")
+for class_name in class_names:
+    set_crossrefs(client, start=start_stage_2, end=end_stage_2, classes=class_names)
 
 logger.info("Step 12, delete 10% of objects of new import")
-logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+for class_name in class_names:
+    delete_records(client, class_name)
 
 logger.info("Step 13, run test and make sure results are same as on original instance at stage 2")
-logger.warning("SKIPPED - WAITING FOR BACKUP IMPLEMENTATION TO COMPLETE")
+for class_name in class_names:
+    logger.info(f"{class_name} - Overall:")
+    validate_dataset(client, class_name, expected_count=expected_count_stage_2)
+
+for class_name in class_names:
+    logger.info(f"{class_name} - Stage 1:")
+    validate_stage(client, class_name, start=start_stage_1, end=end_stage_1, stage="stage_1", all_classes=class_names)
+
+for class_name in class_names:
+    logger.info(f"{class_name} - Stage 2:")
+    validate_stage(client, class_name, start=start_stage_2, end=end_stage_2, stage="stage_2", all_classes=class_names)
 
