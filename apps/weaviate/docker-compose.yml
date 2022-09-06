@@ -22,6 +22,7 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'
-      ENABLE_MODULES: 'storage-filesystem'
+      ENABLE_MODULES: 'storage-filesystem' # TODO adapt once ready
+      STORAGE_FS_SNAPSHOTS_PATH: '/var/lib/snapshots' # TODO adapt once ready
       CLUSTER_HOSTNAME: 'node1' 
 ...
