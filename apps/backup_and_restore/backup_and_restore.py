@@ -79,7 +79,9 @@ def handle_errors(results: Optional[dict]) -> None:
                 for message in result['result']['errors']['error']:
                     logger.error(message['message'])
 
-def load_records(client: weaviate.Client, class_name="Class", start=0, end=100_000, stage="stage_0", all_classes=[]):
+def load_records(client: weaviate.Client, class_name="Class", start=0, end=100_000, stage="stage_0", all_classes:Optional[list[str]]=None):
+    if all_classes is None:
+        all_classes=[]
 
     client.batch.configure(batch_size=100, callback=handle_errors)
     with client.batch as batch:
