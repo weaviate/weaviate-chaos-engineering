@@ -190,7 +190,10 @@ def validate_dataset(client: weaviate.Client, class_name, expected_count=0):
 def sample_range(start, end, size):
     return enumerate(random.sample(range(start, end), size))
 
-def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0", all_classes=[]):
+def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, stage="stage_0", all_classes:Optional[list[str]]=None):
+    if all_classes is None:
+        all_classes=[]
+
     start_without_deleted = int((end-start)*0.1 + start)
     samples = 2000
     print_progress_step = 500
