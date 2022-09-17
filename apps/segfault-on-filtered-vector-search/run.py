@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     if args.action == "import":
         load_records(client, 1_000_000)
-    if args.action == "query":
+    elif args.action == "query":
         query(client, 10_000_000)
     elif args.action == "schema":
         reset_schema(client)

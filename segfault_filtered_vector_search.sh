@@ -19,12 +19,12 @@ echo "Building all required containers"
 ( cd apps/segfault-on-filtered-vector-search/ && docker build -t segfault_filtered_vector_search . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose.yml up -d
+docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
 
 wait_weaviate
 
 function dump_logs() {
-  docker-compose -f apps/weaviate/docker-compose.yml logs
+  docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml logs
 }
 
 trap 'dump_logs' ERR
@@ -33,8 +33,10 @@ trap 'dump_logs' ERR
 echo "Initialize schema"
 docker run --network host -it segfault_filtered_vector_search python3 run.py -a schema
 
-echo "Run query script in the background"
-docker run -d --rm --name query_script --network host -it segfault_filtered_vector_search python3 run.py -a query
+echo "Run multiple query scripts in the background"
+for i in {1..3}; do
+  docker run -d --network host -it segfault_filtered_vector_search python3 run.py -a query
+done
 
 echo "Run import script designed to lead to frequent hash prop compactions"
 docker run --network host -it segfault_filtered_vector_search python3 run.py -a import
