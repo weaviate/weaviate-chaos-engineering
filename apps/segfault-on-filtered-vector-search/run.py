@@ -73,8 +73,8 @@ def load_records(client: weaviate.Client, max_records=100000):
             )
 
             if i != 0 and i % 100000 == 0:
-                logger.info(f"Completed {i} records, sleeping for 65s to force a flush")
-                time.sleep(65)
+                logger.info(f"Completed {i} records, sleeping for 5s to force a flush")
+                time.sleep(5)
     logger.info(f"Finished writing {max_records} records")
 
 def query(client, count):

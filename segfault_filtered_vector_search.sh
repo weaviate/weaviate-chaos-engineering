@@ -41,6 +41,4 @@ done
 echo "Run import script designed to lead to frequent hash prop compactions"
 docker run --network host -it segfault_filtered_vector_search python3 run.py -a import
 
-docker stop query_script
-
 echo "Passed!"
