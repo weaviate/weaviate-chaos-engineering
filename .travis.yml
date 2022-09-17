@@ -15,6 +15,9 @@ jobs:
     - name: "Heavy object store imports while crashing"
       script: ./import_while_crashing_no_vector.sh
       if: type != pull_request
+    - name: "Segfault on filtered vector search (race with hash bucket compaction)"
+      script: ./segfault_filtered_vector_search.sh
+      if: type != pull_request
     - name: "Backup & Restore"
       script: ./backup_and_restore.sh
       if: type != pull_request
