@@ -57,7 +57,6 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message['message'])
 
 def load_records(client: weaviate.Client, max_records=100000):
-    global random_words
     client.batch.configure(batch_size=100, callback=handle_errors)
     with client.batch as batch:
         for i in range(max_records):
