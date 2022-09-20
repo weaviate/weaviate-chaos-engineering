@@ -1,6 +1,6 @@
 language: minimal
 
-dist: jammy
+dist: focal
 env: 
   matrix:
     - WEAVIATE_VERSION: latest@sha256:960869f13a154b81b138c4cf7ee59c9aa60426530fd140f1676c02044e883b61 # build from https://github.com/semi-technologies/weaviate/pull/2212
