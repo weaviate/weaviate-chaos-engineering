@@ -1,4 +1,5 @@
 language: minimal
+dist: focal
 env: 
   matrix:
     - WEAVIATE_VERSION: latest@sha256:683b3bed4cf8f5c01b474515ab895757818c65f11ff421d5e18ae38c490d629c
