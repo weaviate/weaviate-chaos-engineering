@@ -1,0 +1,4 @@
+weaviate-client>=3.8.0
+numpy==1.22.2
+loguru==0.5.3
+
