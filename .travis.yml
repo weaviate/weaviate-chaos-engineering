@@ -23,6 +23,9 @@ jobs:
     - name: "Backup & Restore CRUD"
       script: ./backup_and_restore_crud.sh
       if: type != pull_request
+    - name: "Backup & Restore version compatibility"
+      script: ./backup_and_restore_version_compatibility.sh
+      if: type != pull_request
     - name: "Compare Recall after import to after restart"
       script: ./compare_recall_after_restart.sh
       if: type != pull_request
@@ -55,7 +58,7 @@ before_script:
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
 before_install:
-  # udpate Docker
+  # update Docker
   - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
   - sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   - sudo apt-get update

@@ -15,8 +15,6 @@ services:
     - 8080:8080
     - 6060:6060
     restart: on-failure:0
-    volumes:
-      - ./data-node-1:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -33,6 +31,38 @@ services:
       BACKUP_GCS_ENDPOINT: 'backup-gcs:9090'
       BACKUP_GCS_BUCKET: 'weaviate-backups'
 
+  # Mutually exclusive with weaviate-node-2
+  # Used for single-node BRO version compat
+  weaviate-backup-node:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8081'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_NODE_2_VERSION
+    ports:
+    - 8081:8081
+    - 6061:6060
+    restart: on-failure:0
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'backup-gcs'
+      BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
+      CLUSTER_HOSTNAME: 'node1' 
+      GOOGLE_CLOUD_PROJECT: 'cluster-version-backup-test'
+      STORAGE_EMULATOR_HOST: 'backup-gcs:9090' 
+      BACKUP_GCS_ENDPOINT: 'backup-gcs:9090'
+      BACKUP_GCS_BUCKET: 'weaviate-backups'
+
+  # Mutually exclusive with weaviate-backup-node
+  # Used for cluster backup scenarios
   weaviate-node-2:
     init: true
     command:
@@ -47,8 +77,6 @@ services:
     - 8081:8081
     - 6061:6060
     restart: on-failure:0
-    volumes:
-      - ./data-node-2:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -65,6 +93,8 @@ services:
       STORAGE_EMULATOR_HOST: 'backup-gcs:9090' 
       BACKUP_GCS_ENDPOINT: 'backup-gcs:9090'
       BACKUP_GCS_BUCKET: 'weaviate-backups'
+    volumes:
+    - ./data-node-2:/var/lib/weaviate
 
   backup-gcs:
     image: oittaa/gcp-storage-emulator
@@ -76,8 +106,7 @@ services:
     - '9090'
     - '--default-bucket'
     - 'weaviate-backups'
+    - '--in-memory'
     ports:
-      - '9090:9090'
-    volumes:
-          - ./backups-gcs:/storage
+    - '9090:9090'
 ...

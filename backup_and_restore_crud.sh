@@ -23,7 +23,7 @@ docker-compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
 
-echo "Run backup and restore operations"
+echo "Run backup and restore CRUD operations"
 docker run --network host -it backup_and_restore_crud python3 backup_and_restore_crud.py
 
 echo "Passed!"
