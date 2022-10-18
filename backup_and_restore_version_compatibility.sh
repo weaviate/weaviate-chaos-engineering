@@ -50,7 +50,7 @@ for pair in "${!version_pairs[@]}"; do
   export WEAVIATE_NODE_2_VERSION=$restore_version
 
   echo "Starting Weaviate cluster..."
-  docker-compose -f apps/weaviate/docker-compose-backup.yml up weaviate-node-1 weaviate-backup-node backup-gcs -d
+  docker-compose -f apps/weaviate/docker-compose-backup.yml up -d weaviate-node-1 weaviate-backup-node backup-gcs
 
   wait_weaviate_cluster
 
