@@ -24,16 +24,14 @@ def generate_version_pairs():
     except Exception as e:
         return e
 
-    # TODO: the version combinations grow exponentially with each
-    #       new version. we should put a cap on this, and only test
-    #       the last N versions for compatibility
     versions = [t.lstrip('v') for t in tags if is_version_since_backup_introduced(t.lstrip('v'))]
 
-    # compute all possible version combinations
-    combos = list(itertools.combinations(versions, 2))
+    # only compare the latest version with all previous ones
+    latest = versions.pop()
+    pairs = [(prev, latest) for prev in versions]
 
     # make permutation for each pair so we check all version pairs
-    permut = [list(itertools.permutations(pair)) for pair in combos]
+    permut = [list(itertools.permutations(pair)) for pair in pairs]
 
     # flatten the list of all version pairs
     flat = list(itertools.chain.from_iterable(permut))
