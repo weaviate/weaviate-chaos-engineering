@@ -1,15 +1,21 @@
 import json
 import random
 from time import time
+from typing import Sequence
 import torch
 import weaviate
 import math
 from uuid import uuid4
 
-client = weaviate.Client("http://localhost:8080",
-        timeout_config = (5, 120)
 
-        )  # or another location where your Weaviate instance is running
+BATCH_SIZE = 256
+
+client = weaviate.Client(
+    url="http://localhost:8080",
+    timeout_config = (20, 120),
+)  # or another location where your Weaviate instance is running
+
+
 schema = {
     "classes": [{
         "class": "SemanticUnit",
@@ -86,8 +92,12 @@ schema = {
 # cleanup from previous runs
 client.schema.delete_all()
 client.schema.create(schema)
-batch = weaviate.ObjectsBatchRequest()
-batchSize = 256
+
+
+client.batch.configure(
+    batch_size=BATCH_SIZE,
+)
+
 
 data=[]
 with open("data.json", "r") as f:
@@ -109,35 +119,30 @@ update_ratio = 0.0
 
 #     return random.choice(ids)
 
-def normalize(v):
-    norm=0
-    for x in v:
-        norm+= x*x
-    norm=math.sqrt(norm)
-    for i, x in enumerate(v):
-        v[i] = x/norm
-    return v
+def normalize(vector: Sequence):
+    norm: int = 0
+    for x in vector:
+        norm += x * x
+    norm = math.sqrt(norm)
+    for i, x in enumerate(vector):
+        vector[i] = x / norm
+    return vector
 
 start = time()
-for i, doc in enumerate(data):
-    props = {
-        "title": doc['properties']['title'],
-        "text": doc['properties']['text'],
-        "docType": doc['properties']['token'],
-        "itemId": doc['properties']['itemId'],
-        "itemIdHundred": doc['properties']['itemIdHundred'],
-        "itemIdTen": doc['properties']['itemIdTen'],
-        "dummy": 7,
-    }
-    batch.add(props, "SemanticUnit", vector=normalize(doc['vector']), uuid=doc['id'])
-    # when either batch size is reached or we are at the last object
-    if (i != 0 and i % batchSize == 0) or i == len(data) - 1:
-        print(f'send! {i/len(data)*100:.2f}% - index time: {(time() -start)/60:.2f}mn')
-        # send off the batch
-        res = client.batch.create(batch)
-        for single in res:
-            if "errors" in single["result"]:
-                print(single["result"]["errors"])
-        # and reset for the next batch
-        batch = weaviate.ObjectsBatchRequest()
-
+with client.batch as batch:
+    for i, doc in enumerate(data):
+        props = {
+            "title": doc['properties']['title'],
+            "text": doc['properties']['text'],
+            "docType": doc['properties']['token'],
+            "itemId": doc['properties']['itemId'],
+            "itemIdHundred": doc['properties']['itemIdHundred'],
+            "itemIdTen": doc['properties']['itemIdTen'],
+            "dummy": 7,
+        }
+        batch.add_data_object(
+            data_object=props,
+            class_name="SemanticUnit",
+            uuid=doc['id'],
+            vector=normalize(doc['vector']),
+        )
