@@ -32,7 +32,6 @@ class TestConsecutiveCreateAndUpdate:
 
     def checkIfObjectsExist(self, uuids):
         for _id in uuids:
-          # assert self.client.data_object.exists(_id)
           resp = self.client.data_object.get_by_id(_id, with_vector=True)
           if resp is None:
             print(f"ERROR!!! Object with ID: {_id} doesn't exist!!!")
@@ -70,16 +69,19 @@ class TestConsecutiveCreateAndUpdate:
         with self.client.batch(batch_size=50, callback=self.batch_callback_result) as batch:
             for _id in uuids:
                 batch.add_data_object(data_object={'a': self.img}, class_name=cls_name, uuid=_id)
-        self.client.batch.flush()
+            batch.flush()
 
         print(f"Update objects with vector started...")
         x = 1
         # embed
-        for _id in uuids:
-            self.client.batch.add_data_object(data_object={'a': self.img2}, class_name=cls_name, uuid=_id, vector=[3,2,1])
-            if x % 1000 == 0:
-                print(f"updated {x} objects...")
-            x += 1
+        with self.client.batch(batch_size=50, callback=self.batch_callback_result) as batch:
+            for _id in uuids:
+                batch.add_data_object(data_object={'a': self.img2}, class_name=cls_name, uuid=_id, vector=[3,2,1])
+                if x % 1000 == 0:
+                    print(f"updated {x} objects...")
+                x += 1
+            batch.flush()
+
 
         print("Check if objects exist...")
         # check
@@ -94,7 +96,7 @@ class TestConsecutiveCreateAndUpdate:
                 if x % 1000 == 0:
                     print(f"updated {x} objects...")
                 x += 1
-        self.client.batch.flush()
+            batch.flush()
 
         print("Check if objects exist...")
         # check
