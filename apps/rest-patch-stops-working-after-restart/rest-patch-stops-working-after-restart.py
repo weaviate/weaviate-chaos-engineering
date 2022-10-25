@@ -9,7 +9,16 @@ from loguru import logger
 
 def create_weaviate_schema(client: weaviate.Client) -> None:
     schema_class = {
-        "class": "PatchStopsWorkingAfterRestart",
+        "classes": [{
+            "class": "PatchStopsWorkingAfterRestart",
+            "properties": [
+                {
+                    "dataType": ["string"],
+                    "name": "description",
+                    "tokenization": "word",
+                    "indexInverted": True
+                },
+            ]}],
         "vectorizer": "none",
         "vectorIndexType": "hnsw",
         "invertedIndexConfig": {
@@ -21,15 +30,7 @@ def create_weaviate_schema(client: weaviate.Client) -> None:
             "stopwords": {
                 "preset": "en"
             }
-        },
-        "properties": [
-            {
-                "dataType": ["string"],
-                "name": "description",
-                "tokenization": "word",
-                "indexInverted": True
-            },
-        ]
+        }
     }
     # add schema
     if not client.schema.contains(schema_class):
