@@ -9,7 +9,16 @@ from loguru import logger
 
 def create_weaviate_schema(client: weaviate.Client) -> None:
     schema_class = {
-        "class": "PatchStopsWorkingAfterRestart",
+        "classes": [{
+            "class": "PatchStopsWorkingAfterRestart",
+            "properties": [
+                {
+                    "dataType": ["string"],
+                    "name": "description",
+                    "tokenization": "word",
+                    "indexInverted": True
+                },
+            ]}],
         "vectorizer": "none",
         "vectorIndexType": "hnsw",
         "invertedIndexConfig": {
@@ -21,15 +30,7 @@ def create_weaviate_schema(client: weaviate.Client) -> None:
             "stopwords": {
                 "preset": "en"
             }
-        },
-        "properties": [
-            {
-                "dataType": ["string"],
-                "name": "description",
-                "tokenization": "word",
-                "indexInverted": True
-            },
-        ]
+        }
     }
     # add schema
     if not client.schema.contains(schema_class):
@@ -44,7 +45,7 @@ def get_body(index: str, req_type: str) -> Dict[str, str]:
 
 def create_object_if_it_does_not_exist(client: weaviate.Client, class_name: str, object_id: str) -> None:
     try:
-        if not client.data_object.exists(object_id):
+        if not client.data_object.exists(object_id, class_name):
             client.data_object.create(get_body(0, "create"), class_name, object_id)
     except Exception:
         logger.exception(f"Error adding {class_name} object - id: {object_id}")
