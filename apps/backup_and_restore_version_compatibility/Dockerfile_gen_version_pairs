@@ -5,6 +5,9 @@ RUN apt-get install git -y
 
 WORKDIR /workdir
 
+ARG weaviate_version
+ENV WEAVIATE_VERSION=${weaviate_version}
+
 ADD generate_version_pairs.py ./
 ADD get_tags.sh ./
 

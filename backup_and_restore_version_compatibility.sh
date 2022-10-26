@@ -30,7 +30,8 @@ echo "Building app container"
 ( cd apps/backup_and_restore_version_compatibility/ && docker build -t backup_and_restore_version_compatibility . )
 
 echo "Generating version pairs"
-cd apps/backup_and_restore_version_compatibility/ && docker build -f Dockerfile_gen_version_pairs -t generate_version_pairs .
+cd apps/backup_and_restore_version_compatibility/ && docker build -f Dockerfile_gen_version_pairs \
+    -t generate_version_pairs --build-arg weaviate_version=${WEAVIATE_VERSION} .
 cd -
 
 pair_string=$(docker run --rm generate_version_pairs)
