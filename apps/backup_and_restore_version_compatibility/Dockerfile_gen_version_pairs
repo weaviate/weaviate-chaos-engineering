@@ -1,0 +1,14 @@
+FROM python:3.10-slim
+
+RUN apt-get update -y
+RUN apt-get install git -y
+
+WORKDIR /workdir
+
+ARG weaviate_version
+ENV WEAVIATE_VERSION=${weaviate_version}
+
+ADD generate_version_pairs.py ./
+ADD get_tags.sh ./
+
+CMD ["python", "generate_version_pairs.py"]
