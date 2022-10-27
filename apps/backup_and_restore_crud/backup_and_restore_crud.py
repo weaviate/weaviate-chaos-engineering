@@ -1,13 +1,16 @@
-import weaviate
 import datetime
+import numpy as np
+import os
+import random
+import requests
+import sys
 import time
+import uuid
+import weaviate
+
 from loguru import logger
 from typing import Optional
-import random
-import numpy as np
-import uuid
-import sys
-import requests
+
 
 def other_classes(all_classes, self):
     return [c for c in all_classes if c != self]
@@ -287,18 +290,23 @@ def validate_stage(client: weaviate.Client, class_name, start=0, end=100_000, st
         if i % print_progress_step == 0:
             success(f"validated {i}/{samples} sample vector searches")
 
+def backend_provider():
+    backend = os.environ.get('BACKUP_BACKEND_PROVIDER')
+    if backend is None or backend == '':
+        return 'filesystem'
+    return backend
 
 def temp_backup_url_create():
-    return f"http://localhost:8080/v1/backups/filesystem/"
+    return f"http://localhost:8080/v1/backups/{backend_provider()}"
 
 def temp_backup_url_create_status(backup_name):
-    return f"http://localhost:8080/v1/backups/filesystem/{backup_name}"
+    return f"http://localhost:8080/v1/backups/{backend_provider()}/{backup_name}"
 
 def temp_backup_url_restore(backup_name):
-    return f"http://localhost:8080/v1/backups/filesystem/{backup_name}/restore"
+    return f"http://localhost:8080/v1/backups/{backend_provider()}/{backup_name}/restore"
 
 def temp_backup_url_restore_status(backup_name):
-    return f"http://localhost:8080/v1/backups/filesystem/{backup_name}/restore"
+    return f"http://localhost:8080/v1/backups/{backend_provider()}/{backup_name}/restore"
 
 def create_backup(client: weaviate.Client, name):
     create_body = {'id': name }
@@ -307,7 +315,7 @@ def create_backup(client: weaviate.Client, name):
         fatal(f"Backup Create returned status code {res.status_code} with body: {res.json()}")
 
     while True:
-        time.sleep(1)
+        time.sleep(3)
         res = requests.get(temp_backup_url_create_status(name))
         res_json = res.json()
         if res_json['status'] == 'SUCCESS':
@@ -323,7 +331,7 @@ def restore_backup(client: weaviate.Client, name):
         fatal(f"Backup Restore returned status code {res.status_code} with body: {res.json()}")
 
     while True:
-        time.sleep(1)
+        time.sleep(3)
         res = requests.get(temp_backup_url_restore_status(name))
         res_json = res.json()
         if res_json['status'] == 'SUCCESS':

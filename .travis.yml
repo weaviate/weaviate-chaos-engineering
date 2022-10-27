@@ -11,36 +11,39 @@ env:
 
 jobs:
   include:
-    - name: "Import during constant kills/crashes"
-      script: ./import_while_crashing.sh
-      if: type != pull_request
-    - name: "Heavy object store imports while crashing"
-      script: ./import_while_crashing_no_vector.sh
-      if: type != pull_request
-    - name: "Segfault on filtered vector search (race with hash bucket compaction)"
-      script: ./segfault_filtered_vector_search.sh
-      if: type != pull_request
+    # - name: "Import during constant kills/crashes"
+    #   script: ./import_while_crashing.sh
+    #   if: type != pull_request
+    # - name: "Heavy object store imports while crashing"
+    #   script: ./import_while_crashing_no_vector.sh
+    #   if: type != pull_request
+    # - name: "Segfault on filtered vector search (race with hash bucket compaction)"
+    #   script: ./segfault_filtered_vector_search.sh
+    #   if: type != pull_request
     - name: "Backup & Restore CRUD"
       script: ./backup_and_restore_crud.sh
+      if: type != pull_request
+    - name: "Backup & Restore multi node CRUD"
+      script: ./backup_and_restore_multi_node_crud.sh
       if: type != pull_request
     - name: "Backup & Restore version compatibility"
       script: ./backup_and_restore_version_compatibility.sh
       if: type != pull_request
-    - name: "Compare Recall after import to after restart"
-      script: ./compare_recall_after_restart.sh
-      if: type != pull_request
-    - name: "Concurrent inverted index read/write"
-      script: ./concurrent_inverted_index_read_write.sh
-      if: type != pull_request
-    - name: "Consecutive create and update operations"
-      script: ./consecutive_create_and_update_operations.sh
-      if: type != pull_request
-    - name: "Batch insert mismatch"
-      script: ./batch_insert_mismatch.sh
-      if: type != pull_request
-    - name: "REST PATCH requests stop working after restart"
-      script: ./rest_patch_stops_working_after_restart.sh
-      if: type != pull_request
+    # - name: "Compare Recall after import to after restart"
+    #   script: ./compare_recall_after_restart.sh
+    #   if: type != pull_request
+    # - name: "Concurrent inverted index read/write"
+    #   script: ./concurrent_inverted_index_read_write.sh
+    #   if: type != pull_request
+    # - name: "Consecutive create and update operations"
+    #   script: ./consecutive_create_and_update_operations.sh
+    #   if: type != pull_request
+    # - name: "Batch insert mismatch"
+    #   script: ./batch_insert_mismatch.sh
+    #   if: type != pull_request
+    # - name: "REST PATCH requests stop working after restart"
+    #   script: ./rest_patch_stops_working_after_restart.sh
+    #   if: type != pull_request
     # Commented only because this chaos pipeline was able to interrupt save operation
     # just in the middle of it being performed and since Weaviate doesn't have a transaction
     # mechanism implemented then this was causing an error which is a different error then
@@ -49,9 +52,9 @@ jobs:
     # - name: "Compare REST and GraphQL while crashing"
     #   script: ./compare_rest_graphql_while_crashing.sh
     #   if: type != pull_request
-    - name: "Delete and recreate class with frequent updates"
-      script: ./delete_and_recreate_class.sh
-      if: type != pull_request
+    # - name: "Delete and recreate class with frequent updates"
+    #   script: ./delete_and_recreate_class.sh
+    #   if: type != pull_request
 
 before_script:
   # login to docker at the very beginning, so we don't run into rate-limiting

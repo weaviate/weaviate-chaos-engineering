@@ -21,15 +21,16 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'
-      ENABLE_MODULES: 'backup-gcs'
+      ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
       CLUSTER_HOSTNAME: 'node1' 
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
-      GOOGLE_CLOUD_PROJECT: 'cluster-version-backup-test'
-      STORAGE_EMULATOR_HOST: 'backup-gcs:9090' 
-      BACKUP_GCS_ENDPOINT: 'backup-gcs:9090'
-      BACKUP_GCS_BUCKET: 'weaviate-backups'
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUP_S3_USE_SSL: 'false'
 
   # Mutually exclusive with weaviate-node-2
   # Used for single-node BRO version compat
@@ -53,13 +54,15 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'
-      ENABLE_MODULES: 'backup-gcs'
+      ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
       CLUSTER_HOSTNAME: 'node1' 
-      GOOGLE_CLOUD_PROJECT: 'cluster-version-backup-test'
-      STORAGE_EMULATOR_HOST: 'backup-gcs:9090' 
-      BACKUP_GCS_ENDPOINT: 'backup-gcs:9090'
-      BACKUP_GCS_BUCKET: 'weaviate-backups'
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUP_S3_USE_SSL: 'false'
+
 
   # Mutually exclusive with weaviate-backup-node
   # Used for cluster backup scenarios
@@ -83,30 +86,49 @@ services:
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'
-      ENABLE_MODULES: 'backup-gcs'
+      ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
       CLUSTER_HOSTNAME: 'node2' 
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
-      GOOGLE_CLOUD_PROJECT: 'cluster-version-backup-test'
-      STORAGE_EMULATOR_HOST: 'backup-gcs:9090' 
-      BACKUP_GCS_ENDPOINT: 'backup-gcs:9090'
-      BACKUP_GCS_BUCKET: 'weaviate-backups'
-    volumes:
-    - ./data-node-2:/var/lib/weaviate
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUP_S3_USE_SSL: 'false'
 
-  backup-gcs:
-    image: oittaa/gcp-storage-emulator
-    command:
-    - 'start'
-    - '--host'
-    - '0.0.0.0'
-    - '--port'
-    - '9090'
-    - '--default-bucket'
-    - 'weaviate-backups'
-    - '--in-memory'
+  backup-s3:
+    image: minio/minio
     ports:
-    - '9090:9090'
+      - "9000:9000"
+    volumes:
+      - ./backups-s3:/data
+    environment:
+      MINIO_ROOT_USER: 'aws_access_key'
+      MINIO_ROOT_PASSWORD: 'aws_secret_key'
+    command: server /data
+
+  create-s3-bucket:
+    image: minio/mc
+    depends_on:
+      - backup-s3
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
+      /usr/bin/mc mb chaos/weaviate-backups;
+      /usr/bin/mc policy set public chaos/weaviate-backups;
+      exit 0;
+      "
+
+  remove-s3-bucket:
+    image: minio/mc
+    depends_on:
+      - backup-s3
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
+      /usr/bin/mc rb --force chaos/weaviate-backups;
+      exit 0;
+      "
 ...
