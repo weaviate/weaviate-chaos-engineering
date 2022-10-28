@@ -12,6 +12,28 @@ from loguru import logger
 from typing import Optional
 
 
+def assert_expected_shard_count(client: weaviate.Client):
+    expected = os.environ.get('EXPECTED_SHARD_COUNT')
+    if expected is None or expected == '':
+        expected = 1
+    else:
+        expected = int(expected)
+
+    schema = client.schema.get()['classes']
+    class_shard_counts = [
+        {
+            'class': cls['class'], 
+            'actualCount': cls['shardingConfig']['actualCount']
+        } 
+        for cls in schema
+    ]
+
+    logger.info(f"Expected shard count per class: {expected}")
+    logger.info(f"Actual shard counts: {class_shard_counts}")
+    
+    assert len(class_shard_counts) > 0 and len(class_shard_counts) == len(schema)
+    assert all(list(map(lambda cls: cls['actualCount'] == expected, class_shard_counts)))
+
 def other_classes(all_classes, self):
     return [c for c in all_classes if c != self]
 
@@ -62,6 +84,8 @@ def reset_schema(client: weaviate.Client, class_names):
             }
 
             client.schema.property.create(class_name, add_prop)
+    
+    assert_expected_shard_count(client)
 
 def handle_errors(results: Optional[dict]) -> None:
     """

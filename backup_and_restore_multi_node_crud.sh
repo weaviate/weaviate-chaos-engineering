@@ -27,7 +27,8 @@ function wait_weaviate_cluster() {
 }
 
 echo "Building all required containers"
-( cd apps/backup_and_restore_crud/ && docker build -t backup_and_restore_crud --build-arg backend="s3" . )
+( cd apps/backup_and_restore_crud/ && docker build -t backup_and_restore_crud \
+  --build-arg backend="s3" --build-arg expected_shard_count=2 . )
 
 export WEAVIATE_NODE_1_VERSION=$WEAVIATE_VERSION
 export WEAVIATE_NODE_2_VERSION=$WEAVIATE_VERSION
