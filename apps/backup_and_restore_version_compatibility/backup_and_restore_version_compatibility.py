@@ -98,16 +98,16 @@ def hostname(client: weaviate.Client):
     return host
 
 def backup_url_create(client: weaviate.Client):
-    return f"{hostname(client)}/v1/backups/gcs"
+    return f"{hostname(client)}/v1/backups/s3"
 
 def backup_url_create_status(client: weaviate.Client, backup_name):
-    return f"{hostname(client)}/v1/backups/gcs/{backup_name}"
+    return f"{hostname(client)}/v1/backups/s3/{backup_name}"
 
 def backup_url_restore(client: weaviate.Client, backup_name):
-    return f"{hostname(client)}/v1/backups/gcs/{backup_name}/restore"
+    return f"{hostname(client)}/v1/backups/s3/{backup_name}/restore"
 
 def backup_url_restore_status(client: weaviate.Client, backup_name):
-    return f"{hostname(client)}/v1/backups/gcs/{backup_name}/restore"
+    return f"{hostname(client)}/v1/backups/s3/{backup_name}/restore"
 
 def create_backup(client: weaviate.Client, name):
     create_body = {'id': name }

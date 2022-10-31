@@ -23,6 +23,9 @@ jobs:
     - name: "Backup & Restore CRUD"
       script: ./backup_and_restore_crud.sh
       if: type != pull_request
+    - name: "Backup & Restore multi node CRUD"
+      script: ./backup_and_restore_multi_node_crud.sh
+      if: type != pull_request
     - name: "Backup & Restore version compatibility"
       script: ./backup_and_restore_version_compatibility.sh
       if: type != pull_request
