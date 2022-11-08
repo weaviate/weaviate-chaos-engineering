@@ -10,7 +10,7 @@ services:
     - '8080'
     - --scheme
     - http
-    image: semitechnologies/weaviate:$WEAVIATE_NODE_VERSION
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
     ports:
     - 8080:8080
     - 6060:6060
@@ -34,7 +34,7 @@ services:
     - '8081'
     - --scheme
     - http
-    image: semitechnologies/weaviate:$WEAVIATE_NODE_VERSION
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
     ports:
     - 8081:8081
     - 6061:6060
