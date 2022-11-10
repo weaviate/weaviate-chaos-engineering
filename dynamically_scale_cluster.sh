@@ -58,6 +58,15 @@ echo "Building all required containers"
 
   echo "verify on second node again after restart"
   docker run --network host -it scaling python3 run.py -a verify -p 8081
+
+  echo "Starting Node 3"
+  dc up -d weaviate-3
+  wait_weaviate_node 8082
+
+  echo "verify on all three nodes"
+  docker run --network host -it scaling python3 run.py -a verify -p 8080
+  docker run --network host -it scaling python3 run.py -a verify -p 8081
+  docker run --network host -it scaling python3 run.py -a verify -p 8082
 }
 
 main "$@"
