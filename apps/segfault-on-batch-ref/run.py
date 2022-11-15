@@ -165,7 +165,7 @@ if __name__ == "__main__":
         ids_class_2 = generate_ids(object_count)
 
         load_objects(client, ids_class_1, ids_class_2)
-        load_references(client, 1000, ids_class_1, ids_class_2)
+        load_references(client, 400, ids_class_1, ids_class_2)
     elif args.action == "schema":
         reset_schema(client)
     else:
