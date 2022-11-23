@@ -3,7 +3,7 @@ language: minimal
 dist: focal
 env: 
   matrix:
-    - WEAVIATE_VERSION: latest@sha256:b1086d11ca5ea3686fa1de84812c7cfaa2519ac8ac6776fc0f076622f852023c # v1.16.1-RC
+    - WEAVIATE_VERSION: preview-skips-revectorize-objects-on-patch-1840efb
   global:
     - DOCKER_COMPOSE_VERSION=1.29.0
     - secure: "bN876Vv+Zj3V8qMUcowQmxlBtUO2rxujHV/iX/K37ZJSm2/NVy8izdfP2mDVqpaIBdZoFhHmXHSO62LXCUnku6ZK+3WLCTC6qH+Rnq7QRMAJVa/prrj9E8aAqs087XmucmTiBX0SClRQ5CM4TpcApIrXL1+6FRWwC8KMof5eZqZJL6ccGN2GxW8RF+T/In1Ajo1WmnVwefcPwvNhqiRHKoFYNaAVLw1f44gQnXMegfeiDvTLI4Ay4UeAUt3fqndrQWnKbWnYdHRJgi6QSOC79rFxqTD0QuPyEs0oNQ6uDBEEMffvCc5SA8vrefvpSfKKwyptLt7VaMYUfyGJherlHOXyVL6Uo9wSzfYOQuXmQypbYLb9ZvdeUYi6M1vf2e5LlpGGi0s39pxH5whpcFu1cfKhQcuATe8f5m2zcas1SCver/GCph29aA3d5A9sbcoiVa0UbPlbS+4cF+iq2Y0ZaC++HvR4Zj/U2S5nhCSFZ9HPXw0S8pNIYts0zZVj5kpwhcSggaqSFIlZRACASmMZJXl6VTQK5bl5DYjLxWk27YiZK155LnL6jjOVxMOEjV7+a1yFmZueXMWWXUQuWti9AHtDwj8z4VgWve4ZVl73JoJmBvN33oUaZkQT0448f2aoqjklFRSYT/hC8okrMdKuxJ2mlnwUkEloVZ4fofdUuQI="
