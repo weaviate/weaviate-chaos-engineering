@@ -86,8 +86,17 @@ func importAndCheck(ctx context.Context, client *weaviate.Client) error {
 
 		for batch := 0; batch < batchesPerCycle; batch++ {
 			batcher := client.Batch().ObjectsBatcher()
-			batcher.WithObjects(genObjects(ids, objectsPerBatch, payloadSize)...).
+			res, err := batcher.WithObjects(genObjects(ids, objectsPerBatch, payloadSize)...).
 				Do(ctx)
+			if err != nil {
+				return err
+			}
+
+			for _, obj := range res {
+				if obj.Result.Errors != nil && len(obj.Result.Errors.Error) > 0 {
+					return fmt.Errorf(obj.Result.Errors.Error[0].Message)
+				}
+			}
 			log.Printf("finished batch %d", (cycle*batchesPerCycle)+batch)
 		}
 
