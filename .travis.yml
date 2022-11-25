@@ -3,7 +3,8 @@ language: minimal
 dist: focal
 env: 
   matrix:
-    - WEAVIATE_VERSION: preview-improve-startup-time-by-persisting-more-lsm-segment-information-b37f8da
+    # - WEAVIATE_VERSION: preview-improve-startup-time-by-persisting-more-lsm-segment-information-b37f8da
+    - WEAVIATE_VERSION: 1.16.5
   global:
     - DOCKER_COMPOSE_VERSION=1.29.0
     - secure: "bN876Vv+Zj3V8qMUcowQmxlBtUO2rxujHV/iX/K37ZJSm2/NVy8izdfP2mDVqpaIBdZoFhHmXHSO62LXCUnku6ZK+3WLCTC6qH+Rnq7QRMAJVa/prrj9E8aAqs087XmucmTiBX0SClRQ5CM4TpcApIrXL1+6FRWwC8KMof5eZqZJL6ccGN2GxW8RF+T/In1Ajo1WmnVwefcPwvNhqiRHKoFYNaAVLw1f44gQnXMegfeiDvTLI4Ay4UeAUt3fqndrQWnKbWnYdHRJgi6QSOC79rFxqTD0QuPyEs0oNQ6uDBEEMffvCc5SA8vrefvpSfKKwyptLt7VaMYUfyGJherlHOXyVL6Uo9wSzfYOQuXmQypbYLb9ZvdeUYi6M1vf2e5LlpGGi0s39pxH5whpcFu1cfKhQcuATe8f5m2zcas1SCver/GCph29aA3d5A9sbcoiVa0UbPlbS+4cF+iq2Y0ZaC++HvR4Zj/U2S5nhCSFZ9HPXw0S8pNIYts0zZVj5kpwhcSggaqSFIlZRACASmMZJXl6VTQK5bl5DYjLxWk27YiZK155LnL6jjOVxMOEjV7+a1yFmZueXMWWXUQuWti9AHtDwj8z4VgWve4ZVl73JoJmBvN33oUaZkQT0448f2aoqjklFRSYT/hC8okrMdKuxJ2mlnwUkEloVZ4fofdUuQI="
@@ -14,53 +15,53 @@ jobs:
     - name: "Counting while compacting"
       script: ./counting_while_compacting.sh
       if: type != pull_request
-    - name: "Segfault on batch ref"
-      script: ./segfault_batch_ref.sh
-      if: type != pull_request
-    - name: "Import during constant kills/crashes"
-      script: ./import_while_crashing.sh
-      if: type != pull_request
-    - name: "Heavy object store imports while crashing"
-      script: ./import_while_crashing_no_vector.sh
-      if: type != pull_request
-    - name: "Segfault on filtered vector search (race with hash bucket compaction)"
-      script: ./segfault_filtered_vector_search.sh
-      if: type != pull_request
-    - name: "Backup & Restore CRUD"
-      script: ./backup_and_restore_crud.sh
-      if: type != pull_request
-    - name: "Backup & Restore multi node CRUD"
-      script: ./backup_and_restore_multi_node_crud.sh
-      if: type != pull_request
-    - name: "Backup & Restore version compatibility"
-      script: ./backup_and_restore_version_compatibility.sh
-      if: type != pull_request
-    - name: "Compare Recall after import to after restart"
-      script: ./compare_recall_after_restart.sh
-      if: type != pull_request
-    - name: "Concurrent inverted index read/write"
-      script: ./concurrent_inverted_index_read_write.sh
-      if: type != pull_request
-    - name: "Consecutive create and update operations"
-      script: ./consecutive_create_and_update_operations.sh
-      if: type != pull_request
-    - name: "Batch insert mismatch"
-      script: ./batch_insert_mismatch.sh
-      if: type != pull_request
-    - name: "REST PATCH requests stop working after restart"
-      script: ./rest_patch_stops_working_after_restart.sh
-      if: type != pull_request
-    # Commented only because this chaos pipeline was able to interrupt save operation
-    # just in the middle of it being performed and since Weaviate doesn't have a transaction
-    # mechanism implemented then this was causing an error which is a different error then
-    # the discrepancy one, but this pipeline is really good in crashing Weaviate so we want to
-    # save it for future tests
-    # - name: "Compare REST and GraphQL while crashing"
-    #   script: ./compare_rest_graphql_while_crashing.sh
+    # - name: "Segfault on batch ref"
+    #   script: ./segfault_batch_ref.sh
     #   if: type != pull_request
-    - name: "Delete and recreate class with frequent updates"
-      script: ./delete_and_recreate_class.sh
-      if: type != pull_request
+    # - name: "Import during constant kills/crashes"
+    #   script: ./import_while_crashing.sh
+    #   if: type != pull_request
+    # - name: "Heavy object store imports while crashing"
+    #   script: ./import_while_crashing_no_vector.sh
+    #   if: type != pull_request
+    # - name: "Segfault on filtered vector search (race with hash bucket compaction)"
+    #   script: ./segfault_filtered_vector_search.sh
+    #   if: type != pull_request
+    # - name: "Backup & Restore CRUD"
+    #   script: ./backup_and_restore_crud.sh
+    #   if: type != pull_request
+    # - name: "Backup & Restore multi node CRUD"
+    #   script: ./backup_and_restore_multi_node_crud.sh
+    #   if: type != pull_request
+    # - name: "Backup & Restore version compatibility"
+    #   script: ./backup_and_restore_version_compatibility.sh
+    #   if: type != pull_request
+    # - name: "Compare Recall after import to after restart"
+    #   script: ./compare_recall_after_restart.sh
+    #   if: type != pull_request
+    # - name: "Concurrent inverted index read/write"
+    #   script: ./concurrent_inverted_index_read_write.sh
+    #   if: type != pull_request
+    # - name: "Consecutive create and update operations"
+    #   script: ./consecutive_create_and_update_operations.sh
+    #   if: type != pull_request
+    # - name: "Batch insert mismatch"
+    #   script: ./batch_insert_mismatch.sh
+    #   if: type != pull_request
+    # - name: "REST PATCH requests stop working after restart"
+    #   script: ./rest_patch_stops_working_after_restart.sh
+    #   if: type != pull_request
+    # # Commented only because this chaos pipeline was able to interrupt save operation
+    # # just in the middle of it being performed and since Weaviate doesn't have a transaction
+    # # mechanism implemented then this was causing an error which is a different error then
+    # # the discrepancy one, but this pipeline is really good in crashing Weaviate so we want to
+    # # save it for future tests
+    # # - name: "Compare REST and GraphQL while crashing"
+    # #   script: ./compare_rest_graphql_while_crashing.sh
+    # #   if: type != pull_request
+    # - name: "Delete and recreate class with frequent updates"
+    #   script: ./delete_and_recreate_class.sh
+    #   if: type != pull_request
 
 before_script:
   # login to docker at the very beginning, so we don't run into rate-limiting
