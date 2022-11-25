@@ -67,14 +67,14 @@ func do(ctx context.Context) error {
 // know how many objects there should be. Part of this test is asserting that
 // the Aggregate { meta { count } } response matches this number.
 func importAndCheck(ctx context.Context, client *weaviate.Client) error {
-	cycles := 100
+	cycles := 250
 	batchesPerCycle := 10
 	objectsPerBatch := 100
 	payloadSize := 5 * 1024
 	deletesPerCycle := 100
 	checksPerCycle := 100
 	netAdditionsPerCycle := batchesPerCycle*objectsPerBatch - deletesPerCycle
-	keepChecking := 2 * time.Minute
+	keepChecking := 5 * time.Minute
 
 	ids := newIdTracker()
 
