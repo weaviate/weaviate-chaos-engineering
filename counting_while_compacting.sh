@@ -25,6 +25,7 @@ wait_weaviate
 
 function dump_logs() {
   docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml logs
+  docker ps -a
 }
 
 trap 'dump_logs' ERR

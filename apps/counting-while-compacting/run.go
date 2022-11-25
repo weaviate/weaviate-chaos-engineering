@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"net/url"
 	"os"
 	"time"
@@ -314,8 +315,9 @@ func newClient(origin string) (*weaviate.Client, error) {
 	}
 
 	cfg := weaviate.Config{
-		Host:   parsed.Host,
-		Scheme: parsed.Scheme,
+		Host:             parsed.Host,
+		Scheme:           parsed.Scheme,
+		ConnectionClient: &http.Client{Timeout: 2 * time.Minute},
 	}
 	return weaviate.New(cfg), nil
 }
