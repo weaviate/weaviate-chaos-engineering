@@ -24,7 +24,7 @@ mkdir workdir
 touch workdir/data.json
 
 echo "Generate a dataset of 100k objects"
-docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -it recall python3 generate.py
+docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t recall python3 generate.py
 
 echo "Done generating."
 
@@ -34,10 +34,10 @@ docker-compose -f apps/weaviate/docker-compose.yml up -d
 wait_weaviate
 
 echo "Import into Weaviate..."
-docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -it recall python3 import.py
+docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t recall python3 import.py
 
 echo "Check Recall"
-docker run --network host -v "$PWD/workdir/:/app/data" -it recall-checker
+docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker
 
 echo "Restart Weaviate"
 docker-compose -f apps/weaviate/docker-compose.yml stop weaviate && \
@@ -46,4 +46,4 @@ docker-compose -f apps/weaviate/docker-compose.yml stop weaviate && \
 wait_weaviate
 
 echo "Check Recall again"
-docker run --network host -v "$PWD/workdir/:/app/data" -it recall-checker
+docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker

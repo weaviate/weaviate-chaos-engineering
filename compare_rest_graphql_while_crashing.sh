@@ -27,7 +27,7 @@ wait_weaviate
 echo "Starting the chaos script to kill Weaviate periodically (in the background)"
 docker run \
   --network host \
-  --rm -it -d \
+  --rm -t-d \
   -v "$PWD:$PWD" \
   -e "SLEEP_START=2" \
   -e "SLEEP_END=5" \
@@ -41,7 +41,7 @@ docker run \
 echo "Run compare script in foreground..."
 if ! docker run \
   -e "MAX_ATTEMPTS=100" \
-   --network host -it compare-rest-graphql python3 objects-are-not-deleted.py 0; then
+   --network host -t compare-rest-graphql python3 objects-are-not-deleted.py 0; then
   echo "Discrepancy error!"
   echo "Stopping chaotic killer"
   docker rm -f killer

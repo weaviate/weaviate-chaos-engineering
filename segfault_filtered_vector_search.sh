@@ -31,14 +31,14 @@ trap 'dump_logs' ERR
 
 
 echo "Initialize schema"
-docker run --network host -it segfault_filtered_vector_search python3 run.py -a schema
+docker run --network host -t segfault_filtered_vector_search python3 run.py -a schema
 
 echo "Run multiple query scripts in the background"
 for i in {1..3}; do
-  docker run -d --network host -it segfault_filtered_vector_search python3 run.py -a query
+  docker run -d --network host -t segfault_filtered_vector_search python3 run.py -a query
 done
 
 echo "Run import script designed to lead to frequent hash prop compactions"
-docker run --network host -it segfault_filtered_vector_search python3 run.py -a import
+docker run --network host -t segfault_filtered_vector_search python3 run.py -a import
 
 echo "Passed!"

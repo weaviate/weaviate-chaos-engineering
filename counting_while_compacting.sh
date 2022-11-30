@@ -32,6 +32,6 @@ trap 'dump_logs' ERR
 
 
 echo "Run import script that imports, deletes and counts objects"
-docker run --network host -e ORIGIN=http://localhost:8080 -it counting-while-compacting
+docker run --network host -e ORIGIN=http://localhost:8080 -t counting-while-compacting
 
 echo "Passed!"
