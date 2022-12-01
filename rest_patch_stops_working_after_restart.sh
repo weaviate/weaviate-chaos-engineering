@@ -24,7 +24,7 @@ docker-compose -f apps/weaviate/docker-compose.yml up -d
 wait_weaviate
 
 echo "Run consecutive update operations"
-docker run --network host -it rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py
+docker run --network host -t rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py
 
 echo "Restart Weaviate..."
 docker-compose -f apps/weaviate/docker-compose.yml stop
@@ -33,6 +33,6 @@ docker-compose -f apps/weaviate/docker-compose.yml up -d
 wait_weaviate
 
 echo "Run consecutive update operations after restart"
-docker run --network host -it rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py
+docker run --network host -t rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py
 
 echo "Passed!"

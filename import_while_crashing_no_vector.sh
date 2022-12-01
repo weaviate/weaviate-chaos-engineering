@@ -43,7 +43,7 @@ if ! docker run \
   -e 'BATCH_SIZE=128' \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
-  -it importer-no-vector; then
+  -t importer-no-vector; then
   echo "Importer failed, printing latest Weaviate logs..."
   docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
   exit 1

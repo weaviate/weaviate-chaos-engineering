@@ -31,9 +31,9 @@ trap 'dump_logs' ERR
 
 
 echo "Initialize schema"
-docker run --network host -it segfault_batch_ref python3 run.py -a schema
+docker run --network host -t segfault_batch_ref python3 run.py -a schema
 
 echo "Run import script designed to lead to races between compaction and batch ref inserts"
-docker run --network host -it segfault_batch_ref python3 run.py -a import
+docker run --network host -t segfault_batch_ref python3 run.py -a import
 
 echo "Passed!"

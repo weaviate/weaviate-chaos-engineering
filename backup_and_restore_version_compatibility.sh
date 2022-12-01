@@ -59,7 +59,7 @@ for pair in "${!version_pairs[@]}"; do
   docker-compose -f apps/weaviate/docker-compose-backup.yml up create-s3-bucket
 
   echo "Run backup (v${backup_version}) and restore (v${restore_version}) version compatibility operations"
-  docker run --rm --network host -it backup_and_restore_version_compatibility python3 backup_and_restore_version_compatibility.py
+  docker run --rm --network host -t backup_and_restore_version_compatibility python3 backup_and_restore_version_compatibility.py
 
   echo "Removing S3 bucket..."
   docker-compose -f apps/weaviate/docker-compose-backup.yml up remove-s3-bucket

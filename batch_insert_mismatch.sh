@@ -24,6 +24,6 @@ docker-compose -f apps/weaviate/docker-compose-c11y.yml up -d
 wait_weaviate
 
 echo "Run consecutive create and delete operations"
-docker run --network host -it batch-insert-mismatch python3 batch-insert-mismatch.py
+docker run --network host -t batch-insert-mismatch python3 batch-insert-mismatch.py
 
 echo "Passed!"
