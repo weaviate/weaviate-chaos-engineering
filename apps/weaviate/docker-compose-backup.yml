@@ -15,6 +15,8 @@ services:
     - 8080:8080
     - 6060:6060
     restart: on-failure:0
+    volumes:
+      - ./data-node1:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -48,6 +50,8 @@ services:
     - 8081:8081
     - 6061:6060
     restart: on-failure:0
+    volumes:
+      - ./data-backup-node:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -80,6 +84,8 @@ services:
     - 8081:8081
     - 6061:6060
     restart: on-failure:0
+    volumes:
+      - ./data-node2:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
