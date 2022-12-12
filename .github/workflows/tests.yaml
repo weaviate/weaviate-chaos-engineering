@@ -14,7 +14,7 @@ on:
 jobs:
   counting-while-compacting:
     name: Counting while compacting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
