@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-improve-hnsw-startup-time-by-improving-allocation-efficiency-in-deserializer-b8b38e4
+  WEAVIATE_VERSION: preview-wip-precompute-bloom-filter-for-newly-compacted-segments-7c24417
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
 jobs:
   counting-while-compacting:
     name: Counting while compacting
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
