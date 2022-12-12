@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: semitechnologies/weaviate:preview-improve-hnsw-startup-time-by-improving-allocation-efficiency-in-deserializer-51c9be8
+  WEAVIATE_VERSION: preview-improve-hnsw-startup-time-by-improving-allocation-efficiency-in-deserializer-51c9be8
 
 on:
   push:
