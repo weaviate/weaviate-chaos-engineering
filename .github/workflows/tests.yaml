@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-wip-precompute-bloom-filter-for-newly-compacted-segments-7c24417
+  WEAVIATE_VERSION: preview-fix-file-descriptor-leak-in-compaction-pre-compute-f609dc2
 
 on:
   push:
@@ -14,7 +14,7 @@ on:
 jobs:
   counting-while-compacting:
     name: Counting while compacting
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
