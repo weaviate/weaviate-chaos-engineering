@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.17.0-prealpha-4feed7b
+  WEAVIATE_VERSION: preview-retry-replication-operation-if-participant-node-is-still-initializing-index-d69506f
 
 on:
   push:
