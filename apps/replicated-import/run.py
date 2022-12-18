@@ -9,6 +9,8 @@ import argparse
 import string
 import uuid
 
+import_error_count=0
+
 def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
@@ -52,6 +54,8 @@ def handle_errors(results: Optional[dict]) -> None:
                 and 'error' in result['result']['errors']
             ):
                 for message in result['result']['errors']['error']:
+                    global import_error_count
+                    import_error_count+=1
                     logger.error(message['message'])
 
 def load_objects(client: weaviate.Client, size: int):
@@ -74,7 +78,32 @@ def load_objects(client: weaviate.Client, size: int):
                 vector=np.random.rand(32,1),
             )
 
-    logger.info(f"Finished writing {size} records")
+    logger.info(f"Finished writing {size} records with {import_error_count} errors")
+
+# the idea is that every object has to be returned correctly since we had at
+# most one node death, so a quorum must always work. The assumption is that any
+# write request could either be written to at least two nodes succesfully – or
+# if it could not be written – has been repeated client-side
+def validate_objects(client: weaviate.Client, max_id: int):
+    random_picks=100_000
+    missing_objects=0
+    errors=0
+
+    for i in range(random_picks):
+        obj_id = uuid.UUID(int=random.randint(0, max_id))
+        try:
+            data_object = client.data_object.get_by_id(uuid=obj_id, class_name="Document", consistency_level="QUORUM")
+            if data_object is None:
+                missing_objects+=1
+        except Exception as e:
+            errors+=1
+            logger.error(e)
+        if i % 1000 == 0:
+            logger.info(f'validated {i}/{random_picks} random objects')
+
+    
+
+    logger.info(f"Finished validation with {missing_objects} missing objects and {errors} errors")
 
 # def load_references(client: weaviate.Client, iterations, ids_class_1, ids_class_2):
 #     client.batch.configure(batch_size=1000, callback=handle_errors)
@@ -115,4 +144,5 @@ if __name__ == "__main__":
     object_count=300000
     reset_schema(client)
     load_objects(client, object_count)
+    validate_objects(client, object_count)
     # load_references(client, 400, ids_class_1, ids_class_2)
