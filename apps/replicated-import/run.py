@@ -8,6 +8,7 @@ import numpy as np
 import argparse
 import string
 import uuid
+import sys
 
 import_error_count=0
 
@@ -60,9 +61,9 @@ def handle_errors(results: Optional[dict]) -> None:
 
 def load_objects(client: weaviate.Client, size: int):
     client.batch.configure(
-            batch_size=10,
+            batch_size=50,
             callback=handle_errors,
-            dynamic=True,
+            dynamic=False,
             num_workers=8,
             )
     with client.batch as batch:
@@ -104,6 +105,10 @@ def validate_objects(client: weaviate.Client, max_id: int):
     
 
     logger.info(f"Finished validation with {missing_objects} missing objects and {errors} errors")
+    if errors > 0 or missing_objects > 0:
+        logger.error("Failed!")
+        sys.exit(1)
+
 
 # def load_references(client: weaviate.Client, iterations, ids_class_1, ids_class_2):
 #     client.batch.configure(batch_size=1000, callback=handle_errors)
