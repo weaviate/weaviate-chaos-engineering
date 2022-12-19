@@ -1,8 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-retry-replication-operation-if-participant-node-is-still-initializing-index-d69506f
-
+  WEAVIATE_VERSION: preview-extend-getobject-with-retries-when-consistency-level-is-specified-59a62cb
 on:
   push:
     branches:
