@@ -24,8 +24,8 @@ def reset_schema(client: weaviate.Client):
         "invertedIndexConfig":{
             "indexTimestamps":False,
         },
-        "shardingConfig": {
-            "replicas": 3 # TODO: adjust to new API when ready!
+        "replicationConfig":{
+            "factor": 3 
         },
         "properties": [
             {

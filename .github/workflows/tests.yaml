@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-extend-getobject-with-retries-when-consistency-level-is-specified-59a62cb
+  WEAVIATE_VERSION: 1.17.0-prealpha-9976275
 on:
   push:
     branches:
