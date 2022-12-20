@@ -27,6 +27,16 @@ wait_weaviate 8081
 docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-3
 wait_weaviate 8082
 
+echo "Import schema"
+if ! docker run \
+  -e 'ORIGIN=http://localhost:8080' \
+  --network host \
+  -t importer python3 run.py --action schema; then
+  echo "Could not apply schema"
+  docker-compose -f apps/weaviate/docker-compose.yml logs
+  exit 1
+fi
+
 echo "Starting the chaos script to kill Weaviate periodically (in the background)"
 docker run \
   --network host \
@@ -42,7 +52,7 @@ echo "Run import script in foreground..."
 if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
-  -t importer python3 run.py ; then
+  -t importer python3 run.py --action import; then
   echo "Importer failed, printing latest Weaviate logs..."
   docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
   exit 1

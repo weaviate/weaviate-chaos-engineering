@@ -147,7 +147,16 @@ def validate_objects(client: weaviate.Client, max_id: int):
 if __name__ == "__main__":
     client = weaviate.Client("http://localhost:8080", timeout_config=int(30))
     object_count=300000
-    reset_schema(client)
-    load_objects(client, object_count)
-    validate_objects(client, object_count)
-    # load_references(client, 400, ids_class_1, ids_class_2)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--action', default='import')
+    args = parser.parse_args()
+
+    if args.action == "import":
+        load_objects(client, object_count)
+        # load_references(client, 400, ids_class_1, ids_class_2)
+        validate_objects(client, object_count)
+    elif args.action == "schema":
+        reset_schema(client)
+    else:
+        logger.error("unknown --action option")
