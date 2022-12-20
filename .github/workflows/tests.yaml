@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-wip-precompute-bloom-filter-for-newly-compacted-segments-7c24417
+  WEAVIATE_VERSION: 1.17.0-prealpha-4feed7b
 
 on:
   push:
