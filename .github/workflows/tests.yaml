@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.17.0-prealpha-9976275
+  WEAVIATE_VERSION: 1.17.0
 on:
   push:
     branches:
