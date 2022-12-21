@@ -155,7 +155,7 @@ if __name__ == "__main__":
     if args.action == "import":
         load_objects(client, object_count)
         # load_references(client, 400, ids_class_1, ids_class_2)
-        validate_objects(client, object_count)
+        validate_objects(client, object_count-1)
     elif args.action == "schema":
         reset_schema(client)
     else:
