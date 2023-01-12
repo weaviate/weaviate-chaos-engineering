@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.17.0
+  WEAVIATE_VERSION: preview-fix-overwriting-errors-for-successful-entries-of-a-batch-request-in-case-of-replication-failure-7a6019c
 on:
   push:
     branches:
