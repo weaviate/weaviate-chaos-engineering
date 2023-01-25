@@ -193,7 +193,7 @@ jobs:
         run: ./delete_and_recreate_class.sh
   geo-crash:
     name: Preventing crashing of geo properties during HNSW maintenance cycles
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
