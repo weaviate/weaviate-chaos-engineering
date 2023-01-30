@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: v1.17.2-rc.1  
+  WEAVIATE_VERSION: preview-repair-on-read-remote-index-client-implementation-76b484f
 on:
   push:
     branches:
