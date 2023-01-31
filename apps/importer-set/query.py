@@ -148,6 +148,9 @@ scenarios = [
     },
     {
         "name": "vector search + (bool_prop_1 == true OR int_prop == 0)",
+        "near_object": {
+            "id": random_existing_uuid()
+        },
         "where_filter" :{
           "operator": "Or",
           "operands": [{
@@ -163,6 +166,9 @@ scenarios = [
     },
     {
         "name": "vector search + (bool_prop_1 == true AND int_prop == 0)",
+        "near_object": {
+            "id": random_existing_uuid()
+        },
         "where_filter" :{
           "operator": "And",
           "operands": [{
@@ -178,6 +184,9 @@ scenarios = [
     },
     {
         "name": "vector search + (bool_prop_1 == true AND int_prop >= 0)",
+        "near_object": {
+            "id": random_existing_uuid()
+        },
         "where_filter" :{
           "operator": "And",
           "operands": [{
@@ -193,6 +202,9 @@ scenarios = [
     },
     {
         "name": "vector search + (bool_prop_1 == true OR int_prop >= 0)",
+        "near_object": {
+            "id": random_existing_uuid()
+        },
         "where_filter" :{
           "operator": "Or",
           "operands": [{
