@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: v1.17.2-rc.1  
+  WEAVIATE_VERSION: preview-fix-aws-get-credentials-flow-in-backup-s3-module-cf61eb4
 on:
   push:
     branches:
