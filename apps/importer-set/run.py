@@ -1,15 +1,16 @@
 import random
+import argparse
 from loguru import logger
 from typing import Optional
 import uuid
 import weaviate
+import h5py
 
 def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
         "vectorIndexConfig":{
-            "skip": True
         },
         "class": "Set",
         "invertedIndexConfig":{
@@ -52,12 +53,16 @@ def handle_errors(results: Optional[dict]) -> None:
                 for message in result['result']['errors']['error']:
                     logger.error(message['message'])
 
-def load_records(client: weaviate.Client, start=0, end=100_000):
+def load_records(client: weaviate.Client, vectors):
     client.batch.configure(batch_size=100, callback=handle_errors)
+    i = 0
+    if vectors == None:
+        vectors = [None]*10_000_000
+
     with client.batch as batch:
-        for i in range(start, end):
+        for vector in vectors:
             if i % 10000 == 0:
-                logger.info(f"writing record {i}/{end}")
+                logger.info(f"writing record {i}/{len(vectors)}")
             data_object={
                 "prop_1": True,
                 "prop_2": i % 11 < 10,
@@ -66,13 +71,26 @@ def load_records(client: weaviate.Client, start=0, end=100_000):
 
             batch.add_data_object(
                 data_object=data_object,
+                vector=vector,
                 class_name="Set",
                 uuid=uuid.UUID(int=i),
             )
-    logger.info(f"Finished writing {end-start} records")
+            i+=1
+    logger.info(f"Finished writing {len(vectors)} records")
 
+parser = argparse.ArgumentParser()
 client = weaviate.Client("http://localhost:8080")
 
+parser.add_argument('-v', '--with-vectors')
+args = parser.parse_args()
+
+
+vectors = None
 reset_schema(client)
-load_records(client, 0, 10_000_000)
+if (args.with_vectors) != None:
+    f = h5py.File(args.with_vectors)
+    vectors = f["train"]
+
+
+load_records(client, vectors)
 
