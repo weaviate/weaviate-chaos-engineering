@@ -12,9 +12,9 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
-	"github.com/semi-technologies/weaviate-go-client/v4/weaviate"
-	"github.com/semi-technologies/weaviate-go-client/v4/weaviate/graphql"
-	"github.com/semi-technologies/weaviate/entities/models"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
+	"github.com/weaviate/weaviate/entities/models"
 	"golang.org/x/sync/errgroup"
 )
 
