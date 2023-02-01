@@ -5,8 +5,8 @@ go 1.19
 require (
 	github.com/go-openapi/strfmt v0.21.3
 	github.com/google/uuid v1.3.0
-	github.com/semi-technologies/weaviate v1.16.0
-	github.com/semi-technologies/weaviate-go-client/v4 v4.4.0
+	github.com/weaviate/weaviate v1.17.2
+	github.com/weaviate/weaviate-go-client/v4 v4.6.1
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 )
 
