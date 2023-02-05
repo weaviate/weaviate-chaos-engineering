@@ -2,167 +2,118 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"math/rand"
-	"os"
-	"path"
-	"strings"
 	"time"
 
-	"github.com/docker/go-connections/nat"
-	"github.com/testcontainers/testcontainers-go"
-	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate/entities/models"
 )
 
-type cluster struct {
-	nodeCount   int
-	networkName string
-	rootDir     string
-	containers  []testcontainers.Container
+// TODO: should be automated by pulling them from GH tags
+var versions = []string{
+	"1.16.0",
+	"1.16.1",
+	"1.16.2",
+	"1.16.3",
+	"1.16.4",
+	"1.16.5",
+	"1.16.6",
+	"1.16.7",
+	"1.16.8",
+	"1.16.9",
+	"1.17.0",
+	"1.17.1",
+	"1.17.2",
 }
 
-func newCluster(nodeCount int) *cluster {
-	rootDir, err := os.Getwd()
+var objectsCreated = 0
+
+func main() {
+	cfg := weaviate.Config{
+		Host:   "localhost:8080",
+		Scheme: "http",
+	}
+	client := weaviate.New(cfg)
+
+	err := do(client)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	return &cluster{
-		nodeCount:   nodeCount,
-		networkName: fmt.Sprintf("weaviate-upgrade-journey-%d", rand.Int()),
-		rootDir:     rootDir,
-		containers:  make([]testcontainers.Container, nodeCount),
-	}
 }
 
-func main() {
+func do(client *weaviate.Client) error {
 	rand.Seed(time.Now().UnixNano())
 	ctx := context.Background()
 
 	c := newCluster(3)
 
 	if err := c.startNetwork(ctx); err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	if err := c.startAllNodes(ctx, "1.16.0"); err != nil {
-		log.Fatal(err)
-	}
-
-	if err := c.rollingUpdate(ctx, "1.17.0"); err != nil {
-		log.Fatal(err)
-	}
-
-	time.Sleep(120 * time.Second)
-}
-
-func (c *cluster) startAllNodes(ctx context.Context, version string) error {
-	for i := 0; i < c.nodeCount; i++ {
-		container, err := c.startWeaviateNode(ctx, i, version)
-		if err != nil {
+	for i, version := range versions {
+		if err := startOrUpgrade(ctx, c, i, version); err != nil {
 			return err
 		}
 
-		c.containers[i] = container
+		if i == 0 {
+			if err := createSchema(ctx, client); err != nil {
+				return err
+			}
+		}
+
+		if err := importForVersion(ctx, client, version); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func (c *cluster) rollingUpdate(ctx context.Context, version string) error {
-	for i := 0; i < c.nodeCount; i++ {
-		if err := c.containers[i].Stop(ctx, nil); err != nil {
-			return err
-		}
-
-		container, err := c.startWeaviateNode(ctx, i, version)
-		if err != nil {
-			return err
-		}
-
-		c.containers[i] = container
-	}
-
-	return nil
-}
-
-func (c *cluster) startNetwork(ctx context.Context) error {
-	_, err := testcontainers.GenericNetwork(ctx, testcontainers.GenericNetworkRequest{
-		NetworkRequest: testcontainers.NetworkRequest{
-			Name:     c.networkName,
-			Internal: false,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("network %s: %w", c.networkName, err)
-	}
-
-	return nil
-}
-
-func (c *cluster) volumePath(nodeId int) string {
-	return path.Join(c.rootDir, "data/", c.hostname(nodeId))
-}
-
-func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version string) (testcontainers.Container, error) {
-	if err := os.MkdirAll(c.volumePath(nodeId), 0o777); err != nil {
-		return nil, err
-	}
-
-	image := fmt.Sprintf("semitechnologies/weaviate:%s", version)
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Name:         c.hostname(nodeId),
-			Image:        image,
-			Cmd:          []string{"--host", "0.0.0.0", "--port", "8080", "--scheme", "http"},
-			Networks:     []string{c.networkName},
-			ExposedPorts: []string{fmt.Sprintf("%d:8080", 8080+nodeId)},
-			AutoRemove:   true,
-			Env: map[string]string{
-				"QUERY_DEFAULTS_LIMIT":                    "25",
-				"AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
-				"PERSISTENCE_DATA_PATH":                   "/var/lib/weaviate",
-				"DEFAULT_VECTORIZER_MODULE":               "none",
-				"ENABLE_MODULES":                          "",
-				"CLUSTER_GOSSIP_BIND_PORT":                "7100",
-				"CLUSTER_DATA_BIND_PORT":                  "7101",
-				"CLUSTER_HOSTNAME":                        c.hostname(nodeId),
-				"CLUSTER_JOIN":                            c.otherNodes(nodeId),
+func createSchema(ctx context.Context, client *weaviate.Client) error {
+	classObj := &models.Class{
+		Class: "Collection",
+		Properties: []*models.Property{
+			{
+				DataType: []string{"string"},
+				Name:     "version",
 			},
-			Mounts: testcontainers.Mounts(testcontainers.BindMount(
-				c.volumePath(nodeId), "/var/lib/weaviate",
-			)),
-			WaitingFor: wait.
-				ForHTTP("/v1/.well-known/ready").
-				WithPort(nat.Port("8080")).
-				WithStatusCodeMatcher(func(status int) bool {
-					return status >= 200 && status <= 299
-				}).
-				WithStartupTimeout(240 * time.Second),
+			{
+				DataType: []string{"int"},
+				Name:     "object_count",
+			},
 		},
-		Started: true,
-	})
+	}
+
+	err := client.Schema().ClassCreator().WithClass(classObj).Do(context.Background())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return container, nil
+	return nil
 }
 
-func (c *cluster) hostname(nodeId int) string {
-	return fmt.Sprintf("weaviate-%d", nodeId)
-}
-
-func (c *cluster) otherNodes(nodeId int) string {
-	hosts := []string{}
-	for i := 0; i < c.nodeCount; i++ {
-		if i == nodeId {
-			continue
-		}
-
-		hosts = append(hosts, fmt.Sprintf("weaviate-%d:7100", i))
+func importForVersion(ctx context.Context, client *weaviate.Client,
+	version string,
+) error {
+	props := map[string]interface{}{
+		"version":      version,
+		"object_count": objectsCreated,
 	}
 
-	return strings.Join(hosts, ",")
+	objectsCreated++
+	_, err := client.Data().Creator().
+		WithClassName("Collection").
+		WithProperties(props).
+		Do(context.Background())
+	return err
+}
+
+func startOrUpgrade(ctx context.Context, c *cluster, i int, version string) error {
+	if i == 0 {
+		return c.startAllNodes(ctx, version)
+	}
+
+	return c.rollingUpdate(ctx, versions[i%len(versions)])
 }
