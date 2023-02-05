@@ -2,11 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -66,6 +69,54 @@ func do(client *weaviate.Client) error {
 		if err := importForVersion(ctx, client, version); err != nil {
 			return err
 		}
+
+		if err := verify(ctx, client, i); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func verify(ctx context.Context, client *weaviate.Client, i int) error {
+	if err := findEachImportedObject(ctx, client, i); err != nil {
+		return err
+	}
+
+	// TODO: aggrgation
+
+	return nil
+}
+
+func findEachImportedObject(ctx context.Context, client *weaviate.Client,
+	posOfMaxVersion int,
+) error {
+	for i := 0; i <= posOfMaxVersion; i++ {
+		version := versions[i]
+
+		fields := []graphql.Field{
+			{Name: "_additional { id }"},
+			{Name: "version"},
+			{Name: "object_count"},
+		}
+		where := filters.Where().
+			WithPath([]string{"version"}).
+			WithOperator(filters.Equal).
+			WithValueString(version)
+
+		ctx := context.Background()
+
+		result, err := client.GraphQL().Get().
+			WithClassName("Collection").
+			WithFields(fields...).
+			WithWhere(where).
+			Do(ctx)
+
+		fmt.Printf("%#v\n", result)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
