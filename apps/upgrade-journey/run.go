@@ -83,7 +83,32 @@ func verify(ctx context.Context, client *weaviate.Client, i int) error {
 		return err
 	}
 
-	// TODO: aggrgation
+	if err := aggregateObjects(ctx, client, i); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func aggregateObjects(ctx context.Context, client *weaviate.Client,
+	count int,
+) error {
+	result, err := client.GraphQL().Aggregate().
+		WithClassName("Collection").
+		WithFields(graphql.Field{Name: "meta", Fields: []graphql.Field{{Name: "count"}}}).
+		Do(ctx)
+	if err != nil {
+		return err
+	}
+
+	if len(result.Errors) > 0 {
+		return fmt.Errorf("%v", result.Errors)
+	}
+
+	actualCount := result.Data["Aggregate"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
+	if int(actualCount) != objectsCreated {
+		return fmt.Errorf("aggregation: wanted %d, got %d", objectsCreated, int(actualCount))
+	}
 
 	return nil
 }
@@ -104,17 +129,21 @@ func findEachImportedObject(ctx context.Context, client *weaviate.Client,
 			WithOperator(filters.Equal).
 			WithValueString(version)
 
-		ctx := context.Background()
-
 		result, err := client.GraphQL().Get().
 			WithClassName("Collection").
 			WithFields(fields...).
 			WithWhere(where).
 			Do(ctx)
-
-		fmt.Printf("%#v\n", result)
 		if err != nil {
 			return err
+		}
+		if len(result.Errors) > 0 {
+			return fmt.Errorf("%v", result.Errors)
+		}
+
+		actualVersion := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})["version"].(string)
+		if version != actualVersion {
+			return fmt.Errorf("wanted %s got %s", version, actualVersion)
 		}
 
 	}
