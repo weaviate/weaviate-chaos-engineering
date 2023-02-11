@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION:  v1.17.4-rc.0                  
+  WEAVIATE_VERSION: preview-filter-memory-leak-in-inverted-searcher-row-cacher-5d5df56
 on:
   push:
     branches:
