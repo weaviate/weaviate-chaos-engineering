@@ -1,0 +1,32 @@
+---
+version: '3.9'
+services:
+  weaviate:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
+    ports:
+    - 8080:8080
+    - 6060:6060
+    volumes:
+    - "$PWD/weaviate-data:/var/lib/weaviate"
+    environment:
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      PERSISTENCE_FLUSH_IDLE_MEMTABLES_AFTER: 2
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: 'node1' 
+      DISK_USE_READONLY_PERCENTAGE: 99
+      GOMEMLIMIT: '4096MiB'
+    deploy:
+      resources:
+        limits:
+          memory: '4096M'
+...
