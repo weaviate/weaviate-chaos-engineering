@@ -19,7 +19,7 @@ echo "Building all required containers"
 ( cd apps/compaction-roaringset/ && docker build -t compaction-roaringset . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS=1 docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
 
 wait_weaviate
 

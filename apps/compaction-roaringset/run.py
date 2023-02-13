@@ -6,6 +6,7 @@ import weaviate
 import time
 import sys
 
+
 def forced_panic_scenario(client: weaviate.Client):
     # sroar bug causes failure in compaction due to
     # size of internal container not being set correctly in relation
@@ -13,15 +14,15 @@ def forced_panic_scenario(client: weaviate.Client):
 
     # This test aims to prevent regression on the issue
     # https://github.com/weaviate/sroar/issues/1
-    
+
     # Test creates 4 segments to be finally compated to one.
     # Writes to 2 segments enough elements to create 2nd
     # internal container for docIDs
     # segment#1 and segment#2 will be compacted to one,
     # having 1..70k additions and 0 deletions
-    
+
     # Next 2 segments: segment#3 and segment#4 will be compacted to one,
-    # having failing deletion bitmap. 
+    # having failing deletion bitmap.
     # First broken bitmap is created when internal array (thus 300 elements)
     # is AndNot-ed with internal bitmap (thus 3000 elements).
     # While broken bitmap is still usable, it is empty bitmap Or-ed with broken
@@ -34,7 +35,7 @@ def forced_panic_scenario(client: weaviate.Client):
     # failing Deletions of #3_4 being accessed by compaction process
 
     logger.info("STARTED forced_panic_scenario")
-    sleep=3
+    sleep = 2
 
     # segment 1
     create_from_to(client, 1, 33_000)
@@ -53,11 +54,11 @@ def forced_panic_scenario(client: weaviate.Client):
     wait_for_flush(sleep)
 
     # wait for compaction #3 + #4, then #1_2 + #3_4 to happen
-    wait_for_compactions(7)
-    
+    wait_for_compactions(4)
+
     # if weaviate panics, getting object will fail
     try:
-        id=68_000
+        id = 68_000
         logger.info(f"sanity check - fetching object {id}")
         client.data_object.get_by_id(str(uuid.UUID(int=id)), class_name="Set")
     except Exception as e:
@@ -72,16 +73,16 @@ def forced_panic_scenario(client: weaviate.Client):
 
 def randomized_panic_scenario(client: weaviate.Client):
     logger.info("STARTED randomized_panic_scenario")
-    
-    sleep = 3
+
+    sleep = 2
     created = 0
-    count_objects = 5_000_000
-    
+    count_objects = 2_500_000
+
     while created < count_objects:
         if random.random() < 0.5:
             # make a really small additions
             create_delta = random.randrange(1, 2000)
-        else: 
+        else:
             # make a really large additions
             create_delta = random.randrange(5000, 10000)
 
@@ -93,11 +94,11 @@ def randomized_panic_scenario(client: weaviate.Client):
         if random.random() < 0.25:
             if random.random() < 0.5:
                 # make a really small deletions
-                delete_delta=random.randrange(1, 500)
+                delete_delta = random.randrange(1, 500)
             else:
                 # make a really large deletions
-                delete_delta=random.randrange(2500, 5000)
-            
+                delete_delta = random.randrange(2500, 5000)
+
             # can not delete more than it is already created
             delete_from = max(1, create_to - delete_delta)
             delete_to = create_to
@@ -123,38 +124,37 @@ def handle_errors(results: Optional[dict]) -> None:
     if results is not None:
         for result in results:
             if (
-                'result' in result
-                and 'errors' in result['result']
-                and 'error' in result['result']['errors']
+                "result" in result
+                and "errors" in result["result"]
+                and "error" in result["result"]["errors"]
             ):
-                for message in result['result']['errors']['error']:
-                    logger.error(message['message'])
+                for message in result["result"]["errors"]["error"]:
+                    logger.error(message["message"])
 
 
 def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
-        "vectorIndexConfig":{
-        },
+        "vectorIndexConfig": {},
         "class": "Set",
-        "invertedIndexConfig":{
-            "indexTimestamps":False,
+        "invertedIndexConfig": {
+            "indexTimestamps": False,
         },
         "properties": [
             {
-                "dataType": [ "boolean" ],
+                "dataType": ["boolean"],
                 "name": "bool",
             },
             {
-                "dataType": [ "boolean" ],
+                "dataType": ["boolean"],
                 "name": "bool_modulo",
             },
             {
-                "dataType": [ "int" ],
+                "dataType": ["int"],
                 "name": "modulo_31",
             },
-        ]
+        ],
     }
     client.schema.create_class(class_obj)
 
@@ -171,14 +171,14 @@ def create_from_to(client: weaviate.Client, fromInc: int, toExc: int):
             )
         batch.flush()
 
-    logger.info(f"created {toExc-fromInc} objects")    
+    logger.info(f"created {toExc-fromInc} objects")
 
 
 def delete_from_to(client: weaviate.Client, fromInc: int, toExc: int):
     logger.info(f"deleting objects [{fromInc}-{toExc})")
-    
-    deleted=0
-    skipped=0
+
+    deleted = 0
+    skipped = 0
     for i in range(fromInc, toExc):
         try:
             client.data_object.delete(str(uuid.UUID(int=i)), "Set")
@@ -190,12 +190,12 @@ def delete_from_to(client: weaviate.Client, fromInc: int, toExc: int):
 
 
 def create_object(i: int):
-    data_object={
+    data_object = {
         "bool": True,
         "bool_modulo": i % 31 < 23,
         "modulo_31": i % 31,
     }
-    return data_object  
+    return data_object
 
 
 def wait_for_flush(sleep: int):
@@ -210,7 +210,7 @@ def wait_for_compactions(sleep: int):
 
 client = weaviate.Client("http://localhost:8080")
 client.batch.configure(batch_size=100, callback=handle_errors)
-    
+
 reset_schema(client)
 
 forced_panic_scenario(client)
