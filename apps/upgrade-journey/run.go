@@ -132,40 +132,109 @@ func findEachImportedObject(ctx context.Context, client *weaviate.Client,
 	for i := 0; i <= posOfMaxVersion; i++ {
 		version := versions[i]
 
-		fields := []graphql.Field{
-			{Name: "_additional { id }"},
-			{Name: "version"},
-			{Name: "object_count"},
-			{Name: "ref_prop { ... on RefTarget {version} }"},
-		}
-		where := filters.Where().
-			WithPath([]string{"version"}).
-			WithOperator(filters.Equal).
-			WithValueString(version)
-
-		result, err := client.GraphQL().Get().
-			WithClassName("Collection").
-			WithFields(fields...).
-			WithWhere(where).
-			Do(ctx)
-		if err != nil {
-			return err
-		}
-		if len(result.Errors) > 0 {
-			return fmt.Errorf("%v", result.Errors)
+		if err := findObjectUsingVersionString(ctx, client, version); err != nil {
+			return fmt.Errorf("string filter: %w", err)
 		}
 
-		obj := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})
-		actualVersion := obj["version"].(string)
-		if version != actualVersion {
-			return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
+		if err := findObjectUsingVersionInts(ctx, client, version); err != nil {
+			return fmt.Errorf("and-ed int filter: %w", err)
 		}
 
-		refVersion := obj["ref_prop"].([]interface{})[0].(map[string]interface{})["version"].(string)
-		if refVersion != actualVersion {
-			return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
-		}
+	}
 
+	return nil
+}
+
+func findObjectUsingVersionString(ctx context.Context, client *weaviate.Client,
+	version string,
+) error {
+	fields := []graphql.Field{
+		{Name: "_additional { id }"},
+		{Name: "version"},
+		{Name: "object_count"},
+		{Name: "ref_prop { ... on RefTarget {version} }"},
+	}
+	where := filters.Where().
+		WithPath([]string{"version"}).
+		WithOperator(filters.Equal).
+		WithValueString(version)
+
+	result, err := client.GraphQL().Get().
+		WithClassName("Collection").
+		WithFields(fields...).
+		WithWhere(where).
+		Do(ctx)
+	if err != nil {
+		return err
+	}
+	if len(result.Errors) > 0 {
+		return fmt.Errorf("%v", result.Errors)
+	}
+
+	obj := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})
+	actualVersion := obj["version"].(string)
+	if version != actualVersion {
+		return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
+	}
+
+	refVersion := obj["ref_prop"].([]interface{})[0].(map[string]interface{})["version"].(string)
+	if refVersion != actualVersion {
+		return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
+	}
+
+	return nil
+}
+
+func findObjectUsingVersionInts(ctx context.Context, client *weaviate.Client,
+	version string,
+) error {
+	fields := []graphql.Field{
+		{Name: "_additional { id }"},
+		{Name: "version"},
+		{Name: "object_count"},
+		{Name: "ref_prop { ... on RefTarget {version} }"},
+	}
+
+	parsed := parseSingleSemverWithoutLeadingV(version)
+	where := filters.Where().
+		WithOperator(filters.And).
+		WithOperands([]*filters.WhereBuilder{
+			filters.Where().
+				WithOperator(filters.Equal).
+				WithPath([]string{"major_version"}).
+				WithValueInt(int64(parsed.major)),
+			filters.Where().
+				WithOperator(filters.Equal).
+				WithPath([]string{"minor_version"}).
+				WithValueInt(int64(parsed.minor)),
+			filters.Where().
+				WithOperator(filters.Equal).
+				WithPath([]string{"patch_version"}).
+				WithValueInt(int64(parsed.patch)),
+		},
+		)
+
+	result, err := client.GraphQL().Get().
+		WithClassName("Collection").
+		WithFields(fields...).
+		WithWhere(where).
+		Do(ctx)
+	if err != nil {
+		return err
+	}
+	if len(result.Errors) > 0 {
+		return fmt.Errorf("%v", result.Errors[0])
+	}
+
+	obj := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})
+	actualVersion := obj["version"].(string)
+	if version != actualVersion {
+		return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
+	}
+
+	refVersion := obj["ref_prop"].([]interface{})[0].(map[string]interface{})["version"].(string)
+	if refVersion != actualVersion {
+		return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
 	}
 
 	return nil
@@ -314,6 +383,18 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 				DataType: []string{"RefTarget"},
 				Name:     "ref_prop",
 			},
+			{
+				DataType: []string{"int"},
+				Name:     "major_version",
+			},
+			{
+				DataType: []string{"int"},
+				Name:     "minor_version",
+			},
+			{
+				DataType: []string{"int"},
+				Name:     "patch_version",
+			},
 		},
 	}
 
@@ -365,10 +446,14 @@ func importTargetObject(ctx context.Context, client *weaviate.Client,
 func importSourceObject(ctx context.Context, client *weaviate.Client,
 	version, targetID string,
 ) error {
+	semver := parseSingleSemverWithoutLeadingV(version)
 	props := map[string]interface{}{
-		"version":      version,
-		"object_count": objectsCreated,
-		"ref_prop":     []interface{}{map[string]interface{}{"beacon": fmt.Sprintf("weaviate://localhost/RefTarget/%s", targetID)}},
+		"version":       version,
+		"object_count":  objectsCreated,
+		"ref_prop":      []interface{}{map[string]interface{}{"beacon": fmt.Sprintf("weaviate://localhost/RefTarget/%s", targetID)}},
+		"major_version": semver.major,
+		"minor_version": semver.minor,
+		"patch_version": semver.patch,
 	}
 
 	vec := make([]float32, 32)
