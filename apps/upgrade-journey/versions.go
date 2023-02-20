@@ -139,9 +139,18 @@ func sortSemverAndTrimToMinimum(versions semverList, min string) semverList {
 }
 
 func parseSingleSemverWithoutLeadingV(input string) semver {
+	v, ok := maybeParseSingleSemverWithoutLeadingV(input)
+	if !ok {
+		panic("not an acceptable semver")
+	}
+
+	return v
+}
+
+func maybeParseSingleSemverWithoutLeadingV(input string) (semver, bool) {
 	r := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)$`)
 	if !r.MatchString(input) {
-		panic("not an acceptable semver")
+		return semver{}, false
 	}
 
 	sm := r.FindStringSubmatch(input)
@@ -150,7 +159,7 @@ func parseSingleSemverWithoutLeadingV(input string) semver {
 		major: mustParseInt(sm[1]),
 		minor: mustParseInt(sm[2]),
 		patch: mustParseInt(sm[3]),
-	}
+	}, true
 }
 
 func (s semverList) toStringList() []string {

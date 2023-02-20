@@ -188,6 +188,11 @@ func findObjectUsingVersionString(ctx context.Context, client *weaviate.Client,
 func findObjectUsingVersionInts(ctx context.Context, client *weaviate.Client,
 	version string,
 ) error {
+	parsed, ok := maybeParseSingleSemverWithoutLeadingV(version)
+	if !ok {
+		log.Printf("skipping int version test because %q is not a valid semver", version)
+		return nil
+	}
 	fields := []graphql.Field{
 		{Name: "_additional { id }"},
 		{Name: "version"},
@@ -195,7 +200,6 @@ func findObjectUsingVersionInts(ctx context.Context, client *weaviate.Client,
 		{Name: "ref_prop { ... on RefTarget {version} }"},
 	}
 
-	parsed := parseSingleSemverWithoutLeadingV(version)
 	where := filters.Where().
 		WithOperator(filters.And).
 		WithOperands([]*filters.WhereBuilder{
@@ -446,7 +450,7 @@ func importTargetObject(ctx context.Context, client *weaviate.Client,
 func importSourceObject(ctx context.Context, client *weaviate.Client,
 	version, targetID string,
 ) error {
-	semver := parseSingleSemverWithoutLeadingV(version)
+	semver, _ := maybeParseSingleSemverWithoutLeadingV(version)
 	props := map[string]interface{}{
 		"version":       version,
 		"object_count":  objectsCreated,
