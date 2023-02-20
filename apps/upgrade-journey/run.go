@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -13,33 +14,38 @@ import (
 	"github.com/weaviate/weaviate/entities/models"
 )
 
-// TODO: should be automated by pulling them from GH tags
-var versions = []string{
-	"1.16.0",
-	"1.16.1",
-	"1.16.2",
-	"1.16.3",
-	"1.16.4",
-	"1.16.5",
-	"1.16.6",
-	"1.16.7",
-	"1.16.8",
-	"1.16.9",
-	"1.17.0",
-	"1.17.1",
-	"1.17.2",
-}
+var versions []string
 
 var objectsCreated = 0
 
 func main() {
+	targetW, ok := os.LookupEnv("WEAVIATE_VERSION")
+	if !ok {
+		log.Fatal("missing WEAVIATE_VERSION")
+	}
+
+	minimumW, ok := os.LookupEnv("MINIMUM_WEAVIATE_VERSION")
+	if !ok {
+		log.Fatal("missing MINIMUM_WEAVIATE_VERSION")
+	}
+
+	var err error
+	versions, err = buildVersionList(minimumW, targetW)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("configured minimum version is %s", minimumW)
+	log.Printf("configured target version is %s", targetW)
+	log.Printf("identified the following versions: %v", versions)
+
 	cfg := weaviate.Config{
 		Host:   "localhost:8080",
 		Scheme: "http",
 	}
 	client := weaviate.New(cfg)
 
-	err := do(client)
+	err = do(client)
 	if err != nil {
 		log.Fatal(err)
 	}
