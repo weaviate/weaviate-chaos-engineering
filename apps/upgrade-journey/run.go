@@ -8,15 +8,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
-var versions []string
-
-var objectsCreated = 0
+var (
+	versions       []string
+	objectsCreated = 0
+)
 
 func main() {
 	targetW, ok := os.LookupEnv("WEAVIATE_VERSION")
@@ -62,6 +64,7 @@ func do(client *weaviate.Client) error {
 	}
 
 	for i, version := range versions {
+
 		if err := startOrUpgrade(ctx, c, i, version); err != nil {
 			return err
 		}
@@ -133,6 +136,7 @@ func findEachImportedObject(ctx context.Context, client *weaviate.Client,
 			{Name: "_additional { id }"},
 			{Name: "version"},
 			{Name: "object_count"},
+			{Name: "ref_prop { ... on RefTarget {version} }"},
 		}
 		where := filters.Where().
 			WithPath([]string{"version"}).
@@ -151,9 +155,15 @@ func findEachImportedObject(ctx context.Context, client *weaviate.Client,
 			return fmt.Errorf("%v", result.Errors)
 		}
 
-		actualVersion := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})["version"].(string)
+		obj := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})
+		actualVersion := obj["version"].(string)
 		if version != actualVersion {
-			return fmt.Errorf("wanted %s got %s", version, actualVersion)
+			return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
+		}
+
+		refVersion := obj["ref_prop"].([]interface{})[0].(map[string]interface{})["version"].(string)
+		if refVersion != actualVersion {
+			return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
 		}
 
 	}
@@ -270,8 +280,8 @@ func filteredVectorSearch(ctx context.Context, client *weaviate.Client,
 }
 
 func createSchema(ctx context.Context, client *weaviate.Client) error {
-	classObj := &models.Class{
-		Class: "Collection",
+	refTarget := &models.Class{
+		Class: "RefTarget",
 		Properties: []*models.Property{
 			{
 				DataType: []string{"string"},
@@ -284,7 +294,30 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 		},
 	}
 
-	err := client.Schema().ClassCreator().WithClass(classObj).Do(context.Background())
+	err := client.Schema().ClassCreator().WithClass(refTarget).Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	classObj := &models.Class{
+		Class: "Collection",
+		Properties: []*models.Property{
+			{
+				DataType: []string{"string"},
+				Name:     "version",
+			},
+			{
+				DataType: []string{"int"},
+				Name:     "object_count",
+			},
+			{
+				DataType: []string{"RefTarget"},
+				Name:     "ref_prop",
+			},
+		},
+	}
+
+	err = client.Schema().ClassCreator().WithClass(classObj).Do(context.Background())
 	if err != nil {
 		return err
 	}
@@ -295,9 +328,47 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 func importForVersion(ctx context.Context, client *weaviate.Client,
 	version string,
 ) error {
+	targetID := uuid.New().String()
+	if err := importTargetObject(ctx, client, version, targetID); err != nil {
+		return fmt.Errorf("source object: %w", err)
+	}
+
+	if err := importSourceObject(ctx, client, version, targetID); err != nil {
+		return fmt.Errorf("source object: %w", err)
+	}
+
+	objectsCreated++
+
+	return nil
+}
+
+func importTargetObject(ctx context.Context, client *weaviate.Client,
+	version, id string,
+) error {
 	props := map[string]interface{}{
 		"version":      version,
 		"object_count": objectsCreated,
+	}
+
+	_, err := client.Data().Creator().
+		WithClassName("RefTarget").
+		WithID(id).
+		WithProperties(props).
+		Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func importSourceObject(ctx context.Context, client *weaviate.Client,
+	version, targetID string,
+) error {
+	props := map[string]interface{}{
+		"version":      version,
+		"object_count": objectsCreated,
+		"ref_prop":     []interface{}{map[string]interface{}{"beacon": fmt.Sprintf("weaviate://localhost/RefTarget/%s", targetID)}},
 	}
 
 	vec := make([]float32, 32)
@@ -305,13 +376,16 @@ func importForVersion(ctx context.Context, client *weaviate.Client,
 		vec[i] = rand.Float32()
 	}
 
-	objectsCreated++
 	_, err := client.Data().Creator().
 		WithClassName("Collection").
 		WithVector(vec).
 		WithProperties(props).
 		Do(context.Background())
-	return err
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func startOrUpgrade(ctx context.Context, c *cluster, i int, version string) error {
