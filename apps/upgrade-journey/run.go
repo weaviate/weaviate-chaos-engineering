@@ -93,6 +93,10 @@ func verify(ctx context.Context, client *weaviate.Client, i int) error {
 		return err
 	}
 
+	if err := vectorSearch(ctx, client, i); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -157,6 +161,114 @@ func findEachImportedObject(ctx context.Context, client *weaviate.Client,
 	return nil
 }
 
+// vectorSearch runs one unfiltered vector search (HNSW), as well as one
+// filtered vector search. Based on the small number of data objects in this
+// test, we can assume that this always uses flat search, so we have two ways
+// tested
+//
+// no recall assumptions are tested, just that the search works
+func vectorSearch(ctx context.Context, client *weaviate.Client,
+	posOfMaxVersion int,
+) error {
+	// unfiltered
+	if err := unfilteredVectorSearch(ctx, client, posOfMaxVersion); err != nil {
+		return fmt.Errorf("unfiltered vec: %w", err)
+	}
+
+	if err := filteredVectorSearch(ctx, client, posOfMaxVersion); err != nil {
+		return fmt.Errorf("filtered vec: %w", err)
+	}
+
+	return nil
+}
+
+func unfilteredVectorSearch(ctx context.Context, client *weaviate.Client,
+	posOfMaxVersion int,
+) error {
+	searchVec := make([]float32, 32)
+	for i := range searchVec {
+		searchVec[i] = rand.Float32()
+	}
+
+	fields := []graphql.Field{
+		{Name: "_additional { id }"},
+		{Name: "version"},
+		{Name: "object_count"},
+	}
+
+	nearVector := client.GraphQL().NearVectorArgBuilder().
+		WithVector(searchVec)
+
+	result, err := client.GraphQL().Get().
+		WithClassName("Collection").
+		WithFields(fields...).
+		WithNearVector(nearVector).
+		WithLimit(10000).
+		Do(ctx)
+	if err != nil {
+		return err
+	}
+	if len(result.Errors) > 0 {
+		return fmt.Errorf("%v", result.Errors)
+	}
+
+	results := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})
+	if len(results) != posOfMaxVersion+1 {
+		return fmt.Errorf("not all objects returned in vector search")
+	}
+
+	return nil
+}
+
+// filteredVectorSearch applies a filter that always matches exactly one
+// element, so the search result always has to match exactly what was in the
+// filter
+func filteredVectorSearch(ctx context.Context, client *weaviate.Client,
+	posOfMaxVersion int,
+) error {
+	for i := 0; i <= posOfMaxVersion; i++ {
+		version := versions[i]
+		searchVec := make([]float32, 32)
+		for i := range searchVec {
+			searchVec[i] = rand.Float32()
+		}
+
+		fields := []graphql.Field{
+			{Name: "_additional { id }"},
+			{Name: "version"},
+			{Name: "object_count"},
+		}
+		where := filters.Where().
+			WithPath([]string{"version"}).
+			WithOperator(filters.Equal).
+			WithValueString(version)
+
+		nearVector := client.GraphQL().NearVectorArgBuilder().
+			WithVector(searchVec)
+
+		result, err := client.GraphQL().Get().
+			WithClassName("Collection").
+			WithFields(fields...).
+			WithWhere(where).
+			WithNearVector(nearVector).
+			Do(ctx)
+		if err != nil {
+			return err
+		}
+		if len(result.Errors) > 0 {
+			return fmt.Errorf("%v", result.Errors)
+		}
+
+		actualVersion := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})["version"].(string)
+		if version != actualVersion {
+			return fmt.Errorf("wanted %s got %s", version, actualVersion)
+		}
+
+	}
+
+	return nil
+}
+
 func createSchema(ctx context.Context, client *weaviate.Client) error {
 	classObj := &models.Class{
 		Class: "Collection",
@@ -188,9 +300,15 @@ func importForVersion(ctx context.Context, client *weaviate.Client,
 		"object_count": objectsCreated,
 	}
 
+	vec := make([]float32, 32)
+	for i := range vec {
+		vec[i] = rand.Float32()
+	}
+
 	objectsCreated++
 	_, err := client.Data().Creator().
 		WithClassName("Collection").
+		WithVector(vec).
 		WithProperties(props).
 		Do(context.Background())
 	return err
