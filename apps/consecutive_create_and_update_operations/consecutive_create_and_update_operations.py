@@ -1,6 +1,7 @@
 from weaviate import Client
 from uuid import uuid1
 
+
 class TestConsecutiveCreateAndUpdate:
     client: Client
     img = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AcxV/TSou0ONhBxCFD62RBVMRRq1CECqFWaNXB5NIvaNKSpLg4Cq4FBz8Wqw4uzro6uAqC4AeIm5uToouU+L+k0CLGg+N+vLv3uHsHCK0q08zAOKDplpFJJcVcflUMviKACEKIwy8zsz4nSWl4jq97+Ph6l+BZ3uf+HBG1YDLAJxLPsrphEW8QT29adc77xFFWllXic+Ixgy5I/Mh1xeU3ziWHBZ4ZNbKZeeIosVjqYaWHWdnQiKeIY6qmU76Qc1nlvMVZqzZY5578heGCvrLMdZojSGERS5AgQkEDFVRhIUGrToqJDO0nPfzDjl8il0KuChg5FlCDBtnxg//B727N4uSEmxROAn0vtv0RB4K7QLtp29/Htt0+AfzPwJXe9ddawMwn6c2uFjsCBraBi+uupuwBlzvA0FNdNmRH8tMUikXg/Yy+KQ8M3gL9a25vnX2cPgBZ6ip9AxwcAqMlyl73eHeot7d/z3T6+wEPO3J/B8olWgAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAd0SU1FB+UEDQgmFS2naPsAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAADElEQVQI12NgYGAAAAAEAAEnNCcKAAAAAElFTkSuQmCC"
@@ -21,8 +22,8 @@ class TestConsecutiveCreateAndUpdate:
 
         if results is not None:
             for result in results:
-                if 'result' in result and 'errors' in result['result']:
-                    if 'error' in result['result']['errors']:
+                if "result" in result and "errors" in result["result"]:
+                    if "error" in result["result"]["errors"]:
                         print(f"error: {result['result']['errors']}")
                         raise Exception("Some batch items failed!")
 
@@ -32,27 +33,27 @@ class TestConsecutiveCreateAndUpdate:
 
     def checkIfObjectsExist(self, uuids):
         for _id in uuids:
-          resp = self.client.data_object.get_by_id(_id, with_vector=True)
-          if resp is None:
-            print(f"ERROR!!! Object with ID: {_id} doesn't exist!!!")
-            raise
+            resp = self.client.data_object.get_by_id(_id, with_vector=True)
+            if resp is None:
+                print(f"ERROR!!! Object with ID: {_id} doesn't exist!!!")
+                raise
 
     def consecutive_create_and_update_operations(self):
         print("Test started")
 
-        cls_name = 'Test123'
+        cls_name = "Test123"
 
         schemas = {
-            'classes': [
+            "classes": [
                 {
-                    'class': cls_name,
+                    "class": cls_name,
                     "vectorizer": "none",
-                    'vectorIndexConfig': {'skip': False},
-                    'properties': [
+                    "vectorIndexConfig": {"skip": False},
+                    "properties": [
                         {
-                            'dataType': ['blob'],
-                            'name': 'a',
-                            'indexInverted': False,
+                            "dataType": ["blob"],
+                            "name": "a",
+                            "indexInverted": False,
                         }
                     ],
                 },
@@ -62,13 +63,13 @@ class TestConsecutiveCreateAndUpdate:
         self.deleteTestClass(schemas, cls_name)
 
         uuids = [str(uuid1()) for _ in range(28000)]
-        assert len(list(set(uuids))) == len(uuids), 'uuids contain duplicates'
+        assert len(list(set(uuids))) == len(uuids), "uuids contain duplicates"
 
         # extend
         print(f"Create objects in batch of 50 items...")
         with self.client.batch(batch_size=50, callback=self.batch_callback_result) as batch:
             for _id in uuids:
-                batch.add_data_object(data_object={'a': self.img}, class_name=cls_name, uuid=_id)
+                batch.add_data_object(data_object={"a": self.img}, class_name=cls_name, uuid=_id)
             batch.flush()
 
         print(f"Update objects with vector started...")
@@ -76,12 +77,13 @@ class TestConsecutiveCreateAndUpdate:
         # embed
         with self.client.batch(batch_size=50, callback=self.batch_callback_result) as batch:
             for _id in uuids:
-                batch.add_data_object(data_object={'a': self.img2}, class_name=cls_name, uuid=_id, vector=[3,2,1])
+                batch.add_data_object(
+                    data_object={"a": self.img2}, class_name=cls_name, uuid=_id, vector=[3, 2, 1]
+                )
                 if x % 1000 == 0:
                     print(f"updated {x} objects...")
                 x += 1
             batch.flush()
-
 
         print("Check if objects exist...")
         # check
@@ -92,7 +94,9 @@ class TestConsecutiveCreateAndUpdate:
         # update vectors
         with self.client.batch(batch_size=50, callback=self.batch_callback_result) as batch:
             for _id in uuids:
-                batch.add_data_object(data_object={'a': self.img}, class_name=cls_name, uuid=_id, vector=[1,2,3])
+                batch.add_data_object(
+                    data_object={"a": self.img}, class_name=cls_name, uuid=_id, vector=[1, 2, 3]
+                )
                 if x % 1000 == 0:
                     print(f"updated {x} objects...")
                 x += 1
@@ -105,7 +109,8 @@ class TestConsecutiveCreateAndUpdate:
         self.deleteTestClass(schemas, cls_name)
         print("Test done")
 
-c = Client('http://localhost:8080')
+
+c = Client("http://localhost:8080")
 
 test = TestConsecutiveCreateAndUpdate(c)
 test.consecutive_create_and_update_operations()

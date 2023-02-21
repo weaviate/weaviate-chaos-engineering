@@ -10,29 +10,28 @@ import string
 import uuid
 import sys
 
-import_error_count=0
+import_error_count = 0
+
 
 def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
-        "vectorIndexConfig":{
-            "efConstruction":64,
-            "maxConnections":8,
+        "vectorIndexConfig": {
+            "efConstruction": 64,
+            "maxConnections": 8,
         },
         "class": "Document",
-        "invertedIndexConfig":{
-            "indexTimestamps":False,
+        "invertedIndexConfig": {
+            "indexTimestamps": False,
         },
-        "replicationConfig":{
-            "factor": 3 
-        },
+        "replicationConfig": {"factor": 3},
         "properties": [
             {
-                "dataType": [ "text" ],
+                "dataType": ["text"],
                 "name": "content",
             },
-        ]
+        ],
     }
 
     client.schema.create_class(class_obj)
@@ -50,22 +49,23 @@ def handle_errors(results: Optional[dict]) -> None:
     if results is not None:
         for result in results:
             if (
-                'result' in result
-                and 'errors' in result['result']
-                and 'error' in result['result']['errors']
+                "result" in result
+                and "errors" in result["result"]
+                and "error" in result["result"]["errors"]
             ):
-                for message in result['result']['errors']['error']:
+                for message in result["result"]["errors"]["error"]:
                     global import_error_count
-                    import_error_count+=1
-                    logger.error(message['message'])
+                    import_error_count += 1
+                    logger.error(message["message"])
+
 
 def load_objects(client: weaviate.Client, size: int):
     client.batch.configure(
-            batch_size=50,
-            callback=handle_errors,
-            dynamic=False,
-            num_workers=8,
-            )
+        batch_size=50,
+        callback=handle_errors,
+        dynamic=False,
+        num_workers=8,
+    )
     with client.batch as batch:
         for i in range(size):
             if i % 1000 == 0:
@@ -76,33 +76,34 @@ def load_objects(client: weaviate.Client, size: int):
                 },
                 class_name="Document",
                 uuid=uuid.UUID(int=i),
-                vector=np.random.rand(32,1),
+                vector=np.random.rand(32, 1),
             )
 
     logger.info(f"Finished writing {size} records with {import_error_count} errors")
+
 
 # the idea is that every object has to be returned correctly since we had at
 # most one node death, so a quorum must always work. The assumption is that any
 # write request could either be written to at least two nodes succesfully – or
 # if it could not be written – has been repeated client-side
 def validate_objects(client: weaviate.Client, max_id: int):
-    random_picks=100_000
-    missing_objects=0
-    errors=0
+    random_picks = 100_000
+    missing_objects = 0
+    errors = 0
 
     for i in range(random_picks):
         obj_id = uuid.UUID(int=random.randint(0, max_id))
         try:
-            data_object = client.data_object.get_by_id(uuid=obj_id, class_name="Document", consistency_level="QUORUM")
+            data_object = client.data_object.get_by_id(
+                uuid=obj_id, class_name="Document", consistency_level="QUORUM"
+            )
             if data_object is None:
-                missing_objects+=1
+                missing_objects += 1
         except Exception as e:
-            errors+=1
+            errors += 1
             logger.error(e)
         if i % 1000 == 0:
-            logger.info(f'validated {i}/{random_picks} random objects')
-
-    
+            logger.info(f"validated {i}/{random_picks} random objects")
 
     logger.info(f"Finished validation with {missing_objects} missing objects and {errors} errors")
     if errors > 0 or missing_objects > 0:
@@ -142,20 +143,18 @@ def validate_objects(client: weaviate.Client, max_id: int):
 #                         )
 
 
-
-
 if __name__ == "__main__":
     client = weaviate.Client("http://localhost:8080", timeout_config=int(30))
-    object_count=300000
+    object_count = 300000
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--action', default='import')
+    parser.add_argument("-a", "--action", default="import")
     args = parser.parse_args()
 
     if args.action == "import":
         load_objects(client, object_count)
         # load_references(client, 400, ids_class_1, ids_class_2)
-        validate_objects(client, object_count-1)
+        validate_objects(client, object_count - 1)
     elif args.action == "schema":
         reset_schema(client)
     else:
