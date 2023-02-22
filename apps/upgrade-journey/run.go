@@ -482,5 +482,5 @@ func startOrUpgrade(ctx context.Context, c *cluster, i int, version string) erro
 		return c.startAllNodes(ctx, version)
 	}
 
-	return c.rollingUpdate(ctx, versions[i%len(versions)])
+	return c.rollingUpdate(ctx, version)
 }

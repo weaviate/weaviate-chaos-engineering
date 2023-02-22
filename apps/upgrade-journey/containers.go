@@ -59,8 +59,6 @@ func (c *cluster) rollingUpdate(ctx context.Context, version string) error {
 			return err
 		}
 
-		// c.containers[i].StopLogProducer().Error
-
 		container, err := c.startWeaviateNode(ctx, i, version)
 		if err != nil {
 			log.Print(err)
