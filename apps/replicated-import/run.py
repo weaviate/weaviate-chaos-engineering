@@ -65,6 +65,7 @@ def load_objects(client: weaviate.Client, size: int):
             callback=handle_errors,
             dynamic=False,
             num_workers=8,
+            timeout_retries=10,
             )
     with client.batch as batch:
         for i in range(size):
