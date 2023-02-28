@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-add-bm25-stopwords-ecb2d65
+  WEAVIATE_VERSION: 1.18.0-alpha.1
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
