@@ -5,7 +5,6 @@ import (
 	"math/rand"
 
 	client "github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/data/replication"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -35,16 +34,6 @@ var (
 		},
 	}
 )
-
-func randCL() string {
-	cls := []string{
-		replication.ConsistencyLevel.ALL,
-		replication.ConsistencyLevel.ONE,
-		replication.ConsistencyLevel.QUORUM,
-	}
-
-	return cls[rand.Intn(len(cls))]
-}
 
 func randClient() *client.Client {
 	clients := []*client.Client{

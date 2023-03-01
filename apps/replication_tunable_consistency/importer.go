@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/data/replication"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -31,7 +32,7 @@ func main() {
 	}
 
 	{
-		log.Println("Importing objects batch with random consistency level...")
+		log.Println("Importing objects batch with consistency level ALL...")
 		b, err := os.ReadFile("data.json")
 		if err != nil {
 			log.Fatalf("failed to read file: %v", err)
@@ -48,7 +49,7 @@ func main() {
 			for j := i; j < batchSize+i && j < len(objects); j++ {
 				batcher.WithObjects(objects[j])
 			}
-			resp, err := batcher.WithConsistencyLevel(randCL()).Do(ctx)
+			resp, err := batcher.WithConsistencyLevel(replication.ConsistencyLevel.ALL).Do(ctx)
 			checkBatchInsertResult(resp, err)
 		}
 	}

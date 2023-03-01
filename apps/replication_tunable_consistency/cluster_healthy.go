@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/data/replication"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -14,7 +15,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	log.Printf("Validate all objects were added, with random consistency level...")
+	log.Printf("Validate all objects were added, with consistency level ONE...")
 
 	b, err := os.ReadFile("data/data.json")
 	if err != nil {
@@ -31,7 +32,7 @@ func main() {
 		resp, err := randClient().Data().ObjectsGetter().
 			WithClassName(class.Class).
 			WithID(obj.ID.String()).
-			WithConsistencyLevel(randCL()).
+			WithConsistencyLevel(replication.ConsistencyLevel.ONE).
 			Do(ctx)
 		if err != nil {
 			log.Fatalf("failed to query id %s: %v", obj.ID.String(), err)

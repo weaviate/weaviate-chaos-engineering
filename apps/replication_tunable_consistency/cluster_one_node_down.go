@@ -16,7 +16,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	log.Printf("Validate all objects were patched, with consistency level ALL...")
+	log.Printf("Validate all objects were patched, with consistency level QUORUM...")
 
 	b, err := os.ReadFile("data/data.json")
 	if err != nil {
@@ -33,7 +33,7 @@ func main() {
 		resp, err := randClient().Data().ObjectsGetter().
 			WithClassName(class.Class).
 			WithID(obj.ID.String()).
-			WithConsistencyLevel(replication.ConsistencyLevel.ALL).
+			WithConsistencyLevel(replication.ConsistencyLevel.QUORUM).
 			Do(ctx)
 		if err != nil {
 			log.Fatalf("failed to query id %s: %v", obj.ID.String(), err)

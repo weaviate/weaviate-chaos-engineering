@@ -16,7 +16,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	log.Println("Patching objects...")
+	log.Println("Patching objects with consistency level QUORUM...")
 	b, err := os.ReadFile("data.json")
 	if err != nil {
 		log.Fatalf("failed to read file: %v", err)

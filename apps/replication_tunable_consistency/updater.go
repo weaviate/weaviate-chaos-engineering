@@ -16,7 +16,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Hour)
 	defer cancel()
 
-	log.Println("Updating objects...")
+	log.Println("Updating objects with consistency level ONE...")
 	b, err := os.ReadFile("data.json")
 	if err != nil {
 		log.Fatalf("failed to read file: %v", err)
