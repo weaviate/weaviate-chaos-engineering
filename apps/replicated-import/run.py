@@ -85,7 +85,7 @@ def load_objects(client: weaviate.Client, size: int):
 
 # the idea is that every object has to be returned correctly since we had at
 # most one node death, so a quorum must always work. The assumption is that any
-# write request could either be written to at least two nodes succesfully – or
+# write request could either be written to at least two nodes successfully – or
 # if it could not be written – has been repeated client-side
 def validate_objects(client: weaviate.Client, max_id: int):
     random_picks = 100_000

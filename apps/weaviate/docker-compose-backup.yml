@@ -63,7 +63,6 @@ services:
       AWS_SECRET_KEY: 'aws_secret_key'
       BACKUP_S3_USE_SSL: 'false'
 
-
   # Mutually exclusive with weaviate-backup-node
   # Used for cluster backup scenarios
   weaviate-node-2:
