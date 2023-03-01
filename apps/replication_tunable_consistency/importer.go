@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
-	"os"
 	"time"
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/data/replication"
-	"github.com/weaviate/weaviate/entities/models"
 )
 
 func main() {
@@ -33,16 +30,8 @@ func main() {
 
 	{
 		log.Println("Importing objects batch with consistency level ALL...")
-		b, err := os.ReadFile("data.json")
-		if err != nil {
-			log.Fatalf("failed to read file: %v", err)
-		}
 
-		var objects []*models.Object
-		err = json.Unmarshal(b, &objects)
-		if err != nil {
-			log.Fatalf("failed to unmarshal objects: %v", err)
-		}
+		objects := readObjectsFile("data.json")
 
 		for i := 0; i < len(objects); i += batchSize {
 			batcher := randClient().Batch().ObjectsBatcher()

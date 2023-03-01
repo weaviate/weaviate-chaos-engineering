@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"math/rand"
+	"os"
 
 	client "github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate/entities/models"
@@ -34,6 +36,21 @@ var (
 		},
 	}
 )
+
+func readObjectsFile(filename string) []*models.Object {
+	b, err := os.ReadFile(filename)
+	if err != nil {
+		log.Fatalf("failed to read objects file: %v", err)
+	}
+
+	var objects []*models.Object
+	err = json.Unmarshal(b, &objects)
+	if err != nil {
+		log.Fatalf("failed to unmarshal objects file: %v", err)
+	}
+
+	return objects
+}
 
 func randClient() *client.Client {
 	clients := []*client.Client{

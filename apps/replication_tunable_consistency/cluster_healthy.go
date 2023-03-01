@@ -2,13 +2,10 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
-	"os"
 	"time"
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/data/replication"
-	"github.com/weaviate/weaviate/entities/models"
 )
 
 func main() {
@@ -17,16 +14,7 @@ func main() {
 
 	log.Printf("Validate all objects were added, with consistency level ONE...")
 
-	b, err := os.ReadFile("data/data.json")
-	if err != nil {
-		log.Fatalf("failed to read objects file: %v", err)
-	}
-
-	var objects []*models.Object
-	err = json.Unmarshal(b, &objects)
-	if err != nil {
-		log.Fatalf("failed to unmarshal objects file: %v", err)
-	}
+	objects := readObjectsFile("data/data.json")
 
 	for _, obj := range objects {
 		resp, err := randClient().Data().ObjectsGetter().
