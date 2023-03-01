@@ -14,6 +14,7 @@ class VersionPairsException(Exception):
     message is provided, the caller is notified with a default one. But ideally, a
     message should be provided.
     """
+
     def __init__(self, *args):
         if len(args) == 0:
             args = ("with no message provided",)
@@ -22,20 +23,22 @@ class VersionPairsException(Exception):
 
 
 def get_version_tags():
-    res = subprocess.run(['bash', './get_tags.sh'], capture_output=True)
+    res = subprocess.run(["bash", "./get_tags.sh"], capture_output=True)
     if res.returncode != 0:
         raise VersionPairsException(f"get weaviate version tags: {res.stderr.decode('utf-8')}")
 
     # script returns newline-delineated tags. after the
     # split, the last newline produces an empty string
-    return res.stdout.decode('utf-8').split('\n')[:-1]
+    return res.stdout.decode("utf-8").split("\n")[:-1]
+
 
 def is_version_since_backup_introduced(tag):
     # backups were introduced starting from v1.15.0
-    parts = tag.split('.')
+    parts = tag.split(".")
     if int(parts[0]) > 1 or int(parts[1]) >= 15:
         return True
     return False
+
 
 def generate_version_pairs():
     try:
@@ -44,16 +47,17 @@ def generate_version_pairs():
     except Exception as e:
         return e
 
-    versions = [t.lstrip('v') for t in tags if is_version_since_backup_introduced(t.lstrip('v'))]
+    versions = [t.lstrip("v") for t in tags if is_version_since_backup_introduced(t.lstrip("v"))]
 
     # compare the latest version with all existing backup-supporting versions
     pairs = [(prev, target) for prev in versions]
 
     # more easily consumable by a shell script
-    return ' '.join([f"{left}+{right}" for (left, right) in pairs])
+    return " ".join([f"{left}+{right}" for (left, right) in pairs])
+
 
 def target_version():
-    vers = os.environ.get('WEAVIATE_VERSION')
+    vers = os.environ.get("WEAVIATE_VERSION")
     if vers == "":
         raise VersionPairsException('"WEAVIATE_VERSION" not set')
     return vers

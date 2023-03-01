@@ -7,40 +7,42 @@ import random
 import numpy as np
 from uuid import uuid1
 
+
 def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
-        "vectorIndexConfig":{
+        "vectorIndexConfig": {
             "efConstruction": 64,
             "maxConnections": 4,
             "cleanupIntervalSeconds": 10,
         },
         "class": "Example",
-        "invertedIndexConfig":{
-            "indexTimestamps":False,
+        "invertedIndexConfig": {
+            "indexTimestamps": False,
         },
         "properties": [
             {
-                "dataType": [ "boolean" ],
+                "dataType": ["boolean"],
                 "name": "bool_field",
             },
             {
-                "dataType": [ "int" ],
+                "dataType": ["int"],
                 "name": "field_1",
             },
             {
-                "dataType": [ "int" ],
+                "dataType": ["int"],
                 "name": "field_2",
             },
             {
-                "dataType": [ "int" ],
+                "dataType": ["int"],
                 "name": "field_3",
             },
-        ]
+        ],
     }
 
     client.schema.create_class(class_obj)
+
 
 def handle_errors(results: Optional[dict]) -> None:
     """
@@ -54,15 +56,15 @@ def handle_errors(results: Optional[dict]) -> None:
     if results is not None:
         for result in results:
             if (
-                'result' in result
-                and 'errors' in result['result']
-                and 'error' in result['result']['errors']
+                "result" in result
+                and "errors" in result["result"]
+                and "error" in result["result"]["errors"]
             ):
-                for message in result['result']['errors']['error']:
-                    logger.error(message['message'])
+                for message in result["result"]["errors"]["error"]:
+                    logger.error(message["message"])
+
 
 def load_records(client: weaviate.Client, max_records=100000, update_percent=30):
-
     # some uuids for reuse to force updates
     uuids = [str(uuid1()) for _ in range(100)]
 
@@ -71,27 +73,24 @@ def load_records(client: weaviate.Client, max_records=100000, update_percent=30)
         for i in range(max_records):
             if i % 1000 == 0:
                 logger.info(f"Writing record {i}/{max_records}")
-            data_object={
+            data_object = {
                 "bool_field": True,
-                "field_1": random.randint(0,1e12),
-                "field_2": random.randint(0,1e12),
-                "field_3": random.randint(0,1e12),
+                "field_1": random.randint(0, 1e12),
+                "field_2": random.randint(0, 1e12),
+                "field_3": random.randint(0, 1e12),
             }
-            vector=np.random.rand(32,1)
-            if random.randint(0,100) > update_percent:
+            vector = np.random.rand(32, 1)
+            if random.randint(0, 100) > update_percent:
                 batch.add_data_object(
                     data_object=data_object,
                     vector=vector,
                     uuid=random.choice(uuids),
-                    class_name="Example"
+                    class_name="Example",
                 )
             else:
-                batch.add_data_object(
-                    data_object=data_object,
-                    vector=vector,
-                    class_name="Example"
-                )
+                batch.add_data_object(data_object=data_object, vector=vector, class_name="Example")
     logger.info(f"Finished writing {max_records} records")
+
 
 client = weaviate.Client("http://localhost:8080")
 

@@ -7,6 +7,11 @@ on:
   push
   
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: psf/black@stable
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
     runs-on: ubuntu-latest
