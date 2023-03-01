@@ -65,6 +65,7 @@ def load_objects(client: weaviate.Client, size: int):
         callback=handle_errors,
         dynamic=False,
         num_workers=8,
+        consistency_level="QUORUM",
     )
     with client.batch as batch:
         for i in range(size):
@@ -105,7 +106,9 @@ def validate_objects(client: weaviate.Client, max_id: int):
         if i % 1000 == 0:
             logger.info(f"validated {i}/{random_picks} random objects")
 
-    logger.info(f"Finished validation with {missing_objects} missing objects and {errors} errors")
+    logger.info(
+        f"Finished validation with {missing_objects} missing objects and {errors} errors"
+    )
     if errors > 0 or missing_objects > 0:
         logger.error("Failed!")
         sys.exit(1)
