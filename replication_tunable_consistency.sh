@@ -28,7 +28,6 @@ rm -rf workdir
 mkdir workdir
 touch workdir/data.json
 
-# echo "Generate a dataset of 100k objects"
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t generator
 
 echo "Done generating."
@@ -41,31 +40,31 @@ wait_weaviate 8081
 docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-3
 wait_weaviate 8082
 
-# POST objects with all nodes up
+# POST objects with consistency level ALL
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t importer
 
-# Validate healthy replication
+# Read objects with consistency level ONE
 docker run --network host -v "$PWD/workdir/:/workdir/data" -t cluster_healthy
 
-# PATCH objects with one node down
+# PATCH objects with one node down, consistency level QUORUM
 echo "Killing node 3"
 docker-compose -f apps/weaviate/docker-compose-replication.yml kill weaviate-node-3
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t patcher
 
-# Restart dead node and validate healthy replication
+# Restart dead node, read objects with consistency level QUORUM
 echo "Restart node 3"
 docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-3
 wait_weaviate 8082
 docker run --network host -v "$PWD/workdir/:/workdir/data" -t cluster_one_node_down
 
-# PUT objects with only one node remaining
+# PUT objects with only one node remaining, consistency level ONE
 echo "Killing node 2"
 docker-compose -f apps/weaviate/docker-compose-replication.yml kill weaviate-node-2
 echo "Killing node 3"
 docker-compose -f apps/weaviate/docker-compose-replication.yml kill weaviate-node-3
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t updater
 
-# Restart dead nodes and validate healthy replication
+# Restart dead nodes, read objects with consistency level ALL
 docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-2
 wait_weaviate 8081
 docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-3
