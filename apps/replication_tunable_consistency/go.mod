@@ -3,6 +3,7 @@ module replication
 go 1.19
 
 require (
+	github.com/go-openapi/strfmt v0.21.3
 	github.com/google/uuid v1.3.0
 	github.com/weaviate/weaviate v1.18.0-alpha.1
 	github.com/weaviate/weaviate-go-client/v4 v4.6.2-0.20230223201246-9dc91c57f9b1
@@ -18,7 +19,6 @@ require (
 	github.com/go-openapi/jsonreference v0.19.6 // indirect
 	github.com/go-openapi/loads v0.21.1 // indirect
 	github.com/go-openapi/spec v0.20.4 // indirect
-	github.com/go-openapi/strfmt v0.21.3 // indirect
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/go-openapi/validate v0.21.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
