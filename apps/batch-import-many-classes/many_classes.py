@@ -10,6 +10,7 @@ timeout = 5
 
 checkpoint = time.time()
 interval = 100
+classes = []
 for i in range(500):
     if i != 0 and i % interval == 0:
         avg = (time.time() - checkpoint) / interval
@@ -17,6 +18,7 @@ for i in range(500):
         checkpoint = time.time()
 
     before = time.time()
+    classes.append("Article" + str(i))
     client.schema.create_class(
         {
             "class": "Article" + str(i),
@@ -37,6 +39,8 @@ for i in range(500):
         logger.error(f"last class action took {took}s, but toleration limit is {timeout}s")
         sys.exit(1)
 
+
+random.shuffle(classes)
 i = 0
 checkpoint = time.time()
 interval = 10
@@ -47,13 +51,11 @@ while True:
         )
         checkpoint = time.time()
 
-    res = client.schema.get()
-    if len(res["classes"]) == 0:
+    if len(classes) == 0:
         break
 
-    to_delete = random.choice(res["classes"])["class"]
     before = time.time()
-    client.schema.delete_class(to_delete)
+    client.schema.delete_class(classes.pop())
     took = time.time() - before
     if took > timeout:
         logger.error(f"last class action took {took}s, but toleration limit is {timeout}s")

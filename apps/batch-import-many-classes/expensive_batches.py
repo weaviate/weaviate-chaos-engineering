@@ -1,6 +1,4 @@
 import weaviate
-import time
-import random
 from loguru import logger
 from typing import Optional
 import numpy as np
@@ -8,7 +6,10 @@ import uuid
 
 
 def reset_schema(client: weaviate.Client):
-    client.schema.delete_all()
+    try:  # delete if present
+        client.schema.delete_class("ExpensiveClass")
+    except weaviate.UnexpectedStatusCodeException:
+        pass
     class_obj = {
         "vectorizer": "none",
         "vectorIndexConfig": {
@@ -48,7 +49,6 @@ def load_records(
                 logger.info(f"Class: {class_name} - writing record {i}/{end}")
             data_object = {
                 "index_id": i,  # same as UUID, this way we can retrieve both using the primary key and the inverted index and make sure the results match
-                "class_name": class_name,
             }
 
             # many vector dimensions for the slowest possible import
