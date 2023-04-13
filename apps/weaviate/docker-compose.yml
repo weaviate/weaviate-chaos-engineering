@@ -10,6 +10,8 @@ services:
     - '8080'
     - --scheme
     - http
+    - --write-timeout
+    - 600s
     image: semitechnologies/weaviate:$WEAVIATE_VERSION
     ports:
     - 8080:8080
