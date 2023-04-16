@@ -40,24 +40,21 @@ if (args.distance) == None:
 f = h5py.File(args.vectors)
 vectors = f["train"]
 
-
-m = 8
 efC = values["efC"]
 distance = args.distance
 
 for shards in values["shards"]:
-    logger.info(
-        f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
-    )
-    reset_schema(client, efC, m, shards, distance)
-    load_records(client, vectors)
-    logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
+    for m in values["m"]:
+        logger.info(f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}")
+        reset_schema(client, efC, m, shards, distance)
+        load_records(client, vectors)
+        logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
 
-    logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
-    query(
-        client,
-        stub,
-        f,
-        values["ef"],
-    )
-    logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
+        logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
+        query(
+            client,
+            stub,
+            f,
+            values["ef"],
+        )
+        logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
