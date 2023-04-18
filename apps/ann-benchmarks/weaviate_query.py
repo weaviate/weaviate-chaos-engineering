@@ -14,7 +14,7 @@ class_name = "Vector"
 results = []
 
 
-def search_grpc(stub, dataset, i, input_vec):
+def search_grpc_clientless(stub, dataset, i, input_vec):
     out = {}
     before = time.time()
     req = weaviate_pb2.SearchRequest(
@@ -32,11 +32,12 @@ def search_grpc(stub, dataset, i, input_vec):
     return out
 
 
-def search_graphql(client: weaviate.Client, dataset, i, input_vec):
+def search_grpc(client: weaviate.Client, dataset, i, input_vec):
     out = {}
     before = time.time()
     res = (
-        client.query.get(class_name, ["_additional{id}"])
+        client.query.get(class_name, None)
+        .with_additional("id")
         .with_near_vector(
             {
                 "vector": input_vec,
@@ -51,10 +52,32 @@ def search_graphql(client: weaviate.Client, dataset, i, input_vec):
     out["took"] = time.time() - before
 
     ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
-    res_ids = [
-        uuid.UUID(res["_additional"]["id"]).int
-        for res in res["data"]["Get"][class_name]
-    ]
+    res_ids = [uuid.UUID(res["_additional"]["id"]).int for res in res["data"]["Get"][class_name]]
+
+    out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
+    return out
+
+
+def search_graphql(client: weaviate.Client, dataset, i, input_vec):
+    out = {}
+    before = time.time()
+    res = (
+        client.query.get(class_name, ["i _additional{id}"])
+        .with_near_vector(
+            {
+                "vector": input_vec,
+            }
+        )
+        .with_limit(limit)
+        .do()
+    )
+    if "errors" in res and res["errors"] != None:
+        logger.error(res["errors"])
+
+    out["took"] = time.time() - before
+
+    ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
+    res_ids = [uuid.UUID(res["_additional"]["id"]).int for res in res["data"]["Get"][class_name]]
 
     out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
     return out
@@ -70,7 +93,7 @@ def query(client, stub, dataset, ef_values):
     vectors = dataset["test"]
 
     for ef in ef_values:
-        for api in ["grpc", "graphql"]:
+        for api in ["grpc", "grpc_clientless", "graphql"]:
             schema = client.schema.get(class_name)
             schema["vectorIndexConfig"]["ef"] = ef
             client.schema.update_config(class_name, schema)
@@ -80,7 +103,9 @@ def query(client, stub, dataset, ef_values):
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(stub, dataset, i, vec)
+                    res = search_grpc(client, dataset, i, vec)
+                elif api == "grpc_clientless":
+                    res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":
                     res = search_graphql(client, dataset, i, vec)
                 else:

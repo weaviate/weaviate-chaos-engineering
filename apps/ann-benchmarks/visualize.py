@@ -23,8 +23,8 @@ plot = sns.relplot(
     x="recall",
     y="qps",
     hue="maxConnections",
-    col="api",
-    style="shards",
+    style="api",
+    # style="shards",
     # size="size",
 )
 

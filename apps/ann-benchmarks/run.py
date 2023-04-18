@@ -11,11 +11,23 @@ from weaviate_query import query
 from weaviategrpc import weaviate_pb2_grpc, weaviate_pb2
 
 values = {
-    "m": [8, 16, 24, 32, 48, 64],
+    "m": [16, 24, 32, 48],
     "shards": [1],
     "efC": 512,
-    "ef": [16, 24, 32, 48, 64, 96, 128, 256, 512],
+    "ef": [
+        16,
+        24,
+        32,
+        48,
+        64,
+        96,
+        128,
+        256,
+        512,
+    ],
 }
+
+values["ef"].reverse()
 
 
 parser = argparse.ArgumentParser()
