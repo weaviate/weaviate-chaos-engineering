@@ -9,7 +9,7 @@ import pathlib
 from weaviate_import import reset_schema, load_records
 from weaviate_query import query
 
-from weaviategrpc import weaviate_pb2_grpc, weaviate_pb2
+# from weaviategrpc import weaviate_pb2_grpc, weaviate_pb2
 
 values = {
     "m": [16, 24, 32, 48],
@@ -34,8 +34,9 @@ pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
 parser = argparse.ArgumentParser()
 client = weaviate.Client("http://localhost:8080")
 
-channel = grpc.insecure_channel("localhost:50051")
-stub = weaviate_pb2_grpc.WeaviateStub(channel)
+# channel = grpc.insecure_channel("localhost:50051")
+# stub = weaviate_pb2_grpc.WeaviateStub(channel)
+stub = None
 
 parser.add_argument("-v", "--vectors")
 parser.add_argument("-d", "--distance")

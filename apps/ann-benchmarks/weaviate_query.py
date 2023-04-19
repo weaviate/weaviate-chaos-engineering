@@ -7,29 +7,29 @@ import h5py
 import json
 from loguru import logger
 
-from weaviategrpc import weaviate_pb2_grpc, weaviate_pb2
+# from weaviategrpc import weaviate_pb2_grpc, weaviate_pb2
 
 limit = 10
 class_name = "Vector"
 results = []
 
 
-def search_grpc_clientless(stub, dataset, i, input_vec):
-    out = {}
-    before = time.time()
-    req = weaviate_pb2.SearchRequest(
-        className=class_name,
-        limit=limit,
-        nearVector=weaviate_pb2.NearVectorParams(vector=input_vec),
-    )
-    res = stub.Search(req)
-    out["took"] = time.time() - before
+# def search_grpc_clientless(stub, dataset, i, input_vec):
+#     out = {}
+#     before = time.time()
+#     req = weaviate_pb2.SearchRequest(
+#         className=class_name,
+#         limit=limit,
+#         nearVector=weaviate_pb2.NearVectorParams(vector=input_vec),
+#     )
+#     res = stub.Search(req)
+#     out["took"] = time.time() - before
 
-    ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
-    res_ids = [uuid.UUID(res.id).int for res in res.results]
+#     ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
+#     res_ids = [uuid.UUID(res.id).int for res in res.results]
 
-    out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
-    return out
+#     out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
+#     return out
 
 
 def search_grpc(client: weaviate.Client, dataset, i, input_vec):
@@ -93,7 +93,7 @@ def query(client, stub, dataset, ef_values):
     vectors = dataset["test"]
 
     for ef in ef_values:
-        for api in ["grpc", "grpc_clientless", "graphql"]:
+        for api in ["grpc", "graphql"]:
             schema = client.schema.get(class_name)
             schema["vectorIndexConfig"]["ef"] = ef
             client.schema.update_config(class_name, schema)
