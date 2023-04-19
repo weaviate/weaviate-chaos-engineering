@@ -4,6 +4,7 @@ import sys
 from loguru import logger
 import h5py
 import grpc
+import pathlib
 
 from weaviate_import import reset_schema, load_records
 from weaviate_query import query
@@ -27,7 +28,7 @@ values = {
     ],
 }
 
-values["ef"].reverse()
+pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
 
 
 parser = argparse.ArgumentParser()
