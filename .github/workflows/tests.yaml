@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-race-between-class-delete-and-batch-add-02efcfa
+  WEAVIATE_VERSION: preview-migrates-property-s-indexinverted-to-indexfilterable-indexsearchable-3fd1b19
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
