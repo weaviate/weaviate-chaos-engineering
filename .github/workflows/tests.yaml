@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-race-between-class-delete-and-batch-add-02efcfa
+  WEAVIATE_VERSION: preview-hash-buckets-cleanup-566a32a
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
