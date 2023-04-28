@@ -1,2 +1,7 @@
 workdir/
+weaviate-data/
 .DS_Store
+
+# IDE files
+.idea/
+.vscode/
