@@ -7,6 +7,8 @@ import h5py
 import json
 from loguru import logger
 
+from weaviate_pprof import obtain_heap_profile
+
 limit = 10
 class_name = "Vector"
 results = []
@@ -71,8 +73,9 @@ def query(client, stub, dataset, ef_values):
 
             took = took / i
             recall = recall / i
+            heap_mb = obtain_heap_profile("http://localhost:6060")
             logger.info(
-                f"mean={took}, qps={1/took}, recall={recall}, api={api}, ef={ef}, count={len(vectors)}"
+                f"mean={took}, qps={1/took}, recall={recall}, api={api}, ef={ef}, count={len(vectors)}, heap_mb={heap_mb}"
             )
 
             results.append(
@@ -85,6 +88,7 @@ def query(client, stub, dataset, ef_values):
                     "qps": 1 / took,
                     "recall": recall,
                     "shards": shards,
+                    "heap_mb": heap_mb,
                 }
             )
 
