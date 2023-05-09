@@ -51,7 +51,7 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_records(client: weaviate.Client, vectors):
+def load_records(client: weaviate.Client, vectors, compression):
     client.batch.configure(batch_size=100, callback=handle_errors)
     i = 0
     if vectors == None:
@@ -61,6 +61,11 @@ def load_records(client: weaviate.Client, vectors):
         for vector in vectors:
             if i % 10000 == 0:
                 logger.info(f"writing record {i}/{len(vectors)}")
+
+            if i == 100000 and compression == True:
+                logger.info(f"pausing import to enable compression")
+                break
+
             data_object = {
                 "i": i,
             }
@@ -72,4 +77,35 @@ def load_records(client: weaviate.Client, vectors):
                 uuid=uuid.UUID(int=i),
             )
             i += 1
+
+    if compression == True:
+        client.schema.update_config(
+            class_name,
+            {
+                "vectorIndexConfig": {
+                    "pq": {
+                        "enabled": True,
+                    }
+                }
+            },
+        )
+
+        i = 100000
+        with client.batch as batch:
+            while i < len(vectors):
+                vector = vectors[i]
+                if i % 10000 == 0:
+                    logger.info(f"writing record {i}/{len(vectors)}")
+
+                data_object = {
+                    "i": i,
+                }
+
+                batch.add_data_object(
+                    data_object=data_object,
+                    vector=vector,
+                    class_name=class_name,
+                    uuid=uuid.UUID(int=i),
+                )
+                i += 1
     logger.info(f"Finished writing {len(vectors)} records")

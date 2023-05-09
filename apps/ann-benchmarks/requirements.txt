@@ -1,4 +1,4 @@
-weaviate-client==3.16.0a0
+weaviate-client[grpc]>=3.17.1
 loguru==0.5.3
 grpcio==1.53.0
 seaborn==0.12.2
