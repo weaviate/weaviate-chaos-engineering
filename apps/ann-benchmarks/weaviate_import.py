@@ -4,6 +4,7 @@ from typing import Optional
 import uuid
 import weaviate
 import h5py
+import time
 
 class_name = "Vector"
 
@@ -90,6 +91,8 @@ def load_records(client: weaviate.Client, vectors, compression):
             },
         )
 
+        wait_for_all_shards_ready(client)
+
         i = 100000
         with client.batch as batch:
             while i < len(vectors):
@@ -109,3 +112,22 @@ def load_records(client: weaviate.Client, vectors, compression):
                 )
                 i += 1
     logger.info(f"Finished writing {len(vectors)} records")
+
+
+def wait_for_all_shards_ready(client: weaviate.Client):
+    status = [s["status"] for s in client.schema.get_class_shards(class_name)]
+    if not all(s == "READONLY" for s in status):
+        raise Exception(f"shards are not READONLY at beginning: {status}")
+
+    max_wait = 300
+    before = time.time()
+
+    while True:
+        time.sleep(3)
+        status = [s["status"] for s in client.schema.get_class_shards(class_name)]
+        if all(s == "READY" for s in status):
+            logger.info(f"finished in {time.time()-before}s")
+            return
+
+        if time.time() - before > max_wait:
+            raise Exception(f"after {max_wait}s not all shards READY: {status}")
