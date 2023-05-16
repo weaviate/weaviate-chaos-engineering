@@ -1,8 +1,6 @@
 import argparse
 import random
 
-import numpy as np
-import numpy.random
 import weaviate
 from weaviate import Config
 
@@ -106,7 +104,6 @@ with client.batch as batch:
                 "doc_id": str(random.randint(a=0, b=1000000)),
                 "tokenized_text": str(random.randint(a=0, b=1000000)),
             },
-            vector=numpy.random.rand(100, 1),
             class_name=class_name,
         )
 
