@@ -1,5 +1,6 @@
 import argparse
 import random
+import time
 
 import weaviate
 from weaviate import Config
@@ -84,12 +85,15 @@ except:
 
 props = get_properties()
 
+start = time.time()
 class_obj = {
     "class": class_name,
     "properties": props,
 }
 client.schema.create_class(class_obj)
+print(f"add class {class_name} took {time.time() - start}s")
 
+start = time.time()
 with client.batch as batch:
     for i in range(10):
         batch.add_data_object(
@@ -106,11 +110,16 @@ with client.batch as batch:
             },
             class_name=class_name,
         )
+print(f"add objects {class_name} took {time.time() - start}s")
 
+start = time.time()
 
 for i in range(10):
     client.query.get(class_name, [p["name"] for p in props]).with_additional(
         ["id", "vector"]
     ).with_hybrid("1", alpha=0.0).with_limit(10).do()
+print(f"query {class_name} took {time.time() - start}s")
 
+start = time.time()
 client.schema.delete_class(class_name)
+print(f"delete {class_name} took {time.time() - start}s")
