@@ -64,7 +64,7 @@ func do(ctx context.Context) error {
 	for count < size {
 		before := time.Now()
 
-		if err := buildAndSendBatchWithRetries(ctx, batcher, batchSize, 100, 5*time.Second); err != nil {
+		if err := buildAndSendBatchWithRetries(ctx, batcher, batchSize, 3, 5*time.Second); err != nil {
 			return err
 		}
 
