@@ -19,7 +19,7 @@ def search_grpc(client: weaviate.Client, dataset, i, input_vec):
     before = time.time()
     res = (
         client.query.get(class_name, None)
-        .with_additional("id")
+        .with_additional(weaviate.AdditionalProperties(uuid=True))
         .with_near_vector(
             {
                 "vector": input_vec,

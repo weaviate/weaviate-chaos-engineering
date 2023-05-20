@@ -24,7 +24,7 @@ values = {
         256,
         512,
     ],
-    "compression": [False],
+    "compression": False,
 }
 
 pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
@@ -40,6 +40,8 @@ stub = None
 parser.add_argument("-v", "--vectors")
 parser.add_argument("-d", "--distance")
 parser.add_argument("-m", "--max-connections")
+parser.add_argument("-c", "--compression", action=argparse.BooleanOptionalAction)
+parser.add_argument("-q", "--query-only", action=argparse.BooleanOptionalAction)
 args = parser.parse_args()
 
 
@@ -54,6 +56,9 @@ if (args.distance) == None:
 if (args.max_connections) != None:
     values["m"] = [int(x) for x in args.max_connections.split(",")]
 
+values["compression"] = args.compression
+values["query_only"] = args.query_only
+
 f = h5py.File(args.vectors)
 vectors = f["train"]
 
@@ -62,11 +67,14 @@ distance = args.distance
 
 for shards in values["shards"]:
     for m in values["m"]:
-        compression = values["compression"][0]
-        logger.info(f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}")
-        reset_schema(client, efC, m, shards, distance)
-        load_records(client, vectors, compression)
-        logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
+        if not values["query_only"]:
+            compression = values["compression"]
+            logger.info(
+                f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
+            )
+            reset_schema(client, efC, m, shards, distance)
+            load_records(client, vectors, compression)
+            logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
 
         logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
         query(
