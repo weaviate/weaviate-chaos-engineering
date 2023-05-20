@@ -36,6 +36,18 @@ mkdir -p datasets
   fi
 
 )
-docker run --network host -t -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 16 --compression
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 16 --compression --labels "after_restart=false"
+
+echo "Initial run complete, now restart Weaviate"
+
+docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml stop weaviate
+docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start weaviate
+
+wait_weaviate
+
+echo "Second run (query only)"
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 16 --compression --query-only --labels "after_restart=true"
+
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 analyze.py
 
 echo "Passed!"

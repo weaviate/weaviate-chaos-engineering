@@ -40,12 +40,12 @@ def search_grpc(client: weaviate.Client, dataset, i, input_vec):
     return out
 
 
-def query(client, stub, dataset, ef_values):
+def query(client, stub, dataset, ef_values, labels):
     schema = client.schema.get(class_name)
     shards = schema["shardingConfig"]["actualCount"]
     efC = schema["vectorIndexConfig"]["efConstruction"]
     m = schema["vectorIndexConfig"]["maxConnections"]
-    logger.info(f"build params: shards={shards}, efC={efC}, m={m}")
+    logger.info(f"build params: shards={shards}, efC={efC}, m={m} labels={labels}")
 
     vectors = dataset["test"]
 
@@ -89,6 +89,7 @@ def query(client, stub, dataset, ef_values):
                     "recall": recall,
                     "shards": shards,
                     "heap_mb": heap_mb,
+                    **labels,
                 }
             )
 
