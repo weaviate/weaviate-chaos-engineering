@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
   ann-benchmarks-sift:
-    name: Run the SIFT dataset through an ANN-benchmarks style test pipeline
+    name: "[ANN-Benchmarks] SIFT1M pq=false"
     runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v3
@@ -25,7 +25,7 @@ jobs:
       - name: Run chaos test
         run: ./ann_benchmark.sh
   ann-benchmarks-pq-sift:
-    name: Run the SIFT dataset through an ANN-benchmarks style test pipeline with compression
+    name: "[ANN-Benchmarks] SIFT1M pq=true"
     runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v3
