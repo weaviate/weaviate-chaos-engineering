@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-in-condensor-replay-pq-information-into-new-log-if-present-3f2bcda
+  WEAVIATE_VERSION: preview-fix-pq-recall-drop-after-restart-bffaffb
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
