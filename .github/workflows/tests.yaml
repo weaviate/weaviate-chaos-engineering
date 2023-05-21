@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-pq-recall-drop-after-restart-bffaffb
+  WEAVIATE_VERSION: preview--performance-improve-pq-distancelookuptable-9824233
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push

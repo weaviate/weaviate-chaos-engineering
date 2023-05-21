@@ -46,6 +46,9 @@ docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start wea
 wait_weaviate
 
 echo "Second run (query only)"
+echo "try sleeping to reduce flakiness"
+sleep 30
+echo "done sleep"
 docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 16 --compression --query-only --labels "pq=true,after_restart=true"
 
 docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 analyze.py
