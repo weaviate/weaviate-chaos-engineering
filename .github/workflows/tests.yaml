@@ -22,8 +22,19 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       - name: Run chaos test
         run: ./ann_benchmark.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'github-action-runs'
+          destination: 'ann-pipelines'
+          glob: 'results/*.json'
   ann-benchmarks-pq-sift:
     name: "[ANN-Benchmarks] SIFT1M pq=true"
     runs-on: ubuntu-latest-8-cores
@@ -34,8 +45,19 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       - name: Run chaos test
         run: ./ann_benchmark_compression.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'github-action-runs'
+          destination: 'ann-pipelines'
+          glob: 'results/*.json'
   # batch-import-many-classes:
   #   name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
   #   runs-on: ubuntu-latest

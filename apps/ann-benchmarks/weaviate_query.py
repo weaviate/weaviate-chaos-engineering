@@ -48,6 +48,7 @@ def query(client, stub, dataset, ef_values, labels):
     logger.info(f"build params: shards={shards}, efC={efC}, m={m} labels={labels}")
 
     vectors = dataset["test"]
+    run_id = f"{int(time.time())}"
 
     for ef in ef_values:
         for api in ["grpc"]:
@@ -89,11 +90,12 @@ def query(client, stub, dataset, ef_values, labels):
                     "recall": recall,
                     "shards": shards,
                     "heap_mb": heap_mb,
+                    "run_id": run_id,
                     **labels,
                 }
             )
 
-    filename = f"./results/{int(time.time())}.json"
+    filename = f"./results/{run_id}.json"
     logger.info(f"storing results in {filename}")
     with open(filename, "w") as f:
         f.write(json.dumps(results))

@@ -36,7 +36,7 @@ mkdir -p datasets
   fi
 
 )
-docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 32 --labels "pq=false,after_restart=false"
+docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 32 --labels "pq=false,after_restart=false,weaviate_version=$WEAVIATE_VERSION"
 
 echo "Initial run complete, now restart Weaviate"
 
@@ -46,7 +46,7 @@ docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start wea
 wait_weaviate
 
 echo "Second run (query only)"
-docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 32 --query-only --labels "pq=false,after_restart=true"
+docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 32 --query-only --labels "pq=false,after_restart=true,weaviate_version=$WEAVIATE_VERSION"
 
 docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 analyze.py
 
