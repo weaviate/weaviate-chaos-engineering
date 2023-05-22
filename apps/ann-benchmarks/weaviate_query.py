@@ -74,7 +74,11 @@ def query(client, stub, dataset, ef_values, labels):
 
             took = took / i
             recall = recall / i
-            heap_mb = obtain_heap_profile("http://localhost:6060")
+            heap_mb = -1
+            try:
+                heap_mb = obtain_heap_profile("http://localhost:6060")
+            except:
+                logger.error("could not obtain heap profile - ignoring")
             logger.info(
                 f"mean={took}, qps={1/took}, recall={recall}, api={api}, ef={ef}, count={len(vectors)}, heap_mb={heap_mb}"
             )
