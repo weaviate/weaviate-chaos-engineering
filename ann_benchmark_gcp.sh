@@ -25,6 +25,7 @@ gcloud compute scp --recurse apps/ann-benchmarks "$instance:~/apps/"
 gcloud compute scp --recurse apps/weaviate-no-restart-on-crash/ "$instance:~/apps/"
 gcloud compute scp --recurse ann_benchmark.sh "$instance:~"
 gcloud compute ssh $instance -- "WEAVIATE_VERSION=$WEAVIATE_VERSION bash ann_benchmark.sh"
+mkdir -p results
 gcloud compute scp --recurse "$instance:~/results/*.json" results/
 
 
