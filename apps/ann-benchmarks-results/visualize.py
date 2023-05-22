@@ -92,7 +92,7 @@ def qps_at_ef(efValues):
         [pd.to_datetime(tm, unit="s").strftime("%Y-%m-%d\n %H:%M:%S") for tm in xticks],
         rotation=50,
     )
-    plt.ylimit(0)
+    plt.ylim(0)
     plt.savefig(f"output/qps.png")
 
 
