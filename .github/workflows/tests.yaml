@@ -32,9 +32,9 @@ jobs:
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
-          path: 'github-action-runs'
-          destination: 'ann-pipelines'
-          glob: 'results/*.json'
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
   ann-benchmarks-pq-sift:
     name: "[ANN-Benchmarks] SIFT1M pq=true"
     runs-on: ubuntu-latest-8-cores
@@ -55,9 +55,9 @@ jobs:
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
-          path: 'github-action-runs'
-          destination: 'ann-pipelines'
-          glob: 'results/*.json'
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
   # batch-import-many-classes:
   #   name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
   #   runs-on: ubuntu-latest
