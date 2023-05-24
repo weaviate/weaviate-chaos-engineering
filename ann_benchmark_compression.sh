@@ -19,7 +19,7 @@ echo "Building all required containers"
 ( cd apps/ann-benchmarks/ && docker build -t ann_benchmarks . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+docker compose -f apps/weaviate-no-restart-on-crash/docker compose.yml up -d
 
 wait_weaviate
 
@@ -40,8 +40,8 @@ docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/work
 
 echo "Initial run complete, now restart Weaviate"
 
-docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml stop weaviate
-docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start weaviate
+docker compose -f apps/weaviate-no-restart-on-crash/docker compose.yml stop weaviate
+docker compose -f apps/weaviate-no-restart-on-crash/docker compose.yml start weaviate
 
 wait_weaviate
 
