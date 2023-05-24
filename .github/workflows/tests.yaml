@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
   ann-benchmarks-sift-aws:
-    name: "[ANN-Benchmarks] SIFT1M pq=false"
+    name: "[ANN-Benchmarks][AWS] SIFT1M pq=false"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -30,7 +30,7 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
-        run: AWS_ACCESS_KEY=${{secrets.AWS_ACCESS_KEY}} AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}} ./ann_benchmark_aws.sh
+        run: AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY}} AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}} ./ann_benchmark_aws.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -38,7 +38,7 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-pq-sift-aws:
-    name: "[ANN-Benchmarks] SIFT1M pq=true"
+    name: "[ANN-Benchmarks][AWS] SIFT1M pq=true"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -55,7 +55,7 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
-        run: AWS_ACCESS_KEY=${{secrets.AWS_ACCESS_KEY}} AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}} ./ann_benchmark_compression_aws.sh
+        run: AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY}} AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}} ./ann_benchmark_compression_aws.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -63,7 +63,7 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-sift-gcp:
-    name: "[ANN-Benchmarks] SIFT1M pq=false"
+    name: "[ANN-Benchmarks][GCP] SIFT1M pq=false"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -88,7 +88,7 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-pq-sift-gcp:
-    name: "[ANN-Benchmarks] SIFT1M pq=true"
+    name: "[ANN-Benchmarks][GCP] SIFT1M pq=true"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
