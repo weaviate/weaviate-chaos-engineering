@@ -44,6 +44,8 @@ docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml stop weav
 docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start weaviate
 
 wait_weaviate
+echo "Weaviate ready, wait 30s for caches to be hot"
+sleep 30
 
 echo "Second run (query only)"
 docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 32 --query-only --labels "pq=false,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"

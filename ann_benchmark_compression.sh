@@ -44,6 +44,8 @@ docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml stop weav
 docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start weaviate
 
 wait_weaviate
+echo "Weaviate ready, wait 30s for caches to be hot"
+sleep 30
 
 echo "Second run (query only)"
 echo "try sleeping to reduce flakiness"

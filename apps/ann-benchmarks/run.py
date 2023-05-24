@@ -5,6 +5,7 @@ from loguru import logger
 import h5py
 import grpc
 import pathlib
+import time
 
 from weaviate_import import reset_schema, load_records
 from weaviate_query import query
@@ -87,6 +88,8 @@ for shards in values["shards"]:
             reset_schema(client, efC, m, shards, distance)
             load_records(client, vectors, compression)
             logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
+            logger.info(f"Waiting 30s for compactions to settle, etc")
+            time.sleep(30)
 
         logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
         query(
