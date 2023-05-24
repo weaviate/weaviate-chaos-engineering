@@ -71,15 +71,15 @@ def recall_at_ef(efValues):
     plt.savefig(f"output/recall.png")
 
 
-def qps_at_ef(efValues):
+def qps_at_ef(efValues, pq):
     sns.set_theme()
     plot = sns.relplot(
-        data=df[df["ef"].isin(efValues)],
+        data=df[(df["ef"].isin(efValues)) & (df["after_restart"] == "false")],
         markers=True,
         kind="line",
         x="time",
         y="qps",
-        hue="pq",
+        hue="machine_type",
         style="ef",
     )
 
@@ -93,9 +93,10 @@ def qps_at_ef(efValues):
         rotation=50,
     )
     plt.ylim(0)
-    plt.savefig(f"output/qps.png")
+    plt.savefig(f"output/qps_{pq}.png")
 
 
 heap_over_time()
 recall_at_ef([16, 512])
-qps_at_ef([16, 128, 512])
+qps_at_ef([16, 128, 512], "false")
+qps_at_ef([16, 128, 512], "true")
