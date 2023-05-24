@@ -74,7 +74,7 @@ def recall_at_ef(efValues):
 def qps_at_ef(efValues, pq):
     sns.set_theme()
     plot = sns.relplot(
-        data=df[(df["ef"].isin(efValues)) & (df["after_restart"] == "false")],
+        data=df[(df["ef"].isin(efValues)) & (df["after_restart"] == "false") & (df["pq"] == pq)],
         markers=True,
         kind="line",
         x="time",
