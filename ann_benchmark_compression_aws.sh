@@ -59,6 +59,7 @@ ssh_addr="ubuntu@$dns_name"
 echo "${key_id}.pem"
 echo "$ssh_addr"
 
+mkdir -p ~/.ssh
 ssh-keyscan "$dns_name" >> ~/.ssh/known_hosts
 
 echo "Added hosts"
