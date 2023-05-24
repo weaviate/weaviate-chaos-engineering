@@ -14,19 +14,23 @@ for filename in glob.glob(os.path.join(path, "*.json")):
         parsed = json.loads(f.read())
         datapoints += parsed
 df = pd.DataFrame(datapoints)
+df = df[df["after_restart"] == "false"]
 
 sns.set_theme()
 plot = sns.relplot(
+    height=7,
+    aspect=1.2,
     data=df,
     markers=True,
     kind="line",
     x="recall",
     y="qps",
-    hue="run",
-    style="api",
+    hue="machine_type",
+    style="cloud_provider",
     # style="shards",
     # size="size",
 )
+
 
 plt.savefig("output.png")
 
