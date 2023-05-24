@@ -21,7 +21,7 @@ jobs:
         uses: polarsignals/gh-actions-ps-profiling@v0.0.1
         with:
           polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job_id }};gh_run_id=${{ github.run_id }}'
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
