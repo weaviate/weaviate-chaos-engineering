@@ -25,8 +25,8 @@ plot = sns.relplot(
     kind="line",
     x="recall",
     y="qps",
-    hue="machine_type",
-    style="cloud_provider",
+    hue="run",
+    # style="cloud_provider",
     # style="shards",
     # size="size",
 )

@@ -52,7 +52,7 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_records(client: weaviate.Client, vectors, compression):
+def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio):
     client.batch.configure(batch_size=100, callback=handle_errors)
     i = 0
     if vectors == None:
@@ -86,6 +86,7 @@ def load_records(client: weaviate.Client, vectors, compression):
                 "vectorIndexConfig": {
                     "pq": {
                         "enabled": True,
+                        "segments": int(len(vectors[0]) / dim_to_seg_ratio),
                     }
                 }
             },
