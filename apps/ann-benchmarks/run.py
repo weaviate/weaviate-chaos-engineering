@@ -6,6 +6,7 @@ import h5py
 import grpc
 import pathlib
 import time
+import os
 
 from weaviate_import import reset_schema, load_records
 from weaviate_query import query
@@ -76,14 +77,15 @@ values["query_only"] = args.query_only
 if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
     values["labels"]["dim_to_segment_ratio"] = values["dim_to_segment_ratio"]
-print(values["labels"])
 
 f = h5py.File(args.vectors)
+values["labels"]["dataset_file"] = os.path.basename(args.vectors)
 vectors = f["train"]
 
 efC = values["efC"]
 distance = args.distance
 
+print(values["labels"])
 for shards in values["shards"]:
     for m in values["m"]:
         if not values["query_only"]:

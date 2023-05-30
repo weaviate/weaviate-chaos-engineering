@@ -6,6 +6,8 @@ MACHINE_TYPE="${MACHINE_TYPE:-"m6i.2xlarge"}"
 CLOUD_PROVIDER="aws"
 OS="ubuntu-2204"
 ARCH=amd64
+dataset=${DATASET:-"sift-128-euclidean"}
+distance=${DISTANCE:-"l2-squared"}
 
 region="eu-central-1"
 
@@ -26,7 +28,7 @@ ami=$(aws ec2 describe-images --region $region --owner amazon --filter "Name=nam
 aws ec2 create-key-pair --key-name "$key_id" --region "$region" | jq -r '.KeyMaterial' > "${key_id}.pem"
 chmod 600 "${key_id}.pem"
 
-instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600 | jq -r '.Instances[0].InstanceId' )
+instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600   --ebs-optimized --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 120 } } ]" | jq -r '.Instances[0].InstanceId' )
 
 echo "instance ready: $instance_id"
 
@@ -71,7 +73,7 @@ ssh -i "${key_id}.pem" $ssh_addr -- "mkdir -p ~/apps/"
 scp -i "${key_id}.pem" -r apps/ann-benchmarks "$ssh_addr:~/apps/"
 scp -i "${key_id}.pem" -r apps/weaviate-no-restart-on-crash/ "$ssh_addr:~/apps/"
 scp -i "${key_id}.pem" -r ann_benchmark.sh "$ssh_addr:~"
-ssh -i "${key_id}.pem" $ssh_addr -- "WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark.sh"
+ssh -i "${key_id}.pem" $ssh_addr -- "DATASET=$dataset DISTANCE=$distance WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark.sh"
 mkdir -p results
 scp -i "${key_id}.pem" -r "$ssh_addr:~/results/*.json" results/
 
