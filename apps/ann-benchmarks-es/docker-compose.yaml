@@ -1,0 +1,44 @@
+version: "1.0"
+
+services:
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    volumes:
+      - esdata01:/usr/share/elasticsearch/data
+    ports:
+      - ${ES_PORT}:9200
+    environment:
+      - node.name=es01
+      - cluster.name=${CLUSTER_NAME}
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.license.self_generated.type=${LICENSE}
+      - discovery.type=single-node
+      - node.roles=master,data
+      - node.processors=${NUM_PROCS}
+      - path.data=/usr/share/elasticsearch/data
+      - path.logs=/usr/share/elasticsearch/logs
+      - thread_pool.write.size=${NUM_THREADS}
+      - thread_pool.search.size=${NUM_THREADS}
+      - thread_pool.search.queue_size=${NUM_THREADS}
+      - network.host=0.0.0.0
+#   mem_limit: ${MEM_LIMIT}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s https://localhost:9200",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+
+volumes:
+  certs:
+    driver: local
+  esdata01:
+    driver: local
