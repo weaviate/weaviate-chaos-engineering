@@ -17,6 +17,9 @@ class TestResults(unittest.TestCase):
 
     def test_max_recall(self):
         required_recall = 0.992
+        rr_env = os.getenv("REQUIRED_RECALL")
+        if rr_env is not None:
+            required_recall = float(rr_env)
         max_recall = self.df["recall"].max()
         self.assertTrue(
             max_recall >= required_recall,
