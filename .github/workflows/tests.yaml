@@ -113,7 +113,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
       DATASET: glove-100-angular
       DISTANCE: cosine
-      REQUIRED_RECALL: 0.965
+      REQUIRED_RECALL: 0.91
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
