@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-pq-with-rescoring-5694ad2
+  WEAVIATE_VERSION: preview-pq-with-rescoring-fe3af80
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
@@ -139,6 +139,10 @@ jobs:
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
     runs-on: ubuntu-latest
+    env:
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.999
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -164,6 +168,10 @@ jobs:
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
     runs-on: ubuntu-latest
+    env:
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.992
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
