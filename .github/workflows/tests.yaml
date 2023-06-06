@@ -352,3 +352,173 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
         run: ./import_while_crashing.sh
+  import-with-kills-20:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-21:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-22:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-23:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-24:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-25:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-26:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-27:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-28:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
+  import-with-kills-29:
+    name: Import during constant kills/crashes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing.sh
