@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-proplen-file-corruption-b682ee4
+  WEAVIATE_VERSION: preview-fix-handling-proplen-file-corruption-after-an-upgrade-dec6364
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
