@@ -72,8 +72,8 @@ def query(client, stub, dataset, ef_values, labels):
                 took += res["took"]
                 recall += res["recall"]
 
-            took = took / i
-            recall = recall / i
+            took = took / len(vectors)
+            recall = recall / len(vectors)
             heap_mb = -1
             try:
                 heap_mb = obtain_heap_profile("http://localhost:6060")
