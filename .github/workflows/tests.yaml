@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-pq-with-rescoring-5694ad2
+  WEAVIATE_VERSION: preview-pq-with-rescoring-fe3af80
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
@@ -13,8 +13,14 @@ jobs:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
   ann-benchmarks-sift-aws:
-    name: "[ANN-Benchmarks][AWS] SIFT1M pq=false"
+    name: "[bench AWS] SIFT1M pq=false"
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.999
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -30,7 +36,38 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
-        run: AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY}} AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}} ./ann_benchmark_aws.sh
+        run: ./ann_benchmark_aws.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
+  ann-benchmarks-glove-aws:
+    name: "[bench AWS] Glove100 pq=false"
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DATASET: glove-100-angular
+      DISTANCE: cosine
+      REQUIRED_RECALL: 0.965
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: Run chaos test
+        run: ./ann_benchmark_aws.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -38,8 +75,14 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-pq-sift-aws:
-    name: "[ANN-Benchmarks][AWS] SIFT1M pq=true"
+    name: "[bench AWS] SIFT1M pq=true"
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.992
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -55,7 +98,38 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
-        run: AWS_ACCESS_KEY_ID=${{secrets.AWS_ACCESS_KEY}} AWS_SECRET_ACCESS_KEY=${{secrets.AWS_SECRET_ACCESS_KEY}} ./ann_benchmark_compression_aws.sh
+        run: ./ann_benchmark_compression_aws.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
+  ann-benchmarks-pq-glove-aws:
+    name: "[bench AWS] Glove100 pq=true"
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DATASET: glove-100-angular
+      DISTANCE: cosine
+      REQUIRED_RECALL: 0.91
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: Run chaos test
+        run: ./ann_benchmark_compression_aws.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -63,8 +137,12 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-sift-gcp:
-    name: "[ANN-Benchmarks][GCP] SIFT1M pq=false"
+    name: "[bench GCP] SIFT1M pq=false"
     runs-on: ubuntu-latest
+    env:
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.999
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -88,8 +166,12 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-pq-sift-gcp:
-    name: "[ANN-Benchmarks][GCP] SIFT1M pq=true"
+    name: "[bench GCP] SIFT1M pq=true"
     runs-on: ubuntu-latest
+    env:
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.992
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub

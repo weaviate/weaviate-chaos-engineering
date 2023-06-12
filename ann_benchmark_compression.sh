@@ -2,6 +2,9 @@
 
 set -e
 
+dataset=${DATASET:-"sift-128-euclidean"}
+distance=${DISTANCE:-"l2-squared"}
+
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do
@@ -27,16 +30,16 @@ echo "Run benchmark script"
 mkdir -p datasets
 ( 
   cd datasets;
-  if [ -f sift-128-euclidean.hdf5 ]
+  if [ -f ${dataset}.hdf5 ]
   then
       echo "Datasets exists locally"
   else
       echo "Downloading dataset"
-      curl -LO http://ann-benchmarks.com/sift-128-euclidean.hdf5
+      curl -LO http://ann-benchmarks.com/${dataset}.hdf5
   fi
 
 )
-docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 16 --compression --dim-to-segment-ratio 4 --labels "pq=true,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 16 --compression --dim-to-segment-ratio 4 --labels "pq=true,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
 echo "Initial run complete, now restart Weaviate"
 
@@ -51,8 +54,11 @@ echo "Second run (query only)"
 echo "try sleeping to reduce flakiness"
 sleep 30
 echo "done sleep"
-docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/sift-128-euclidean.hdf5 -d l2-squared -m 16 --compression --query-only --labels "pq=true,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 16 --compression --query-only --labels "pq=true,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
-docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 analyze.py
+docker run --network host -t -v "$PWD/datasets:/datasets" \
+  -v "$PWD/results:/workdir/results" \
+  -e "REQUIRED_RECALL=$REQUIRED_RECALL" \
+  ann_benchmarks python3 analyze.py
 
 echo "Passed!"
