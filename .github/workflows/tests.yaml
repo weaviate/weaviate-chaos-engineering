@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-pq-with-rescoring-fe3af80
+  WEAVIATE_VERSION: preview-fix-blocking-forever-at-startup-waiting-for-other-nodes-to-respond-58a9a88
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
