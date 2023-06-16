@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-enhance-schema-persistence-capability-to-selectively-persist-schema-changes-bf1816c
+  WEAVIATE_VERSION: preview-enhance-schema-persistence-capability-to-selectively-persist-schema-changes-1eb028e
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
