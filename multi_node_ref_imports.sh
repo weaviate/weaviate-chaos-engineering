@@ -48,5 +48,5 @@ if (( $warnings > 0 )); then
   exit 1
 fi
 
-echo "No warnings. Passed."
+echo "No errors. Passed."
 
