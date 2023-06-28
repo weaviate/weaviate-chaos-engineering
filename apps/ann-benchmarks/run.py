@@ -95,7 +95,10 @@ for shards in values["shards"]:
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
             )
             reset_schema(client, efC, m, shards, distance)
+            before_import = time.time()
             load_records(client, vectors, compression, dim_to_seg_ratio)
+            import_took = time.time() - before_import
+            values["labels"]["import_seconds"] = import_took
             logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
             logger.info(f"Waiting 30s for compactions to settle, etc")
             time.sleep(30)
