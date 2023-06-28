@@ -2,6 +2,7 @@ import weaviate
 import uuid
 import random
 import os
+import sys
 from typing import Optional
 from loguru import logger
 
@@ -126,6 +127,7 @@ def handle_errors(results: Optional[dict]) -> None:
         The returned results for Batch creation.
     """
 
+    errord = False
     if results is not None:
         for result in results:
             if (
@@ -134,7 +136,10 @@ def handle_errors(results: Optional[dict]) -> None:
                 and "error" in result["result"]["errors"]
             ):
                 for message in result["result"]["errors"]["error"]:
+                    errord = True
                     logger.error(message["message"])
+    if errord:
+        sys.exit(1)
 
 
 do()

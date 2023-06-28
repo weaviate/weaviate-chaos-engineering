@@ -36,6 +36,16 @@ if ! docker run \
   --network host \
   -t ref-importer python3 run.py; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose.yml logs --tail 256
+  docker-compose -f apps/weaviate/docker-compose-replication.yml logs --tail 256
   exit 1
 fi
+
+echo "Check for warning logs"
+warnings="$(docker compose -f apps/weaviate/docker-compose-replication.yml logs 2>&1 | grep memberlist | grep suspect | wc -l | tr -d '[:space:]')"
+if (( $warnings > 0 )); then 
+  echo "too many warnings ($warnings)" 
+  exit 1
+fi
+
+echo "No warnings. Passed."
+
