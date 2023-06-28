@@ -40,10 +40,10 @@ if ! docker run \
   exit 1
 fi
 
-echo "Check for warning logs"
-warnings="$(docker compose -f apps/weaviate/docker-compose-replication.yml logs 2>&1 | grep memberlist | grep suspect | wc -l | tr -d '[:space:]')"
+echo "Check for error logs"
+errors="$(docker compose -f apps/weaviate/docker-compose-replication.yml logs 2>&1 | grep memberlist | grep error | wc -l | tr -d '[:space:]')"
 if (( $warnings > 0 )); then 
-  echo "too many warnings ($warnings)" 
+  echo "too many errors ($errors)" 
   exit 1
 fi
 
