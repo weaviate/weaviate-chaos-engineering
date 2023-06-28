@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-limit-concurrency-in-batch-validation-f2aec26
+  WEAVIATE_VERSION: preview-prevent-more-unbounded-concurrency-limit-connections-7601e04
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
