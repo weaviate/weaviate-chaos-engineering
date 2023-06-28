@@ -36,7 +36,7 @@ if ! docker run \
   --network host \
   -t ref-importer python3 run.py; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml logs --tail 256
+  docker-compose -f apps/weaviate/docker-compose-replication.yml logs --tail 100
   exit 1
 fi
 
