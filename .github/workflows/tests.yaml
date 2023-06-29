@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-verify-schema-correctness-in-cluster-via-rest-api-031446d
+  WEAVIATE_VERSION: preview-reduce-indexing-time-due-to-lock-contention-d9c5b0e
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
