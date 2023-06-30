@@ -1,0 +1,53 @@
+version: '3.4'
+services:
+  schema-resetter:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'reset_schema.py']
+    environment:
+      HOST: localhost:8080
+    network_mode: 'host'
+    stdin_open: true 
+    tty: true
+  corruption-checker:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'schema_corruption_checker.py']
+    environment:
+      HOST: localhost:8080
+      TENANTS_GOAL: '4000'
+    network_mode: 'host'
+  importer-01:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost:8080
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+    network_mode: 'host'
+  importer-02:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost:8081
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+    network_mode: 'host'
+  importer-03:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost:8080
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+    network_mode: 'host'
+  importer-04:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost:8082
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+    network_mode: 'host'
