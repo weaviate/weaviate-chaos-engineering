@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.20.0-prealpha-ce45d2a
+  WEAVIATE_VERSION: preview-implement-in-place-sharding-state-update-for-new-tenant-additions-b4b3614
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
