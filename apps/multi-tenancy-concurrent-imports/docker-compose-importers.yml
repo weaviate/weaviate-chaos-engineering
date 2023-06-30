@@ -12,7 +12,7 @@ services:
     build: ./multi-tenancy-load-test/importer/
     command: ['python3', 'schema_corruption_checker.py']
     environment:
-      HOST: localhost:8080
+      HOST: localhost:8081
       TENANTS_GOAL: '4000'
     network_mode: 'host'
   importer-01:
