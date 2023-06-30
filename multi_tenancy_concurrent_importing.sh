@@ -17,10 +17,6 @@ function wait_weaviate() {
   done
 }
 
-echo "Building all required containers"
-( cd apps/multi-node-references && docker build -t ref-importer . )
-
-
 # We are reusing the replication docker compose for this, but there is nothing
 # special about the infra, it's essentially just a 3-node cluster which is
 # perfect for this test
