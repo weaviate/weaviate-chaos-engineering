@@ -2,6 +2,8 @@
 
 set -e
 
+git submodule update --init --recursive
+
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do
