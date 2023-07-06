@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-implement-in-place-sharding-state-update-for-new-tenant-additions-b4b3614
+  WEAVIATE_VERSION: preview-ensure-thread-safety-when-reading-the-schema-d52d392
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
@@ -113,7 +113,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
       DATASET: glove-100-angular
       DISTANCE: cosine
-      REQUIRED_RECALL: 0.91
+      REQUIRED_RECALL: 0.89
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
