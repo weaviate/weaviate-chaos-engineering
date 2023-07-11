@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-ensure-thread-safety-when-reading-the-schema-d52d392
+  WEAVIATE_VERSION: preview-enhance-class-delete-operation-for-idempotency-and-improved-robustness-c82289e
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
