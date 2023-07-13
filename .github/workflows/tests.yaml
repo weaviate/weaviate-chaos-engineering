@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-ensure-thread-safety-when-reading-the-schema-d52d392
+  WEAVIATE_VERSION: preview-update-backup-related-go-dependencies-to-newest-versions-7d08279
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
