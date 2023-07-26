@@ -1,6 +1,6 @@
 module upgrade-journey
 
-go 1.19
+go 1.19.10
 
 require (
 	github.com/docker/go-connections v0.4.0
