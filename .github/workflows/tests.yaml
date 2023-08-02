@@ -1,8 +1,7 @@
 name: Chaos tests
 
 env:
-  # WEAVIATE_VERSION: preview-add-option-to-use-pread-instead-of-mmap-for-lsm-store-access-8cf5a94
-  WEAVIATE_VERSION: 1.20.4
+  WEAVIATE_VERSION: preview-add-option-to-use-pread-instead-of-mmap-for-lsm-store-access-92bd7ed
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
