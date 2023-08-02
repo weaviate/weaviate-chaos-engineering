@@ -52,7 +52,9 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
+def load_records(
+    client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override, duplicates
+):
     client.batch.configure(batch_size=100, callback=handle_errors)
     i = 0
     if vectors == None:
@@ -66,6 +68,9 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
             if i == 100000 and compression == True and override == False:
                 logger.info(f"pausing import to enable compression")
                 break
+
+            if duplicates["enabled"] == True and i != 0 and i % duplicates["every"] == 0:
+                insert_duplicates(client, vectors, i, duplicates["count"])
 
             data_object = {
                 "i": i,
@@ -111,8 +116,29 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
                     class_name=class_name,
                     uuid=uuid.UUID(int=i),
                 )
+
+                if duplicates["enabled"] == True and i != 0 and i % duplicates["every"] == 0:
+                    insert_duplicates(client, vectors, i, duplicates["count"])
+
                 i += 1
     logger.info(f"Finished writing {len(vectors)} records")
+
+
+def insert_duplicates(client: weaviate.Client, vectors, max_id, count):
+    ids = random.sample(range(max_id), count)
+    with client.batch as batch:
+        for vid in ids:
+            data_object = {
+                "i": vid,
+            }
+
+            batch.add_data_object(
+                data_object=data_object,
+                vector=vectors[vid],
+                class_name=class_name,
+                uuid=uuid.UUID(int=vid),
+            )
+    logger.info(f"Inserted {count} duplicates (randomly selected from id 0..{max_id})")
 
 
 def wait_for_all_shards_ready(client: weaviate.Client):

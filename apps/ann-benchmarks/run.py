@@ -13,7 +13,7 @@ from weaviate_query import query
 
 values = {
     "m": [16, 24, 32, 48],
-    "shards": [1],
+    "shards": [3],
     "efC": 256,
     "ef": [
         16,
@@ -49,6 +49,8 @@ parser.add_argument("-c", "--compression", action=argparse.BooleanOptionalAction
 parser.add_argument("-q", "--query-only", action=argparse.BooleanOptionalAction)
 parser.add_argument("-o", "--override", action=argparse.BooleanOptionalAction)
 parser.add_argument("-s", "--dim-to-segment-ratio")
+parser.add_argument("--duplicates-count")
+parser.add_argument("--duplicates-every")
 args = parser.parse_args()
 
 
@@ -77,9 +79,20 @@ if (args.labels) != None:
 values["compression"] = args.compression or False
 values["override"] = args.override or False
 values["query_only"] = args.query_only
+values["duplicates"] = {
+    "enabled": False,
+    "count": 0,
+    "every": 0,
+}
+
 if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
     values["labels"]["dim_to_segment_ratio"] = values["dim_to_segment_ratio"]
+
+if (args.duplicates_count) != None:
+    values["duplicates"]["enabled"] = True
+    values["duplicates"]["count"] = int(args.duplicates_count)
+    values["duplicates"]["every"] = int(args.duplicates_every or 100_000)
 
 f = h5py.File(args.vectors)
 values["labels"]["dataset_file"] = os.path.basename(args.vectors)
@@ -88,19 +101,19 @@ vectors = f["train"]
 efC = values["efC"]
 distance = args.distance
 
-print(values["labels"])
 for shards in values["shards"]:
     for m in values["m"]:
         if not values["query_only"]:
             compression = values["compression"]
             override = values["override"]
+            duplicates = values["duplicates"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
             )
             if override == False:
                 reset_schema(client, efC, m, shards, distance)
-            load_records(client, vectors, compression, dim_to_seg_ratio, override)
+            load_records(client, vectors, compression, dim_to_seg_ratio, override, duplicates)
             logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
             logger.info(f"Waiting 30s for compactions to settle, etc")
             time.sleep(30)
