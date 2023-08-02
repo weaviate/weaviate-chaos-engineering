@@ -101,6 +101,7 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
             while i < len(vectors):
                 vector = vectors[i]
                 if i % 10000 == 0:
+                    subprocess.run("df")
                     logger.info(f"writing record {i}/{len(vectors)}")
 
                 data_object = {
