@@ -4,6 +4,7 @@ from typing import Optional
 import uuid
 import weaviate
 import h5py
+import subprocess
 import time
 
 class_name = "Vector"
@@ -61,6 +62,7 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
     with client.batch as batch:
         for vector in vectors:
             if i % 10000 == 0:
+                subprocess.run("df")
                 logger.info(f"writing record {i}/{len(vectors)}")
 
             if i == 100000 and compression == True:
