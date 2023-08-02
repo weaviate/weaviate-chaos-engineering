@@ -28,6 +28,7 @@ values = {
     ],
     "compression": False,
     "dim_to_segment_ratio": 4,
+    "override": False,
 }
 
 pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
@@ -46,6 +47,7 @@ parser.add_argument("-m", "--max-connections")
 parser.add_argument("-l", "--labels")
 parser.add_argument("-c", "--compression", action=argparse.BooleanOptionalAction)
 parser.add_argument("-q", "--query-only", action=argparse.BooleanOptionalAction)
+parser.add_argument("-o", "--override", action=argparse.BooleanOptionalAction)
 parser.add_argument("-s", "--dim-to-segment-ratio")
 args = parser.parse_args()
 
@@ -72,7 +74,8 @@ if (args.labels) != None:
         labels[kv[0]] = kv[1]
     values["labels"] = labels
 
-values["compression"] = args.compression
+values["compression"] = args.compression or False
+values["override"] = args.override or False
 values["query_only"] = args.query_only
 if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
@@ -90,12 +93,14 @@ for shards in values["shards"]:
     for m in values["m"]:
         if not values["query_only"]:
             compression = values["compression"]
+            override = values["override"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
             )
-            reset_schema(client, efC, m, shards, distance)
-            load_records(client, vectors, compression, dim_to_seg_ratio)
+            if override == False:
+                reset_schema(client, efC, m, shards, distance)
+            load_records(client, vectors, compression, dim_to_seg_ratio, override)
             logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
             logger.info(f"Waiting 30s for compactions to settle, etc")
             time.sleep(30)

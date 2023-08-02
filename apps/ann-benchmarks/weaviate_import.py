@@ -52,7 +52,7 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio):
+def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
     client.batch.configure(batch_size=100, callback=handle_errors)
     i = 0
     if vectors == None:
@@ -63,7 +63,7 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
             if i % 10000 == 0:
                 logger.info(f"writing record {i}/{len(vectors)}")
 
-            if i == 100000 and compression == True:
+            if i == 100000 and compression == True and override == False:
                 logger.info(f"pausing import to enable compression")
                 break
 
@@ -79,7 +79,7 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
             )
             i += 1
 
-    if compression == True:
+    if compression == True and override == False:
         client.schema.update_config(
             class_name,
             {
