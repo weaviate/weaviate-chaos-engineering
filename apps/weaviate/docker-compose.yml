@@ -26,5 +26,6 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-filesystem'
       BACKUP_FILESYSTEM_PATH: '/var/lib/snapshots'
-      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_HOSTNAME: 'node1'
+      AVOID_MMAP: 'true'
 ...
