@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
-  01-ann-benchmarks-pq-glove-aws:
+  p01-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -43,7 +43,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  02-ann-benchmarks-pq-glove-aws:
+  p02-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -74,7 +74,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  03-ann-benchmarks-pq-glove-aws:
+  p03-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -105,7 +105,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  04-ann-benchmarks-pq-glove-aws:
+  p04-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -136,7 +136,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  05-ann-benchmarks-pq-glove-aws:
+  p05-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -167,7 +167,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  06-ann-benchmarks-pq-glove-aws:
+  p06-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -198,7 +198,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  07-ann-benchmarks-pq-glove-aws:
+  p07-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -229,7 +229,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  08-ann-benchmarks-pq-glove-aws:
+  p08-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -260,7 +260,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  09-ann-benchmarks-pq-glove-aws:
+  p09-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
@@ -291,7 +291,7 @@ jobs:
           path: 'results'
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
-  10-ann-benchmarks-pq-glove-aws:
+  p10-ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
     env:
