@@ -27,5 +27,5 @@ services:
       ENABLE_MODULES: 'backup-filesystem'
       BACKUP_FILESYSTEM_PATH: '/var/lib/snapshots'
       CLUSTER_HOSTNAME: 'node1'
-      AVOID_MMAP: 'true'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: 'pread'
 ...

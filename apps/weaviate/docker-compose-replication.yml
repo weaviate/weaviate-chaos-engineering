@@ -26,7 +26,7 @@ services:
       CLUSTER_HOSTNAME: 'node1' 
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
-      AVOID_MMAP: 'true'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: 'pread'
 
   weaviate-node-2:
     init: true
@@ -54,7 +54,7 @@ services:
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
-      AVOID_MMAP: 'true'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: 'pread'
 
   weaviate-node-3:
     init: true
@@ -82,5 +82,5 @@ services:
       CLUSTER_GOSSIP_BIND_PORT: '7104'
       CLUSTER_DATA_BIND_PORT: '7105'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
-      AVOID_MMAP: 'true'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: 'pread'
 

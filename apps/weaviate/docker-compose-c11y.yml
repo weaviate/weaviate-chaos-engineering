@@ -23,7 +23,7 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'text2vec-contextionary'
       ENABLE_MODULES: 'text2vec-contextionary'
       CLUSTER_HOSTNAME: 'node1'
-      AVOID_MMAP: 'true'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: 'pread'
   contextionary:
     environment:
       OCCURRENCE_WEIGHT_LINEAR_FACTOR: 0.75
