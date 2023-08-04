@@ -27,6 +27,13 @@ docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
 
 wait_weaviate
 
+# now that weaviate is running, any potential failure means we'd be interested
+# in the log output. Let's trap it
+function logs() {
+  docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml logs
+}
+trap logs ERR
+
 echo "Run benchmark script"
 mkdir -p datasets
 ( 
