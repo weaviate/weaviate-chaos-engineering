@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-add-support-for-compilation-on-windows-b2b97bb
+  WEAVIATE_VERSION: preview-revert-merge-pull-request-3363-from-weaviate-pq-optimized-distance-between-compressed-vectors-76611c3
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
