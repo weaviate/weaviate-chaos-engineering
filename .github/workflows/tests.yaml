@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-add-support-for-compilation-on-windows-b2b97bb
+  WEAVIATE_VERSION: preview-adds-activity-status-to-get-tenant-s-body-2a66654
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
