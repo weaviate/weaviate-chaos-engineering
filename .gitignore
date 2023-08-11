@@ -1,5 +1,6 @@
 workdir/
 weaviate-data/
+apps/**/vendor/**
 .DS_Store
 
 # IDE files
