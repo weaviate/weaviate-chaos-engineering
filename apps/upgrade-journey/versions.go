@@ -27,7 +27,7 @@ func retrieveVersionListFromGH() ([]string, error) {
 	// ignore pagination, for now we assume that the first page contains enough
 	// versions. This might require changing in the future and we might have to
 	// page through the API to get all desired version
-	res, err := http.Get("https://api.github.com/repos/weaviate/weaviate/releases")
+	res, err := http.Get("https://api.github.com/repos/weaviate/weaviate/releases?per_page=100")
 	if err != nil {
 		return nil, err
 	}
