@@ -53,7 +53,7 @@ def handle_errors(results: Optional[dict]) -> None:
 
 
 def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
-    client.batch.configure(batch_size=100, callback=handle_errors)
+    client.batch.configure(batch_size=100, callback=handle_errors, num_workers=1)
     i = 0
     if vectors == None:
         vectors = [None] * 10_000_000
