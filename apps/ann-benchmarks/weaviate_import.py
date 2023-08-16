@@ -56,18 +56,17 @@ def handle_errors(results: Optional[dict]) -> None:
 def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
     client.batch.configure(batch_size=100, callback=handle_errors)
     i = 0
-
-    if compression == True:
-        raise Exception(f"compression not supported yet in grpc version")
-
     coll = client.collection.get(class_name)
 
     batch_size = 200
+    compression_cutoff = 100000
     while i < len(vectors):
         if i % 10000 == 0:
             logger.info(f"writing record {i}/{len(vectors)}")
 
-        objects = []
+        if i == compression_cutoff and compression == True and override == False:
+            logger.info(f"pausing import to enable compression")
+            break
 
         end = i + batch_size
         if end > len(vectors):
@@ -81,6 +80,38 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
         coll.data.insert_many(objects)
 
         i = end
+
+    if compression == True and override == False:
+        client.schema.update_config(
+            class_name,
+            {
+                "vectorIndexConfig": {
+                    "pq": {
+                        "enabled": True,
+                        "segments": int(len(vectors[0]) / dim_to_seg_ratio),
+                    }
+                }
+            },
+        )
+
+        wait_for_all_shards_ready(client)
+
+        while i < len(vectors):
+            if i % 10000 == 0:
+                logger.info(f"writing record {i}/{len(vectors)}")
+
+            end = i + batch_size
+            if end > len(vectors):
+                end = len(vectors)
+
+            objects = [
+                DataObject(data={"i": i + j}, vector=vectors[i + j], uuid=uuid.UUID(int=i + j))
+                for j, item in enumerate(vectors[i:end])
+            ]
+
+            coll.data.insert_many(objects)
+
+            i = end
 
     # with client.batch as batch:
     #     for vector in vectors:
