@@ -24,7 +24,7 @@ def reset_schema(client: weaviate.Client, efC, m, shards, distance):
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },
-        "properties": [],
+        "properties": [{"name": "i", "dataType": ["int"]}],
         "shardingConfig": {
             "desiredCount": shards,
         },
@@ -74,7 +74,7 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
             end = len(vectors)
 
         objects = [
-            DataObject(data={"i": i + j}, vector=vectors[i + j])
+            DataObject(data={"i": i + j}, vector=vectors[i + j], uuid=uuid.UUID(int=i + j))
             for j, item in enumerate(vectors[i:end])
         ]
 
