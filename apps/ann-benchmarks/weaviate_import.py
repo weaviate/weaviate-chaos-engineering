@@ -5,6 +5,7 @@ import uuid
 import weaviate
 import h5py
 import time
+from weaviate.collection.classes import DataObject
 
 class_name = "Vector"
 
@@ -55,63 +56,86 @@ def handle_errors(results: Optional[dict]) -> None:
 def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
     client.batch.configure(batch_size=100, callback=handle_errors)
     i = 0
-    if vectors == None:
-        vectors = [None] * 10_000_000
 
-    with client.batch as batch:
-        for vector in vectors:
-            if i % 10000 == 0:
-                logger.info(f"writing record {i}/{len(vectors)}")
+    if compression == True:
+        raise Exception(f"compression not supported yet in grpc version")
 
-            if i == 100000 and compression == True and override == False:
-                logger.info(f"pausing import to enable compression")
-                break
+    coll = client.collection.get(class_name)
 
-            data_object = {
-                "i": i,
-            }
+    batch_size = 200
+    while i < len(vectors):
+        if i % 10000 == 0:
+            logger.info(f"writing record {i}/{len(vectors)}")
 
-            batch.add_data_object(
-                data_object=data_object,
-                vector=vector,
-                class_name=class_name,
-                uuid=uuid.UUID(int=i),
-            )
-            i += 1
+        objects = []
 
-    if compression == True and override == False:
-        client.schema.update_config(
-            class_name,
-            {
-                "vectorIndexConfig": {
-                    "pq": {
-                        "enabled": True,
-                        "segments": int(len(vectors[0]) / dim_to_seg_ratio),
-                    }
-                }
-            },
-        )
+        end = i + batch_size
+        if end > len(vectors):
+            end = len(vectors)
 
-        wait_for_all_shards_ready(client)
+        objects = [
+            DataObject(data={"i": i + j}, vector=vectors[i + j])
+            for j, item in enumerate(vectors[i:end])
+        ]
 
-        i = 100000
-        with client.batch as batch:
-            while i < len(vectors):
-                vector = vectors[i]
-                if i % 10000 == 0:
-                    logger.info(f"writing record {i}/{len(vectors)}")
+        coll.data.insert_many(objects)
 
-                data_object = {
-                    "i": i,
-                }
+        i = end
 
-                batch.add_data_object(
-                    data_object=data_object,
-                    vector=vector,
-                    class_name=class_name,
-                    uuid=uuid.UUID(int=i),
-                )
-                i += 1
+    # with client.batch as batch:
+    #     for vector in vectors:
+    #         if i % 10000 == 0:
+    #             logger.info(f"writing record {i}/{len(vectors)}")
+
+    #         if i == 100000 and compression == True and override == False:
+    #             logger.info(f"pausing import to enable compression")
+    #             break
+
+    #         data_object = {
+    #             "i": i,
+    #         }
+
+    #         batch.add_data_object(
+    #             data_object=data_object,
+    #             vector=vector,
+    #             class_name=class_name,
+    #             uuid=uuid.UUID(int=i),
+    #         )
+    #         i += 1
+
+    # if compression == True and override == False:
+    #     client.schema.update_config(
+    #         class_name,
+    #         {
+    #             "vectorIndexConfig": {
+    #                 "pq": {
+    #                     "enabled": True,
+    #                     "segments": int(len(vectors[0]) / dim_to_seg_ratio),
+    #                 }
+    #             }
+    #         },
+    #     )
+
+    #     wait_for_all_shards_ready(client)
+
+    #     i = 100000
+    #     with client.batch as batch:
+    #         while i < len(vectors):
+    #             vector = vectors[i]
+    #             if i % 10000 == 0:
+    #                 logger.info(f"writing record {i}/{len(vectors)}")
+
+    #             data_object = {
+    #                 "i": i,
+    #             }
+
+    #             batch.add_data_object(
+    #                 data_object=data_object,
+    #                 vector=vector,
+    #                 class_name=class_name,
+    #                 uuid=uuid.UUID(int=i),
+    #             )
+    #             i += 1
     logger.info(f"Finished writing {len(vectors)} records")
 
 
