@@ -7,6 +7,7 @@ import grpc
 import pathlib
 import time
 import os
+from datetime import timedelta
 
 from weaviate_import import reset_schema, load_records
 from weaviate_query import query
@@ -95,13 +96,17 @@ for shards in values["shards"]:
             compression = values["compression"]
             override = values["override"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
+            before_import = time.time()
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
             )
             if override == False:
                 reset_schema(client, efC, m, shards, distance)
             load_records(client, vectors, compression, dim_to_seg_ratio, override)
-            logger.info(f"Finished import with efC={efC}, m={m}, shards={shards}")
+            elapsed = time.time() - before_import
+            logger.info(
+                f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
+            )
             logger.info(f"Waiting 30s for compactions to settle, etc")
             time.sleep(30)
 
