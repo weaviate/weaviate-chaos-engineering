@@ -21,7 +21,6 @@ trap cleanup EXIT
 echo "sleeping 30s for ssh to be ready"
 sleep 30
 
-gcloud compute ssh --zone $ZONE $instance -- 'echo "shutting down instance after 6 hours to prevent dangling resources"; shutdown -H +6'
 gcloud compute scp --zone $ZONE --recurse install_docker_ubuntu.sh "$instance:~"
 gcloud compute ssh --zone $ZONE $instance -- 'sh install_docker_ubuntu.sh'
 gcloud compute ssh --zone $ZONE $instance -- 'sudo sudo groupadd docker; sudo usermod -aG docker $USER'
