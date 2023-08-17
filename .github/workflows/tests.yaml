@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-adds-activity-status-to-get-tenant-s-body-2a66654
+  WEAVIATE_VERSION: preview-prepare-release-v1-21-0-d2c973f
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   push
