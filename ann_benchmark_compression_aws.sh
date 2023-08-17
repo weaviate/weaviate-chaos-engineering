@@ -66,6 +66,7 @@ ssh-keyscan "$dns_name" >> ~/.ssh/known_hosts
 
 echo "Added hosts"
 
+ssh -i "${key_id}.pem" $ssh_addr -- 'echo "shutting down instance after 6 hours to prevent dangling resources"; shutdown -H +6'
 scp -i "${key_id}.pem" -r install_docker_ubuntu.sh "$ssh_addr:~"
 ssh -i "${key_id}.pem" $ssh_addr -- 'sh install_docker_ubuntu.sh'
 ssh -i "${key_id}.pem" $ssh_addr -- 'sudo sudo groupadd docker; sudo usermod -aG docker $USER'
