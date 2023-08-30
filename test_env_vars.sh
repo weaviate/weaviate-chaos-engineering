@@ -17,6 +17,8 @@ function wait_weaviate() {
 
 echo "Starting Weaviate..."
 docker-compose -f apps/weaviate/docker-compose.yml up -d
-docker ps
-wait_weaviate
+for i in $(seq 1 30); do
+    docker logs weaviate_weaviate_1
+    sleep 1
+end
 echo "Passed"
