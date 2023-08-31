@@ -1,0 +1,24 @@
+name: Test matrix
+
+on:
+  push
+
+jobs:
+  checkout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+  run-jobs:
+    strategy:
+      matrix:
+        lsm_access_strategy: ['mmap', 'pread']
+    uses: ./.github/workflows/tests.yaml
+    with:
+      lsm_access_strategy: ${{matrix.lsm_access_strategy}}
+    secrets:
+      AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+      GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}

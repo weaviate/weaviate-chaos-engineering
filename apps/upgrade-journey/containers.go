@@ -122,6 +122,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"CLUSTER_DATA_BIND_PORT":                  "7101",
 				"CLUSTER_HOSTNAME":                        c.hostname(nodeId),
 				"CLUSTER_JOIN":                            c.allNodes(),
+				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
 			},
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
 				c.volumePath(nodeId), "/var/lib/weaviate",

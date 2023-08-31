@@ -1,11 +1,27 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-adds-activity-status-to-get-tenant-s-body-2a66654
+  WEAVIATE_VERSION: 1.21.2
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
-  push
-  
+  workflow_call:
+    inputs:
+      lsm_access_strategy:
+        required: true
+        type: string
+    secrets:
+      AWS_ACCESS_KEY:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
+      GCP_SERVICE_ACCOUNT_BENCHMARKS:
+        required: true
+      POLARSIGNALS_TOKEN:
+        required: true
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -21,6 +37,7 @@ jobs:
       DATASET: sift-128-euclidean
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.999
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -53,6 +70,7 @@ jobs:
       DATASET: glove-100-angular
       DISTANCE: cosine
       REQUIRED_RECALL: 0.965
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -85,6 +103,7 @@ jobs:
       DATASET: sift-128-euclidean
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.992
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -117,6 +136,7 @@ jobs:
       DATASET: glove-100-angular
       DISTANCE: cosine
       REQUIRED_RECALL: 0.89
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -147,6 +167,7 @@ jobs:
       DATASET: sift-128-euclidean
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.999
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -177,6 +198,7 @@ jobs:
       DATASET: sift-128-euclidean
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.992
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -203,6 +225,8 @@ jobs:
   batch-import-many-classes:
     name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -220,6 +244,8 @@ jobs:
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -241,6 +267,8 @@ jobs:
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -258,6 +286,8 @@ jobs:
   replication-tunable-consistency:
     name: Replication tunable consistency
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -275,6 +305,8 @@ jobs:
   counting-while-compacting:
     name: Counting while compacting
     runs-on: ubuntu-latest-8-cores
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -292,6 +324,8 @@ jobs:
   segfault-on-batch-ref:
     name: Segfault on batch ref
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -309,6 +343,8 @@ jobs:
   import-with-kills:
     name: Import during constant kills/crashes
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -326,6 +362,8 @@ jobs:
   heave-imports-crashing:
     name: Heavy object store imports while crashing
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -343,6 +381,8 @@ jobs:
   segfault-filtered-search:
     name: Segfault on filtered vector search (race with hash bucket compaction)
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -360,6 +400,8 @@ jobs:
   backup-restore-crud:
     name: Backup & Restore CRUD
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -377,6 +419,8 @@ jobs:
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -394,6 +438,8 @@ jobs:
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -411,6 +457,8 @@ jobs:
   compare-recall:
     name: Compare Recall after import to after restart
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -428,6 +476,8 @@ jobs:
   concurrent-read-write:
     name: Concurrent inverted index read/write
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -445,6 +495,8 @@ jobs:
   consecutive-create-update:
     name: Consecutive create and update operations
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -459,9 +511,11 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
         run: ./consecutive_create_and_update_operations.sh
-  batch-insert-missmatch:
+  batch-insert-mismatch:
     name: Batch insert mismatch
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -479,6 +533,8 @@ jobs:
   rest-patch-restart:
     name: REST PATCH requests stop working after restart
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -496,6 +552,8 @@ jobs:
   delete-recreate-updates:
     name: Delete and recreate class with frequent updates
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -513,6 +571,8 @@ jobs:
   geo-crash:
     name: Preventing crashing of geo properties during HNSW maintenance cycles
     runs-on: ubuntu-latest-8-cores
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -530,6 +590,8 @@ jobs:
   compaction-roaringset:
     name: Preventing panic on compaction of roaringsets
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -547,6 +609,8 @@ jobs:
   multi-node-references:
     name: Large batches with many cross-refs on a multi-node cluster
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -564,6 +628,8 @@ jobs:
   multi-tenancy-concurrent-imports:
     name: Concurrent clients importing into multi-node cluster
     runs-on: ubuntu-latest-8-cores
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
@@ -581,6 +647,8 @@ jobs:
   multi_tenancy_activate_deactivate:
     name: Activate / deactivate tenants' shards
     runs-on: ubuntu-latest
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
       - name: Polar Signals Continuous Profiling
