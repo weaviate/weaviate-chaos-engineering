@@ -5,7 +5,7 @@ import time
 
 total = 50_000
 progress_report = 1_000
-retries_on_error = 30
+retries_on_error = 25
 
 
 def run():

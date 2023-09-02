@@ -44,7 +44,7 @@ if ! docker run \
   --network host \
   -t importer python3 import.py; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
+  docker-compose -f apps/weaviate/docker-compose.yml logs 
   exit 1
 fi
 
