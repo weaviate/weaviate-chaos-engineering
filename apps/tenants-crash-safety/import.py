@@ -5,7 +5,7 @@ import time
 
 total = 50_000
 progress_report = 1_000
-retries_on_error = 25
+retries_on_error = 30
 
 
 def run():
@@ -22,7 +22,7 @@ def run():
             class_name="MT",  # The class to which the tenants will be added
             tenants=[Tenant(name=f"tenant_{i}")],
         )
-        retry(add_fn, retries_on_error, 0.5)
+        retry(add_fn, retries_on_error, 1)
         if i % progress_report == 0:
             logger.info(f"imported {i}/{total} tenants")
 

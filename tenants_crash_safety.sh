@@ -33,7 +33,7 @@ docker run \
   --rm -t -d \
   -e "WEAVIATE_VERSION=$WEAVIATE_VERSION" \
   -e "SLEEP_START=15" \
-  -e "SLEEP_END=120" \
+  -e "SLEEP_END=300" \
   -v "$PWD:$PWD" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
