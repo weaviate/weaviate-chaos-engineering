@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-wip-improve-tx-resilience-c60e7ce
+  WEAVIATE_VERSION: preview-schema-tenant-resilience-1
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
