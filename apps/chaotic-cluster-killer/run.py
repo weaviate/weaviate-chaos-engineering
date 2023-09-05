@@ -6,8 +6,8 @@ import random
 
 from loguru import logger
 
-min_wait_for_kill = 30
-max_wait_for_kill = 90
+min_wait_for_kill = 10
+max_wait_for_kill = 60
 
 container_names = ["weaviate-node-2", "weaviate-node-3"]
 ports = [8081, 8082]
