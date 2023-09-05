@@ -32,13 +32,12 @@ docker run \
   --network host \
   --rm -t -d \
   -e "WEAVIATE_VERSION=$WEAVIATE_VERSION" \
-  -e "SLEEP_START=15" \
-  -e "SLEEP_END=300" \
+  -e "PERSISTENCE_LSM_ACCESS_STRATEGY=$PERSISTENCE_LSM_ACCESS_STRATEGY" \
   -v "$PWD:$PWD" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --name killer \
-  killer
+  killer python3 /chaos/run.py
 
 echo "Run import script in foreground..."
 if ! docker run \
