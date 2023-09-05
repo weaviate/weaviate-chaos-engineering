@@ -1,19 +1,17 @@
 import weaviate
-import datetime
-import time
 from loguru import logger
 from typing import Optional
 import random
 import numpy as np
 import argparse
-import string
 import uuid
 import sys
+import os
 
 import_error_count = 0
 
 
-def reset_schema(client: weaviate.Client):
+def reset_schema(client: weaviate.Client, repl_factor: int):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
@@ -25,7 +23,7 @@ def reset_schema(client: weaviate.Client):
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },
-        "replicationConfig": {"factor": 3},
+        "replicationConfig": {"factor": repl_factor},
         "properties": [
             {
                 "dataType": ["text"],
@@ -59,9 +57,9 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_objects(client: weaviate.Client, size: int):
+def load_objects(client: weaviate.Client, size: int, batch_size: int, uuid_offset: int):
     client.batch.configure(
-        batch_size=50,
+        batch_size=batch_size,
         callback=handle_errors,
         dynamic=False,
         num_workers=8,
@@ -76,7 +74,7 @@ def load_objects(client: weaviate.Client, size: int):
                     "content": f"some content for object {i}",
                 },
                 class_name="Document",
-                uuid=uuid.UUID(int=i),
+                uuid=uuid.UUID(int=i + uuid_offset),
                 vector=np.random.rand(32, 1),
             )
 
@@ -87,13 +85,12 @@ def load_objects(client: weaviate.Client, size: int):
 # most one node death, so a quorum must always work. The assumption is that any
 # write request could either be written to at least two nodes successfully – or
 # if it could not be written – has been repeated client-side
-def validate_objects(client: weaviate.Client, max_id: int):
-    random_picks = 100_000
+def validate_objects(client: weaviate.Client, max_id: int, random_picks: int, uuid_offset: int):
     missing_objects = 0
     errors = 0
 
     for i in range(random_picks):
-        obj_id = uuid.UUID(int=random.randint(0, max_id))
+        obj_id = uuid.UUID(int=random.randrange(0, max_id) + uuid_offset)
         try:
             data_object = client.data_object.get_by_id(
                 uuid=obj_id, class_name="Document", consistency_level="QUORUM"
@@ -144,19 +141,64 @@ def validate_objects(client: weaviate.Client, max_id: int):
 #                         )
 
 
-if __name__ == "__main__":
-    client = weaviate.Client("http://localhost:8080", timeout_config=int(30))
-    object_count = 300000
+def config_host() -> str:
+    host = os.environ.get("CONFIG_HOST")
+    if host is None or host == "":
+        return "http://localhost:8080"
+    return host
 
+
+def config_object_count() -> int:
+    object_count = os.environ.get("CONFIG_OBJECT_COUNT")
+    if object_count is None or object_count == "":
+        return 300_000
+    return int(object_count)
+
+
+def config_batch_size() -> int:
+    batch_size = os.environ.get("CONFIG_BATCH_SIZE")
+    if batch_size is None or batch_size == "":
+        return 50
+    return int(batch_size)
+
+
+def config_uuid_offset() -> int:
+    uuid_offset = os.environ.get("CONFIG_UUID_OFFSET")
+    if uuid_offset is None or uuid_offset == "":
+        return 0
+    return int(uuid_offset)
+
+
+def config_repl_factor() -> int:
+    repl_factor = os.environ.get("CONFIG_REPLICATION_FACTOR")
+    if repl_factor is None or repl_factor == "":
+        return 3
+    return int(repl_factor)
+
+
+if __name__ == "__main__":
+    host = config_host()
+    object_count = config_object_count()
+    batch_size = config_batch_size()
+    uuid_offset = config_uuid_offset()
+    repl_factor = config_repl_factor()
+    random_picks = int(object_count / 10)
+
+    client = weaviate.Client(host, timeout_config=int(30))
     parser = argparse.ArgumentParser()
     parser.add_argument("-a", "--action", default="import")
     args = parser.parse_args()
 
     if args.action == "import":
-        load_objects(client, object_count)
+        logger.info(
+            f"CONFIG: host={host}; object_count={object_count}; batch_size={batch_size}; uuid_offset={uuid_offset}"
+        )
+        load_objects(client, object_count, batch_size, uuid_offset)
         # load_references(client, 400, ids_class_1, ids_class_2)
-        validate_objects(client, object_count - 1)
+        validate_objects(client, object_count, random_picks, uuid_offset)
     elif args.action == "schema":
-        reset_schema(client)
+        logger.info(f"CONFIG: host={host}; repl_factor={repl_factor}")
+        reset_schema(client, repl_factor)
+        logger.info("schema reset")
     else:
         logger.error("unknown --action option")
