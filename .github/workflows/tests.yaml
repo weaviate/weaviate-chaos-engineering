@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-repair-schema-when-cluster-is-out-of-sync-e6347a7
+  WEAVIATE_VERSION: preview-repair-schema-when-cluster-is-out-of-sync-f6aefc5
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
