@@ -224,7 +224,7 @@ jobs:
           glob: '*.json'
   batch-import-many-classes:
     name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -243,7 +243,7 @@ jobs:
         run: ./batch_import_many_classes.sh
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -266,7 +266,7 @@ jobs:
         run: ./upgrade_journey.sh
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -285,7 +285,7 @@ jobs:
         run: ./replication_importing_while_crashing.sh
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -304,7 +304,7 @@ jobs:
         run: ./replication_importing_with_backup.sh
   replication-tunable-consistency:
     name: Replication tunable consistency
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -342,7 +342,7 @@ jobs:
         run: ./counting_while_compacting.sh
   segfault-on-batch-ref:
     name: Segfault on batch ref
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -361,7 +361,7 @@ jobs:
         run: ./segfault_batch_ref.sh
   import-with-kills:
     name: Import during constant kills/crashes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -380,7 +380,7 @@ jobs:
         run: ./import_while_crashing.sh
   heave-imports-crashing:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -399,7 +399,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   segfault-filtered-search:
     name: Segfault on filtered vector search (race with hash bucket compaction)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -418,7 +418,7 @@ jobs:
         run: ./segfault_filtered_vector_search.sh
   backup-restore-crud:
     name: Backup & Restore CRUD
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -437,7 +437,7 @@ jobs:
         run: ./backup_and_restore_crud.sh
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -456,7 +456,7 @@ jobs:
         run: ./backup_and_restore_multi_node_crud.sh
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -475,7 +475,7 @@ jobs:
         run: ./backup_and_restore_version_compatibility.sh
   compare-recall:
     name: Compare Recall after import to after restart
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -494,7 +494,7 @@ jobs:
         run: ./compare_recall_after_restart.sh
   concurrent-read-write:
     name: Concurrent inverted index read/write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -513,7 +513,7 @@ jobs:
         run: ./concurrent_inverted_index_read_write.sh
   consecutive-create-update:
     name: Consecutive create and update operations
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -532,7 +532,7 @@ jobs:
         run: ./consecutive_create_and_update_operations.sh
   batch-insert-mismatch:
     name: Batch insert mismatch
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -551,7 +551,7 @@ jobs:
         run: ./consecutive_create_and_update_operations.sh
   rest-patch-restart:
     name: REST PATCH requests stop working after restart
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -570,7 +570,7 @@ jobs:
         run: ./rest_patch_stops_working_after_restart.sh
   delete-recreate-updates:
     name: Delete and recreate class with frequent updates
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -608,7 +608,7 @@ jobs:
         run: ./geo_crash.sh
   compaction-roaringset:
     name: Preventing panic on compaction of roaringsets
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
