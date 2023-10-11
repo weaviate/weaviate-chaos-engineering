@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$WEAVIATE_VERSION" ]; then
+  echo "Please set WEAVIATE_VERSION, e.g. to 1.18.0"
+  exit 1
+fi
+
 set -e
 
 function wait_weaviate() {
