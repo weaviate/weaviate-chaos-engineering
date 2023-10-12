@@ -9,6 +9,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
   run-jobs-with-mmap:
+    strategy:
+      max-parallel: 12
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: mmap
@@ -21,6 +23,8 @@ jobs:
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
   run-jobs-with-pread:
     needs: run-jobs-with-mmap
+    strategy:
+      max-parallel: 12
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: pread
