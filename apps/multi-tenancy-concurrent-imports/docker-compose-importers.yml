@@ -23,6 +23,7 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
     network_mode: 'host'
   importer-02:
     build: ./multi-tenancy-load-test/importer/
@@ -32,6 +33,7 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
     network_mode: 'host'
   importer-03:
     build: ./multi-tenancy-load-test/importer/
@@ -41,6 +43,7 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
     network_mode: 'host'
   importer-04:
     build: ./multi-tenancy-load-test/importer/
@@ -50,4 +53,5 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
     network_mode: 'host'
