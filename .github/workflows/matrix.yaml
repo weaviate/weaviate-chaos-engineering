@@ -10,6 +10,7 @@ jobs:
       - uses: actions/checkout@v2
   run-jobs:
     strategy:
+      max-parallel: 15
       matrix:
         lsm_access_strategy: ['mmap', 'pread']
     uses: ./.github/workflows/tests.yaml

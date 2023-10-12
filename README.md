@@ -35,7 +35,7 @@ condensing, etc.) do not degrade the quality of the vector index.
 Everything is entirely containerized and all pipelines can be started with
 simple bash scripts. You can find the scripts in the root folder, such as
 `./import_while_crashing.sh` and `./compare_recall_after_restart.sh`. Or simply
-check the travis file for an example. 
+check the Github actions YAML files for examples.
 
 ## Links 
 
