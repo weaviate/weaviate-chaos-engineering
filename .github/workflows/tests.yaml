@@ -24,13 +24,13 @@ on:
         required: true
 jobs:
   lint:
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -64,7 +64,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-glove-aws:
     name: "[bench AWS] Glove100 pq=false"
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -98,7 +98,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-aws:
     name: "[bench AWS] SIFT1M pq=true"
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -132,7 +132,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -166,7 +166,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -198,7 +198,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -230,7 +230,7 @@ jobs:
           glob: '*.json'
   batch-import-many-classes:
     name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -250,7 +250,7 @@ jobs:
         run: ./batch_import_many_classes.sh
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -274,7 +274,7 @@ jobs:
         run: ./upgrade_journey.sh
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -294,7 +294,7 @@ jobs:
         run: ./replication_importing_while_crashing.sh
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -314,7 +314,7 @@ jobs:
         run: ./replication_importing_with_backup.sh
   replication-tunable-consistency:
     name: Replication tunable consistency
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -354,7 +354,7 @@ jobs:
         run: ./counting_while_compacting.sh
   segfault-on-batch-ref:
     name: Segfault on batch ref
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -374,7 +374,7 @@ jobs:
         run: ./segfault_batch_ref.sh
   import-with-kills:
     name: Import during constant kills/crashes
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -394,7 +394,7 @@ jobs:
         run: ./import_while_crashing.sh
   heave-imports-crashing:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -414,7 +414,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   segfault-filtered-search:
     name: Segfault on filtered vector search (race with hash bucket compaction)
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -434,7 +434,7 @@ jobs:
         run: ./segfault_filtered_vector_search.sh
   backup-restore-crud:
     name: Backup & Restore CRUD
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -454,7 +454,7 @@ jobs:
         run: ./backup_and_restore_crud.sh
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -474,7 +474,7 @@ jobs:
         run: ./backup_and_restore_multi_node_crud.sh
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -494,7 +494,7 @@ jobs:
         run: ./backup_and_restore_version_compatibility.sh
   compare-recall:
     name: Compare Recall after import to after restart
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -514,7 +514,7 @@ jobs:
         run: ./compare_recall_after_restart.sh
   concurrent-read-write:
     name: Concurrent inverted index read/write
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -534,7 +534,7 @@ jobs:
         run: ./concurrent_inverted_index_read_write.sh
   consecutive-create-update:
     name: Consecutive create and update operations
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -554,7 +554,7 @@ jobs:
         run: ./consecutive_create_and_update_operations.sh
   batch-insert-mismatch:
     name: Batch insert mismatch
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -574,7 +574,7 @@ jobs:
         run: ./consecutive_create_and_update_operations.sh
   rest-patch-restart:
     name: REST PATCH requests stop working after restart
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -594,7 +594,7 @@ jobs:
         run: ./rest_patch_stops_working_after_restart.sh
   delete-recreate-updates:
     name: Delete and recreate class with frequent updates
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -634,7 +634,7 @@ jobs:
         run: ./geo_crash.sh
   compaction-roaringset:
     name: Preventing panic on compaction of roaringsets
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -654,7 +654,7 @@ jobs:
         run: ./compaction_roaringset.sh
   multi-node-references:
     name: Large batches with many cross-refs on a multi-node cluster
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -694,7 +694,7 @@ jobs:
         run: ./multi_tenancy_concurrent_importing.sh
   multi_tenancy_activate_deactivate:
     name: Activate and deactivate tenants' shards
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -719,7 +719,7 @@ jobs:
   # save it for future tests
   # compare-while-crashing:
   #   name: Compare REST and GraphQL while crashing
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest-8-cores
   #   steps:
   #     - uses: actions/checkout@v3
   #     - name: Login to Docker Hub
