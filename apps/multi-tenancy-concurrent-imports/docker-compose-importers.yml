@@ -23,6 +23,8 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8000
     network_mode: 'host'
   importer-02:
     build: ./multi-tenancy-load-test/importer/
@@ -32,6 +34,8 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8001
     network_mode: 'host'
   importer-03:
     build: ./multi-tenancy-load-test/importer/
@@ -41,6 +45,8 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8003
     network_mode: 'host'
   importer-04:
     build: ./multi-tenancy-load-test/importer/
@@ -50,4 +56,6 @@ services:
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8004
     network_mode: 'host'
