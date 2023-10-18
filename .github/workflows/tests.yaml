@@ -250,7 +250,7 @@ jobs:
   #       run: ./batch_import_many_classes.sh
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -394,7 +394,7 @@ jobs:
   #       run: ./import_while_crashing.sh
   heave-imports-crashing:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -474,7 +474,7 @@ jobs:
   #       run: ./backup_and_restore_multi_node_crud.sh
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
