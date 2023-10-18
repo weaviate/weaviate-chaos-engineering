@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-prepare-release-v1-22-0-rc-0-daa14a1
+  WEAVIATE_VERSION: 1.22.0-rc.0
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
@@ -274,7 +274,7 @@ jobs:
         run: ./upgrade_journey.sh
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -294,7 +294,7 @@ jobs:
         run: ./replication_importing_while_crashing.sh
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
