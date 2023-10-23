@@ -1,8 +1,9 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.22.0-rc.0
+  WEAVIATE_VERSION: preview-async-introduce-async-indexing-41052f9
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
+  ASYNC_ENABLED: true
 on:
   workflow_call:
     inputs:
