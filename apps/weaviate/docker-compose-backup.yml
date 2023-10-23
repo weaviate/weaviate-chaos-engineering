@@ -32,6 +32,7 @@ services:
       AWS_SECRET_KEY: 'aws_secret_key'
       BACKUP_S3_USE_SSL: 'false'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      ASYNC_INDEXING: '${ASYNC_INDEXING}'
 
   # Mutually exclusive with weaviate-node-2
   # Used for single-node BRO version compat
