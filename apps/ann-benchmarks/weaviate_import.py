@@ -113,14 +113,12 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
                 )
                 i += 1
     logger.info(f"Finished writing {len(vectors)} records")
+    wait_for_all_shards_ready(client)
+    logger.info(f"All shard ready post async import")
 
 
 def wait_for_all_shards_ready(client: weaviate.Client):
-    status = [s["status"] for s in client.schema.get_class_shards(class_name)]
-    if not all(s == "READONLY" for s in status):
-        raise Exception(f"shards are not READONLY at beginning: {status}")
-
-    max_wait = 300
+    max_wait = 3600
     before = time.time()
 
     while True:
