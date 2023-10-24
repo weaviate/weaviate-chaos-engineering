@@ -122,3 +122,15 @@ with client.batch as batch:
             uuid=doc["id"],
             vector=normalize(doc["vector"]),
         )
+
+# wait for shards to be ready
+shards = client.schema.get_class_shards("SemanticUnit")
+max_iterations = 1200
+while any([shard["status"] != "READY" for shard in shards]):
+    shards = client.schema.get_class_shards("SemanticUnit")
+    print("Waiting for shards to be ready")
+    time.sleep(1)
+    max_iterations -= 1
+    if max_iterations <= 0:
+        print(shards)
+        raise Exception("shards not ready after 20 minutes")
