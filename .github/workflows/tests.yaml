@@ -30,7 +30,7 @@ jobs:
       - uses: psf/black@stable
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -64,7 +64,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-glove-aws:
     name: "[bench AWS] Glove100 pq=false"
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -98,7 +98,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-aws:
     name: "[bench AWS] SIFT1M pq=true"
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -132,7 +132,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -166,7 +166,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -198,7 +198,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -236,11 +236,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -250,17 +250,17 @@ jobs:
         run: ./batch_import_many_classes.sh
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -274,17 +274,17 @@ jobs:
         run: ./upgrade_journey.sh
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -300,11 +300,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -314,17 +314,17 @@ jobs:
         run: ./replication_importing_with_backup.sh
   replication-tunable-consistency:
     name: Replication tunable consistency
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -340,11 +340,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -360,11 +360,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -380,11 +380,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -400,11 +400,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -420,11 +420,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -440,11 +440,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -460,11 +460,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -480,11 +480,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -500,11 +500,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -520,11 +520,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -540,11 +540,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -560,11 +560,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -580,11 +580,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -600,11 +600,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -620,11 +620,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -640,11 +640,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -660,11 +660,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -680,11 +680,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -700,11 +700,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      - name: Polar Signals Continuous Profiling
-        uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-        with:
-          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
