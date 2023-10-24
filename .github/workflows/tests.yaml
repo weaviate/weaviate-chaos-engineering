@@ -250,7 +250,7 @@ jobs:
   #       run: ./batch_import_many_classes.sh
   upgrade-journey:
     name: Rolling updates in multi-node setup from min to target version
-    runs-on: self-hosted-gcp
+    runs-on: self-hosted
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
