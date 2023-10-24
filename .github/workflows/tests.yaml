@@ -249,7 +249,7 @@ jobs:
   #     - name: Run chaos test
   #       run: ./batch_import_many_classes.sh
   upgrade-journey-self-hosted:
-    name: Self hosted: Rolling updates in multi-node setup from min to target version
+    name: Self hosted Rolling updates in multi-node setup from min to target version
     runs-on: self-hosted
     timeout-minutes: 60
     env:
