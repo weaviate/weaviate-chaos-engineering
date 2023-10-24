@@ -256,11 +256,11 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
-      # - name: Polar Signals Continuous Profiling
-      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-      #   with:
-      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Polar Signals Continuous Profiling
+        uses: polarsignals/gh-actions-ps-profiling@v0.1.0
+        with:
+          polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+          labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
