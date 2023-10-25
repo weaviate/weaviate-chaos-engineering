@@ -33,9 +33,10 @@ instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $M
 echo "instance ready: $instance_id"
 
 function cleanup() {
-  aws ec2 terminate-instances --instance-ids "$instance_id" --region "$region" | jq
-  aws ec2 delete-key-pair --key-name "$key_id" --region "$region" | jq
-  aws ec2 delete-security-group --group-id "$group_id" --region "$region" | jq
+  echo "cleanup skipped"
+  # aws ec2 terminate-instances --instance-ids "$instance_id" --region "$region" | jq
+  # aws ec2 delete-key-pair --key-name "$key_id" --region "$region" | jq
+  # aws ec2 delete-security-group --group-id "$group_id" --region "$region" | jq
 }
 trap cleanup EXIT
 

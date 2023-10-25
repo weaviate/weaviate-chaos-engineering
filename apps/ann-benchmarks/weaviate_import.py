@@ -123,6 +123,7 @@ def wait_for_all_shards_ready(client: weaviate.Client):
 
     while True:
         time.sleep(3)
+        print("waiting")
         status = [s["status"] for s in client.schema.get_class_shards(class_name)]
         if all(s == "READY" for s in status):
             logger.info(f"finished in {time.time()-before}s")
