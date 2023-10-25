@@ -19,6 +19,9 @@ function wait_weaviate() {
   done
 }
 
+export ASYNC_INDEXING=${ASYNC_INDEXING:-"false"}
+echo "Async indexing: $ASYNC_INDEXING"
+
 echo "Building all required containers"
 ( cd apps/ann-benchmarks/ && docker build -t ann_benchmarks . )
 
