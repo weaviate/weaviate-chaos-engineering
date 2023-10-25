@@ -1,6 +1,6 @@
 import json
 import random
-from time import time
+from time import time, sleep
 from typing import Sequence
 import torch
 import weaviate
@@ -129,7 +129,7 @@ max_iterations = 1200
 while any([shard["status"] != "READY" for shard in shards]):
     shards = client.schema.get_class_shards("SemanticUnit")
     print("Waiting for shards to be ready")
-    time.sleep(1)
+    sleep(1)
     max_iterations -= 1
     if max_iterations <= 0:
         print(shards)
