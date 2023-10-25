@@ -114,15 +114,20 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
                 i += 1
     logger.info(f"Finished writing {len(vectors)} records")
     wait_for_all_shards_ready(client)
-    logger.info(f"All shard ready post async import")
+    logger.info(f"All shards ready post import")
 
 
 def wait_for_all_shards_ready(client: weaviate.Client):
     max_wait = 3600
     before = time.time()
 
+    i=0
     while True:
         time.sleep(3)
+        if i % 10 == 0:
+            logger.info(f"still waiting, elapsed: {time.time()-before}s")
+
+        i++
         status = [s["status"] for s in client.schema.get_class_shards(class_name)]
         if all(s == "READY" for s in status):
             logger.info(f"finished in {time.time()-before}s")
