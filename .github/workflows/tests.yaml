@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-async-revert-commit-log-addnodes-and-connectto-96135e8
+  WEAVIATE_VERSION: preview-async-introduce-async-indexing-8d61534
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
   ASYNC_INDEXING: true
 on:
