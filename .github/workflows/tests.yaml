@@ -3,7 +3,7 @@ name: Chaos tests
 env:
   WEAVIATE_VERSION: preview-async-introduce-async-indexing-8d61534
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
-  ASYNC_INDEXING: true
+  ASYNC_INDEXING: false
 on:
   workflow_call:
     inputs:
