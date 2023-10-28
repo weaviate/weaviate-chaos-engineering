@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-improve-cursor-performance-by-reusing-memory-13d179e
+  WEAVIATE_VERSION: preview-improve-cursor-performance-by-reusing-memory-6bf80f7
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
