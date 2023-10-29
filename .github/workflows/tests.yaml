@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.22.0-rc.0
+  WEAVIATE_VERSION: preview--performance-improve-import-time-with-many-text-props-by-controlling-concurrency-better-5fae4f3
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
