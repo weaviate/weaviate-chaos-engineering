@@ -11,6 +11,7 @@ from datetime import timedelta
 
 from weaviate_import import reset_schema, load_records
 from weaviate_query import query
+import weaviate.classes as wvc
 
 values = {
     "m": [16, 24, 32, 48],
@@ -87,7 +88,17 @@ values["labels"]["dataset_file"] = os.path.basename(args.vectors)
 vectors = f["train"]
 
 efC = values["efC"]
-distance = args.distance
+match args.distance:
+    case "cosine":
+        distance = wvc.VectorDistance.COSINE
+    case "l2-squared":
+        distance = wvc.VectorDistance.L2_SQUARED
+    case "dot":
+        distance = wvc.VectorDistance.DOT
+    case "hamming":
+        distance = wvc.VectorDistance.HAMMING
+    case "manhattan":
+        distance = wvc.VectorDistance.MANHATTAN
 
 print(values["labels"])
 for shards in values["shards"]:

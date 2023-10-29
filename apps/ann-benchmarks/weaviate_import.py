@@ -5,31 +5,29 @@ import uuid
 import weaviate
 import h5py
 import time
+import weaviate.classes as wvc
 
 class_name = "Vector"
 
 
-def reset_schema(client: weaviate.Client, efC, m, shards, distance):
-    client.schema.delete_all()
-    class_obj = {
-        "vectorizer": "none",
-        "vectorIndexConfig": {
-            "efConstruction": efC,
-            "maxConnections": m,
-            "ef": -1,  # will be overriden at query time
-            "distance": distance,
-        },
-        "class": class_name,
-        "invertedIndexConfig": {
-            "indexTimestamps": False,
-        },
-        "properties": [],
-        "shardingConfig": {
-            "desiredCount": shards,
-        },
-    }
-
-    client.schema.create_class(class_obj)
+def reset_schema(client: weaviate.Client, efC, m, shards, distance: wvc.VectorDistance):
+    client.collection.delete(class_name)
+    client.collection.create(
+        class_name,
+        vector_index_type=wvc.ConfigFactory.vector_index_type().HNSW,
+        inverted_index_config=wvc.ConfigFactory.inverted_index(
+            index_timestamps=False,
+        ),
+        vector_index_config=wvc.ConfigFactory.vector_index(
+            ef_construction=efC,
+            max_connections=m,
+            ef=-1,  # will be overriden at query time
+            distance_metric=distance,
+        ),
+        sharding_config=wvc.ConfigFactory.sharding(
+            desired_count=shards,
+        ),
+    )
 
 
 def handle_errors(results: Optional[dict]) -> None:
