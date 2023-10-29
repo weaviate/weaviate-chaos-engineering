@@ -50,66 +50,70 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
+batch_size = 100
+
+
 def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
-    client.batch.configure(batch_size=100, callback=handle_errors, num_workers=1)
+    col = client.collection.get(class_name)
     i = 0
-    if vectors == None:
-        vectors = [None] * 10_000_000
+    curr_batch = []
+    for vector in vectors:
+        if i % 10000 == 0:
+            logger.info(f"writing record {i}/{len(vectors)}")
 
-    with client.batch as batch:
-        for vector in vectors:
-            if i % 10000 == 0:
-                logger.info(f"writing record {i}/{len(vectors)}")
+        if i == 100000 and compression == True and override == False:
+            logger.info(f"pausing import to enable compression")
+            break
 
-            if i == 100000 and compression == True and override == False:
-                logger.info(f"pausing import to enable compression")
-                break
-
-            data_object = {
-                "i": i,
-            }
-
-            batch.add_data_object(
-                data_object=data_object,
+        curr_batch.append(
+            wvc.DataObject(
+                properties={"i": i},
                 vector=vector,
-                class_name=class_name,
                 uuid=uuid.UUID(int=i),
-            )
-            i += 1
+            ),
+        )
+
+        if i != 0 and i % batch_size == 0:
+            col.data.insert_many(curr_batch)
+            curr_batch = []
+
+        i += 1
+
+    if len(curr_batch) > 0:
+        col.data.insert_many(curr_batch)
+        curr_batch = []
 
     if compression == True and override == False:
-        client.schema.update_config(
-            class_name,
-            {
-                "vectorIndexConfig": {
-                    "pq": {
-                        "enabled": True,
-                        "segments": int(len(vectors[0]) / dim_to_seg_ratio),
-                    }
-                }
-            },
+        col.config.update(
+            vector_index_config=wvc.ConfigUpdateFactory.vector_index(
+                pq_enabled=True,
+                pq_segments=int(len(vectors[0]) / dim_to_seg_ratio),
+            ),
         )
 
         wait_for_all_shards_ready(client)
 
         i = 100000
-        with client.batch as batch:
-            while i < len(vectors):
-                vector = vectors[i]
-                if i % 10000 == 0:
-                    logger.info(f"writing record {i}/{len(vectors)}")
+        while i < len(vectors):
+            if i % 10000 == 0:
+                logger.info(f"writing record {i}/{len(vectors)}")
 
-                data_object = {
-                    "i": i,
-                }
-
-                batch.add_data_object(
-                    data_object=data_object,
-                    vector=vector,
-                    class_name=class_name,
+            curr_batch.append(
+                wvc.DataObject(
+                    properties={"i": i},
+                    vector=vectors[i],
                     uuid=uuid.UUID(int=i),
-                )
-                i += 1
+                ),
+            )
+
+            if i != 100000 and i % batch_size == 0:
+                col.data.insert_many(curr_batch)
+                curr_batch = []
+
+            i += 1
+        if len(curr_batch) > 0:
+            col.data.insert_many(curr_batch)
+            curr_batch = []
     logger.info(f"Finished writing {len(vectors)} records")
 
 
