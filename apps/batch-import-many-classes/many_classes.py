@@ -40,7 +40,7 @@ for i in range(500):
                 name="number",
                 data_type=wvc.DataType.NUMBER,
             ),
-        ]
+        ],
     )
     took = time.time() - before
     if took > timeout:
