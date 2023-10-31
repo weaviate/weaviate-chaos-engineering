@@ -21,9 +21,9 @@ def search_grpc(client: weaviate.WeaviateClient, dataset, i, input_vec):
     before = time.time()
     try:
         objs = (
-            client.collections.get(class_name)
-            .query
-            .near_vector(near_vector=input_vec, limit=limit, return_metadata=wvc.MetadataQuery(uuid=True))
+            client.collections.get(class_name).query.near_vector(
+                near_vector=input_vec, limit=limit, return_metadata=wvc.MetadataQuery(uuid=True)
+            )
         ).objects
     except WeaviateQueryException as e:
         logger.error(e.message)
@@ -51,9 +51,7 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
 
     for ef in ef_values:
         for api in ["grpc"]:
-            collection.config.update(
-                vector_index_config=wvc.Reconfigure.vector_index(ef=ef)
-            )
+            collection.config.update(vector_index_config=wvc.Reconfigure.vector_index(ef=ef))
 
             took = 0
             recall = 0

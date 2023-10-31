@@ -57,14 +57,13 @@ def load_records(
                 class_name=class_name,
                 uuid=uuid.UUID(int=i),
             )
-        
+
         if len(client.batch.failed_objects()) > 0:
             logger.error("Failed objects:")
             for failed in client.batch.failed_objects():
                 logger.error(failed)
 
     logger.info(f"Finished writing {end-start} records")
-
 
 
 client = weaviate.connect_to_local(timeout=(20, 240))
