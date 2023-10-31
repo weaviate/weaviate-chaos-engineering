@@ -21,6 +21,12 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
             ef=-1,
             distance_metric=wvc.VectorDistance(distance),
         ),
+        properties=[
+            wvc.Property(
+                name="i",
+                data_type=wvc.DataType.INT,
+            )
+        ],
         inverted_index_config=wvc.Configure.inverted_index(index_timestamps=False),
         sharding_config=wvc.Configure.sharding(desired_count=shards),
     )
