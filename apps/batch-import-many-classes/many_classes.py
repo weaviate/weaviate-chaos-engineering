@@ -1,16 +1,17 @@
 import weaviate
+import weaviate.classes as wvc
 import time
 import random
 import sys
 from loguru import logger
 
-client = weaviate.Client("http://localhost:8080", timeout_config=(20, 240))
+client = weaviate.connect_to_local(timeout=(20, 240))
 
 timeout = 5
 
 checkpoint = time.time()
 interval = 100
-classes = []
+classes: list[str] = []
 for i in range(500):
     if i != 0 and i % interval == 0:
         avg = (time.time() - checkpoint) / interval
@@ -19,20 +20,27 @@ for i in range(500):
 
     before = time.time()
     classes.append("Article" + str(i))
-    client.schema.create_class(
-        {
-            "class": "Article" + str(i),
-            "description": "A written text, for example a news article or blog post",
-            "properties": [
-                {
-                    "dataType": ["string"],
-                    "name": "title",
-                },
-                {"dataType": ["text"], "name": "content"},
-                {"dataType": ["int"], "name": "int"},
-                {"dataType": ["number"], "name": "number"},
-            ],
-        }
+    client.collections.create(
+        name="Article" + str(i),
+        description="A written text, for example a news article or blog post",
+        properties=[
+            wvc.Property(
+                name="title",
+                data_type=wvc.DataType.TEXT,
+            ),
+            wvc.Property(
+                name="content",
+                data_type=wvc.DataType.TEXT,
+            ),
+            wvc.Property(
+                name="int",
+                data_type=wvc.DataType.INT,
+            ),
+            wvc.Property(
+                name="number",
+                data_type=wvc.DataType.NUMBER,
+            ),
+        ]
     )
     took = time.time() - before
     if took > timeout:
@@ -55,7 +63,7 @@ while True:
         break
 
     before = time.time()
-    client.schema.delete_class(classes.pop())
+    client.collections.delete(classes.pop())
     took = time.time() - before
     if took > timeout:
         logger.error(f"last class action took {took}s, but toleration limit is {timeout}s")
