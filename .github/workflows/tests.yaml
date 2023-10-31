@@ -1,8 +1,9 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.22.0-rc.0
+  WEAVIATE_VERSION: preview-async-update-geo-index-asynchronously-24e2fc2
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
+  ASYNC_INDEXING: true
 on:
   workflow_call:
     inputs:
@@ -46,22 +47,22 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+      - id: "gcs_auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_aws.sh
-      - id: 'upload-files'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+      - id: "upload-files"
+        uses: "google-github-actions/upload-cloud-storage@v1"
         with:
-          path: 'results'
-          destination: 'ann-pipelines/github-action-runs'
-          glob: '*.json'
+          path: "results"
+          destination: "ann-pipelines/github-action-runs"
+          glob: "*.json"
   ann-benchmarks-glove-aws:
     name: "[bench AWS] Glove100 pq=false"
     runs-on: ubuntu-latest
@@ -80,22 +81,22 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+      - id: "gcs_auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_aws.sh
-      - id: 'upload-files'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+      - id: "upload-files"
+        uses: "google-github-actions/upload-cloud-storage@v1"
         with:
-          path: 'results'
-          destination: 'ann-pipelines/github-action-runs'
-          glob: '*.json'
+          path: "results"
+          destination: "ann-pipelines/github-action-runs"
+          glob: "*.json"
   ann-benchmarks-pq-sift-aws:
     name: "[bench AWS] SIFT1M pq=true"
     runs-on: ubuntu-latest
@@ -114,22 +115,22 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+      - id: "gcs_auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_compression_aws.sh
-      - id: 'upload-files'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+      - id: "upload-files"
+        uses: "google-github-actions/upload-cloud-storage@v1"
         with:
-          path: 'results'
-          destination: 'ann-pipelines/github-action-runs'
-          glob: '*.json'
+          path: "results"
+          destination: "ann-pipelines/github-action-runs"
+          glob: "*.json"
   ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     runs-on: ubuntu-latest
@@ -148,22 +149,22 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+      - id: "gcs_auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_compression_aws.sh
-      - id: 'upload-files'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+      - id: "upload-files"
+        uses: "google-github-actions/upload-cloud-storage@v1"
         with:
-          path: 'results'
-          destination: 'ann-pipelines/github-action-runs'
-          glob: '*.json'
+          path: "results"
+          destination: "ann-pipelines/github-action-runs"
+          glob: "*.json"
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
     runs-on: ubuntu-latest
@@ -180,22 +181,22 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+      - id: "gcs_auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_gcp.sh
-      - id: 'upload-files'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+      - id: "upload-files"
+        uses: "google-github-actions/upload-cloud-storage@v1"
         with:
-          path: 'results'
-          destination: 'ann-pipelines/github-action-runs'
-          glob: '*.json'
+          path: "results"
+          destination: "ann-pipelines/github-action-runs"
+          glob: "*.json"
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
     runs-on: ubuntu-latest
@@ -212,22 +213,22 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
-        uses: 'google-github-actions/auth@v1'
+      - id: "gcs_auth"
+        name: "Authenticate to Google Cloud"
+        uses: "google-github-actions/auth@v1"
         with:
           credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      - name: 'Set up Cloud SDK'
-        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: "Set up Cloud SDK"
+        uses: "google-github-actions/setup-gcloud@v1"
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_compression_gcp.sh
-      - id: 'upload-files'
-        uses: 'google-github-actions/upload-cloud-storage@v1'
+      - id: "upload-files"
+        uses: "google-github-actions/upload-cloud-storage@v1"
         with:
-          path: 'results'
-          destination: 'ann-pipelines/github-action-runs'
-          glob: '*.json'
+          path: "results"
+          destination: "ann-pipelines/github-action-runs"
+          glob: "*.json"
   batch-import-many-classes:
     name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
     runs-on: ubuntu-latest
@@ -264,7 +265,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
-          go-version: '1.20'
+          go-version: "1.20"
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
