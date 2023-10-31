@@ -93,8 +93,9 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
     logger.info(f"Finished writing {len(vectors)} records")
 
 
-def wait_for_all_shards_ready(client: weaviate.Client):
-    status = [s["status"] for s in client.schema.get_class_shards(class_name)]
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient):
+    collection = client.collections.get(class_name)
+    status = [s.status for s in collection.config.get_shards()]
     if not all(s == "READONLY" for s in status):
         raise Exception(f"shards are not READONLY at beginning: {status}")
 
@@ -103,7 +104,7 @@ def wait_for_all_shards_ready(client: weaviate.Client):
 
     while True:
         time.sleep(3)
-        status = [s["status"] for s in client.schema.get_class_shards(class_name)]
+        status = [s.status for s in collection.config.get_shards()]
         if all(s == "READY" for s in status):
             logger.info(f"finished in {time.time()-before}s")
             return
