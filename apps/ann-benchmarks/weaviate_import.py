@@ -64,7 +64,7 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
 
     if compression == True and override == False:
         collection.config.update(
-            wvc.Reconfigure.vector_index(
+            vector_index_config=wvc.Reconfigure.vector_index(
                 pq_enabled=True,
                 pq_segments=int(len(vectors[0]) / dim_to_seg_ratio),
             )
