@@ -8,43 +8,37 @@ import json
 from loguru import logger
 
 from weaviate_pprof import obtain_heap_profile
+import weaviate.classes as wvc
 
 limit = 10
 class_name = "Vector"
 results = []
 
 
-def search_grpc(client: weaviate.Client, dataset, i, input_vec):
+def search_grpc(col: weaviate.collections.collection._Collection, dataset, i, input_vec):
     out = {}
     before = time.time()
-    res = (
-        client.query.get(class_name, None)
-        .with_additional(weaviate.AdditionalProperties(uuid=True))
-        .with_near_vector(
-            {
-                "vector": input_vec,
-            }
-        )
-        .with_limit(limit)
-        .do()
+    res = col.query.near_vector(
+        near_vector=input_vec,
+        limit=limit,
+        return_metadata=wvc.MetadataQuery(uuid=True),
     )
-    if "errors" in res and res["errors"] != None:
-        logger.error(res["errors"])
-
     out["took"] = time.time() - before
 
     ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
-    res_ids = [uuid.UUID(res["_additional"]["id"]).int for res in res["data"]["Get"][class_name]]
+    res_ids = [obj.metadata.uuid.int for obj in res.objects]
 
     out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
+
     return out
 
 
-def query(client, stub, dataset, ef_values, labels):
-    schema = client.schema.get(class_name)
-    shards = schema["shardingConfig"]["actualCount"]
-    efC = schema["vectorIndexConfig"]["efConstruction"]
-    m = schema["vectorIndexConfig"]["maxConnections"]
+def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
+    col = client.collections.get(class_name)
+    cfg = col.config.get()
+    efC = cfg.vector_index_config.ef_construction
+    m = cfg.vector_index_config.max_connections
+    shards = cfg.sharding_config.actual_count
     logger.info(f"build params: shards={shards}, efC={efC}, m={m} labels={labels}")
 
     vectors = dataset["test"]
@@ -52,16 +46,18 @@ def query(client, stub, dataset, ef_values, labels):
 
     for ef in ef_values:
         for api in ["grpc"]:
-            schema = client.schema.get(class_name)
-            schema["vectorIndexConfig"]["ef"] = ef
-            client.schema.update_config(class_name, schema)
+            col.config.update(
+                vector_index_config=wvc.Reconfigure.vector_index(
+                    ef=ef,
+                )
+            )
 
             took = 0
             recall = 0
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(client, dataset, i, vec)
+                    res = search_grpc(col, dataset, i, vec)
                 elif api == "grpc_clientless":
                     res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":

@@ -37,9 +37,7 @@ pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
 
 
 parser = argparse.ArgumentParser()
-client = weaviate.Client(
-    "http://localhost:8080", additional_config=weaviate.Config(grpc_port_experimental=50051)
-)
+client = weaviate.connect_to_local()
 
 stub = None
 

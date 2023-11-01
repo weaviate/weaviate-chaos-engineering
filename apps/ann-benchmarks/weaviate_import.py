@@ -10,21 +10,21 @@ import weaviate.classes as wvc
 class_name = "Vector"
 
 
-def reset_schema(client: weaviate.Client, efC, m, shards, distance: wvc.VectorDistance):
-    client.collection.delete(class_name)
-    client.collection.create(
+def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance: wvc.VectorDistance):
+    client.collections.delete(class_name)
+    client.collections.create(
         class_name,
-        vector_index_type=wvc.ConfigFactory.vector_index_type().HNSW,
-        inverted_index_config=wvc.ConfigFactory.inverted_index(
+        vector_index_type=wvc.Configure.vector_index_type().HNSW,
+        inverted_index_config=wvc.Configure.inverted_index(
             index_timestamps=False,
         ),
-        vector_index_config=wvc.ConfigFactory.vector_index(
+        vector_index_config=wvc.Configure.vector_index(
             ef_construction=efC,
             max_connections=m,
             ef=-1,  # will be overriden at query time
             distance_metric=distance,
         ),
-        sharding_config=wvc.ConfigFactory.sharding(
+        sharding_config=wvc.Configure.sharding(
             desired_count=shards,
         ),
     )
@@ -54,7 +54,7 @@ batch_size = 100
 
 
 def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio, override):
-    col = client.collection.get(class_name)
+    col = client.collections.get(class_name)
     i = 0
     curr_batch = []
     for vector in vectors:
@@ -85,7 +85,7 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
 
     if compression == True and override == False:
         col.config.update(
-            vector_index_config=wvc.ConfigUpdateFactory.vector_index(
+            vector_index_config=wvc.Reconfigure.vector_index(
                 pq_enabled=True,
                 pq_segments=int(len(vectors[0]) / dim_to_seg_ratio),
             ),
@@ -117,8 +117,9 @@ def load_records(client: weaviate.Client, vectors, compression, dim_to_seg_ratio
     logger.info(f"Finished writing {len(vectors)} records")
 
 
-def wait_for_all_shards_ready(client: weaviate.Client):
-    status = [s["status"] for s in client.schema.get_class_shards(class_name)]
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient):
+    col = client.collections.get(class_name)
+    status = [s.status for s in col.config.get_shards()]
     if not all(s == "READONLY" for s in status):
         raise Exception(f"shards are not READONLY at beginning: {status}")
 
@@ -127,7 +128,7 @@ def wait_for_all_shards_ready(client: weaviate.Client):
 
     while True:
         time.sleep(3)
-        status = [s["status"] for s in client.schema.get_class_shards(class_name)]
+        status = [s.status for s in col.config.get_shards()]
         if all(s == "READY" for s in status):
             logger.info(f"finished in {time.time()-before}s")
             return
