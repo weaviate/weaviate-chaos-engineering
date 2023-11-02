@@ -70,7 +70,7 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
             )
         )
 
-        wait_for_all_shards_ready(client)
+        wait_for_all_shards_ready(collection)
 
         i = 100000
         with client.batch as batch:
@@ -93,8 +93,7 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
     logger.info(f"Finished writing {len(vectors)} records")
 
 
-def wait_for_all_shards_ready(client: weaviate.WeaviateClient):
-    collection = client.collections.get(class_name)
+def wait_for_all_shards_ready(collection: weaviate.Collection):
     status = [s.status for s in collection.config.get_shards()]
     if not all(s == "READONLY" for s in status):
         raise Exception(f"shards are not READONLY at beginning: {status}")

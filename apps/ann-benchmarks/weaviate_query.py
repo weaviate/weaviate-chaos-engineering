@@ -16,14 +16,12 @@ class_name = "Vector"
 results = []
 
 
-def search_grpc(client: weaviate.WeaviateClient, dataset, i, input_vec):
+def search_grpc(collection: weaviate.Collection, dataset, i, input_vec):
     out = {}
     before = time.time()
     try:
-        objs = (
-            client.collections.get(class_name).query.near_vector(
-                near_vector=input_vec, limit=limit, return_metadata=wvc.MetadataQuery(uuid=True)
-            )
+        objs = collection.query.near_vector(
+            near_vector=input_vec, limit=limit, return_metadata=wvc.MetadataQuery(uuid=True)
         ).objects
     except WeaviateQueryException as e:
         logger.error(e.message)
@@ -58,7 +56,7 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(client, dataset, i, vec)
+                    res = search_grpc(collection, dataset, i, vec)
                 elif api == "grpc_clientless":
                     res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":
