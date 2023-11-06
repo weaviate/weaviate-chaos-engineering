@@ -1,0 +1,2 @@
+weaviate-client[grpc]==4.0b5
+loguru==0.5.3
