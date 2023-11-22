@@ -83,33 +83,31 @@ results = []
 print(values["labels"])
 for shards in values["shards"]:
     for workers in values["batch_workers"]:
-        for dynamic in values["dynamic"]:
-            run_id = f"{int(time.time())}"
+        run_id = f"{int(time.time())}"
 
-            compression = values["compression"]
-            override = values["override"]
-            before_import = time.time()
-            logger.info(
-                f"Starting import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers}"
-            )
-            if override == False:
-                reset_schema(client, efC, 32, shards, distance)
-            load_records(client, vectors, compression, override, workers, True)
-            elapsed = time.time() - before_import
-            logger.info(
-                f"Finished import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers} in {str(timedelta(seconds=elapsed))}hrs"
-            )
+        compression = values["compression"]
+        override = values["override"]
+        before_import = time.time()
+        logger.info(
+            f"Starting import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers}"
+        )
+        if override == False:
+            reset_schema(client, efC, 32, shards, distance)
+        load_records(client, vectors, compression, override, workers, True)
+        elapsed = time.time() - before_import
+        logger.info(
+            f"Finished import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers} in {str(timedelta(seconds=elapsed))}hrs"
+        )
 
-            results.append(
-                {
-                    "num_workers": workers,
-                    "import_time": elapsed,
-                    "run_id": run_id,
-                    "async_on": async_on,
-                    "dynamic": dynamic,
-                    **labels,
-                }
-            )
+        results.append(
+            {
+                "num_workers": workers,
+                "import_time": elapsed,
+                "run_id": run_id,
+                "async_on": async_on,
+                **labels,
+            }
+        )
 
 filename = f"./results/batch-import-with-workers/{run_id}.json"
 logger.info(f"storing results in {filename}")
