@@ -13,7 +13,7 @@ from weaviate_import import reset_schema, load_records
 
 values = {
     "shards": [1],
-    "efC": 256,
+    "efC": 128,
     "compression": False,
     "dim_to_segment_ratio": 4,
     "override": False,
