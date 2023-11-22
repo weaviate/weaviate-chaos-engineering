@@ -87,7 +87,7 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
                 batch.add_object(
                     properties=data_object,
                     vector=vector,
-                    class_name=class_name,
+                    collection=class_name,
                     uuid=uuid.UUID(int=i),
                 )
                 i += 1
