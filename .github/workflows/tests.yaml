@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-hnsw-locks-46a2e5c
+  WEAVIATE_VERSION: preview-hnsw-locks-improvements-3ed1fcf
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
