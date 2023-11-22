@@ -21,7 +21,7 @@ def search_grpc(collection: weaviate.Collection, dataset, i, input_vec):
     before = time.time()
     try:
         objs = collection.query.near_vector(
-            near_vector=input_vec, limit=limit, return_metadata=wvc.MetadataQuery(uuid=True)
+            near_vector=input_vec, limit=limit, return_properties=[]
         ).objects
     except WeaviateQueryException as e:
         logger.error(e.message)
@@ -30,13 +30,13 @@ def search_grpc(collection: weaviate.Collection, dataset, i, input_vec):
     out["took"] = time.time() - before
 
     ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
-    res_ids = [obj.metadata.uuid.int for obj in objs]
+    res_ids = [obj.uuid.int for obj in objs]
 
     out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
     return out
 
 
-def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
+def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, import_time):
     collection = client.collections.get(class_name)
     schema = collection.config.get()
     shards = schema.sharding_config.actual_count
@@ -90,6 +90,7 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
                     "shards": shards,
                     "heap_mb": heap_mb,
                     "run_id": run_id,
+                    "import_time": import_time,
                     **labels,
                 }
             )

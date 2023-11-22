@@ -40,7 +40,7 @@ def load_records(
     end=100_000,
 ):
     # large batch size increases likelihood of a slow batch
-    client.batch.configure(batch_size=5000, dynamic=True)
+    client.batch.configure(batch_size=5000, dynamic=False)
     with client.batch as batch:
         for i in range(start, end):
             if i % 10000 == 0:
