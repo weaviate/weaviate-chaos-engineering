@@ -90,7 +90,6 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
                     "shards": shards,
                     "heap_mb": heap_mb,
                     "run_id": run_id,
-                    "import_time": import_time,
                     **labels,
                 }
             )
