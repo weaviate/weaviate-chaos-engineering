@@ -18,7 +18,7 @@ values = {
     "dim_to_segment_ratio": 4,
     "override": False,
     "batch_workers": [1, 4, 8, 16, 32],
-    "dynamic": [True, False],
+    # "dynamic": [True, False],
 }
 
 pathlib.Path("./results/batch-import-with-workers").mkdir(parents=True, exist_ok=True)
@@ -90,14 +90,14 @@ for shards in values["shards"]:
             override = values["override"]
             before_import = time.time()
             logger.info(
-                f"Starting import with efC={efC}, m={64}, shards={shards}, distance={distance}, num_workers={workers}, dynamic={dynamic}"
+                f"Starting import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers}"
             )
             if override == False:
-                reset_schema(client, efC, 64, shards, distance)
-            load_records(client, vectors, compression, override, workers, dynamic)
+                reset_schema(client, efC, 32, shards, distance)
+            load_records(client, vectors, compression, override, workers, True)
             elapsed = time.time() - before_import
             logger.info(
-                f"Finished import with efC={efC}, m={64}, shards={shards}, distance={distance}, num_workers={workers}, dynamic={dynamic} in {str(timedelta(seconds=elapsed))}hrs"
+                f"Finished import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers} in {str(timedelta(seconds=elapsed))}hrs"
             )
 
             results.append(
