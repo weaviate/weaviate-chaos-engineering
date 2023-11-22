@@ -46,9 +46,9 @@ docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/dataset
 
 echo "Initial run complete, now restart Weaviate with async indexing ON"
 
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose-async.yml stop weaviate
+docker compose -f apps/weaviate/docker-compose-async.yml stop weaviate
 export ASYNC_INDEXING=false
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose-async.yml start weaviate
+docker compose -f apps/weaviate/docker-compose-async.yml start weaviate
 
 echo "Second run with workers (ASYNC_INDEXING=$ASYNC_INDEXING)"
 docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" batch_import_with_workers python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 32 --labels "pq=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"

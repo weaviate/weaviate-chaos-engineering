@@ -93,7 +93,7 @@ for shards in values["shards"]:
         )
         if override == False:
             reset_schema(client, efC, 32, shards, distance)
-        load_records(client, vectors, compression, override, workers, True)
+        load_records(client, vectors, compression, override, workers, False)
         elapsed = time.time() - before_import
         logger.info(
             f"Finished import with efC={efC}, m={32}, shards={shards}, distance={distance}, num_workers={workers} in {str(timedelta(seconds=elapsed))}hrs"
