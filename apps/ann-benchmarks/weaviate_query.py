@@ -36,7 +36,7 @@ def search_grpc(collection: weaviate.Collection, dataset, i, input_vec):
     return out
 
 
-def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, import_time):
+def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
     collection = client.collections.get(class_name)
     schema = collection.config.get()
     shards = schema.sharding_config.actual_count
