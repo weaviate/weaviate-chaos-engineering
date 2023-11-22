@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-a-goroutine-leak-when-deleting-a-class-de3e9c9
+  WEAVIATE_VERSION: 1.22.4
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:

@@ -16,6 +16,7 @@ services:
     ports:
     - 8080:8080
     - 6060:6060
+    - 50051:50051
     restart: on-failure:0
     volumes:
       - ./data:/var/lib/weaviate

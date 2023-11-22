@@ -3,6 +3,8 @@ import time
 import uuid
 import argparse
 import weaviate
+import weaviate.classes as wvc
+from weaviate.exceptions import WeaviateQueryException
 import h5py
 import json
 from loguru import logger
@@ -14,37 +16,32 @@ class_name = "Vector"
 results = []
 
 
-def search_grpc(client: weaviate.Client, dataset, i, input_vec):
+def search_grpc(collection: weaviate.Collection, dataset, i, input_vec):
     out = {}
     before = time.time()
-    res = (
-        client.query.get(class_name, None)
-        .with_additional(weaviate.AdditionalProperties(uuid=True))
-        .with_near_vector(
-            {
-                "vector": input_vec,
-            }
-        )
-        .with_limit(limit)
-        .do()
-    )
-    if "errors" in res and res["errors"] != None:
-        logger.error(res["errors"])
+    try:
+        objs = collection.query.near_vector(
+            near_vector=input_vec, limit=limit, return_properties=[]
+        ).objects
+    except WeaviateQueryException as e:
+        logger.error(e.message)
+        objs = []
 
     out["took"] = time.time() - before
 
     ideal_neighbors = set(x for x in dataset["neighbors"][i][:limit])
-    res_ids = [uuid.UUID(res["_additional"]["id"]).int for res in res["data"]["Get"][class_name]]
+    res_ids = [obj.uuid.int for obj in objs]
 
     out["recall"] = len(ideal_neighbors.intersection(res_ids)) / limit
     return out
 
 
-def query(client, stub, dataset, ef_values, labels):
-    schema = client.schema.get(class_name)
-    shards = schema["shardingConfig"]["actualCount"]
-    efC = schema["vectorIndexConfig"]["efConstruction"]
-    m = schema["vectorIndexConfig"]["maxConnections"]
+def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
+    collection = client.collections.get(class_name)
+    schema = collection.config.get()
+    shards = schema.sharding_config.actual_count
+    efC = schema.vector_index_config.ef_construction
+    m = schema.vector_index_config.max_connections
     logger.info(f"build params: shards={shards}, efC={efC}, m={m} labels={labels}")
 
     vectors = dataset["test"]
@@ -52,16 +49,14 @@ def query(client, stub, dataset, ef_values, labels):
 
     for ef in ef_values:
         for api in ["grpc"]:
-            schema = client.schema.get(class_name)
-            schema["vectorIndexConfig"]["ef"] = ef
-            client.schema.update_config(class_name, schema)
+            collection.config.update(vector_index_config=wvc.Reconfigure.vector_index(ef=ef))
 
             took = 0
             recall = 0
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(client, dataset, i, vec)
+                    res = search_grpc(collection, dataset, i, vec)
                 elif api == "grpc_clientless":
                     res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":

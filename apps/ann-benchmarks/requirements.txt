@@ -1,4 +1,4 @@
-weaviate-client[grpc]==3.25.0b1
+weaviate-client==4.3.b2
 loguru==0.5.3
 seaborn==0.12.2
 h5py==3.8.0
