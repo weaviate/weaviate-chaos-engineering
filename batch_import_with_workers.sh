@@ -56,10 +56,10 @@ echo "Weaviate ready again"
 echo "Second run with workers (ASYNC_INDEXING=$ASYNC_INDEXING)"
 docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" batch_import_with_workers python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 32 --labels "pq=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
-docker run --network host -t -v "$PWD/datasets:/datasets" \
-  -v "$PWD/results:/workdir/results" \
-  -e "REQUIRED_RECALL=$REQUIRED_RECALL" \
-  batch_import_with_workers python3 analyze.py
+# docker run --network host -t -v "$PWD/datasets:/datasets" \
+#   -v "$PWD/results:/workdir/results" \
+#   -e "REQUIRED_RECALL=$REQUIRED_RECALL" \
+#   batch_import_with_workers python3 analyze.py
 
 
 echo "Passed!"
