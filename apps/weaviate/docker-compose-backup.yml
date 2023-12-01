@@ -14,6 +14,8 @@ services:
     ports:
     - 8080:8080
     - 6060:6060
+    - 8300:8300
+    - 8301:8301
     restart: on-failure:0
     environment:
       LOG_LEVEL: 'debug'
@@ -23,9 +25,11 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
-      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_HOSTNAME: 'node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
+      RAFT_PORT: '8300'
+      RAFT_INTERNAL_RPC_PORT: '8301'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
@@ -58,7 +62,7 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
-      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_HOSTNAME: 'node1'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
@@ -82,6 +86,8 @@ services:
     ports:
     - 8081:8081
     - 6061:6060
+    - 8302:8302
+    - 8303:8303
     restart: on-failure:0
     environment:
       LOG_LEVEL: 'debug'
@@ -91,10 +97,14 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
-      CLUSTER_HOSTNAME: 'node2' 
+      CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_PORT: '8302'
+      RAFT_INTERNAL_RPC_PORT: '8303'
+      RAFT_JOIN: 'node1:8300'
+      BOOTSTRAP_EXPECT: 0 # Join as voter
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'

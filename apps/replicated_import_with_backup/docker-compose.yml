@@ -11,9 +11,9 @@ services:
       BACKUP_S3_BUCKET: 'weaviate-backups'
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
-      AWS_SECRET_KEY: 'aws_secret_key' 
+      AWS_SECRET_KEY: 'aws_secret_key'
     depends_on:
-      - backup-s3   
+      - backup-s3
 
   weaviate-node-2: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -26,7 +26,22 @@ services:
       BACKUP_S3_BUCKET: 'weaviate-backups'
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
-      AWS_SECRET_KEY: 'aws_secret_key' 
+      AWS_SECRET_KEY: 'aws_secret_key'
+    depends_on:
+      - backup-s3
+
+  weaviate-node-3: # same as extended service to avoid reconfiguring cluster comm
+    extends:
+      file: ./../weaviate/docker-compose-replication.yml
+      service: weaviate-node-3
+    container_name: weaviate-node-3
+    environment:
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      BACKUP_S3_USE_SSL: 'false'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
     depends_on:
       - backup-s3
 
@@ -66,7 +81,7 @@ services:
       /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
       /usr/bin/mc rb --force chaos/weaviate-backups;
       exit 0;
-      "    
+      "
 
   importer-schema-node-1:
     build: ./../replicated-import/
