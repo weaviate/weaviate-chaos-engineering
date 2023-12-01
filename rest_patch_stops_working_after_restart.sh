@@ -15,6 +15,14 @@ function wait_weaviate() {
   done
 }
 
+function shutdown() {
+  echo "Cleaning up ressources..."
+  docker-compose -f apps/weaviate/docker-compose.yml down --remove-orphans
+  rm -rf apps/weaviate/data* || true
+  docker rm -f rest-patch-stops-working-after-restart
+}
+trap 'shutdown; exit 1' SIGINT ERR
+
 echo "Building all required containers"
 ( cd apps/rest-patch-stops-working-after-restart/ && docker build -t rest-patch-stops-working-after-restart . )
 
@@ -36,3 +44,4 @@ echo "Run consecutive update operations after restart"
 docker run --network host -t rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py
 
 echo "Passed!"
+shutdown

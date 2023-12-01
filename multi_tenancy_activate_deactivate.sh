@@ -17,19 +17,25 @@ function wait_weaviate() {
   done
 }
 
-# We are reusing the replication docker compose for this, but there is nothing
-# special about the infra, it's essentially just a 3-node cluster which is
-# perfect for this test
+function shutdown() {
+  echo "Cleaning up ressources..."
+  docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
+  rm -rf apps/weaviate/data* || true
+  docker container rm -f multi-tenancy-activate-deactivate &>/dev/null && echo 'Deleted container multi-tenancy-activate-deactivate'
+}
+trap 'shutdown; exit 1' SIGINT ERR
+
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1
+docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
-docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-2
 wait_weaviate 8081
-docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-3
 wait_weaviate 8082
 
 echo "Building all required containers"
 ( cd apps/multi-tenancy-activate-deactivate/ && docker build -t multi-tenancy-activate-deactivate . )
 
 echo "Run script"
-docker run --network host -t multi-tenancy-activate-deactivate
+docker run --network host --name multi-tenancy-activate-deactivate -t multi-tenancy-activate-deactivate
+
+echo "Success"
+shutdown
