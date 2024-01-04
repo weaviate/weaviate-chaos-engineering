@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/docker/go-connections v0.4.0
 	github.com/google/uuid v1.3.1
+	github.com/hashicorp/go-version v1.6.0
 	github.com/testcontainers/testcontainers-go v0.21.0
 	github.com/weaviate/weaviate v1.18.0
 	github.com/weaviate/weaviate-go-client/v4 v4.6.1

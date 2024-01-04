@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	hashicorpversion "github.com/hashicorp/go-version"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -81,57 +81,45 @@ func parseSemverList(input []string) semverList {
 			continue
 		}
 
-		sm := r.FindStringSubmatch(version)
+		ver, err := hashicorpversion.NewSemver(version)
+		if err != nil {
+			panic(fmt.Errorf("cannot parse version %q: %w", version, err))
+		}
 
 		out[i] = semver{
-			major: mustParseInt(sm[1]),
-			minor: mustParseInt(sm[2]),
-			patch: mustParseInt(sm[3]),
+			version: ver,
 		}
 		i++
-
 	}
 
 	return out[:i]
 }
 
 type semver struct {
-	major int
-	minor int
-	patch int
+	version *hashicorpversion.Version
 }
 
 type semverList []semver
 
 func (self semver) largerOrEqual(other semver) bool {
-	if self.major < other.major {
-		return false
-	}
-
-	if self.minor < other.minor {
-		return false
-	}
-
-	return self.patch >= other.patch
+	return self.version.GreaterThanOrEqual(other.version)
 }
 
-func mustParseInt(in string) int {
-	res, err := strconv.Atoi(in)
-	if err != nil {
-		panic(err)
-	}
-	return res
+func (self semver) major() int64 {
+	return self.version.Segments64()[0]
+}
+
+func (self semver) minor() int64 {
+	return self.version.Segments64()[1]
+}
+
+func (self semver) patch() int64 {
+	return self.version.Segments64()[2]
 }
 
 func sortSemverAndTrimToMinimum(versions semverList, min, max string) semverList {
 	sort.Slice(versions, func(a, b int) bool {
-		if versions[a].major != versions[b].major {
-			return versions[a].major < versions[b].major
-		}
-		if versions[a].minor != versions[b].minor {
-			return versions[a].minor < versions[b].minor
-		}
-		return versions[a].patch < versions[b].patch
+		return versions[a].version.LessThan(versions[b].version)
 	})
 
 	minV := parseSingleSemverWithoutLeadingV(min)
@@ -170,19 +158,20 @@ func maybeParseSingleSemverWithoutLeadingV(input string) (semver, bool) {
 		return semver{}, false
 	}
 
-	sm := r.FindStringSubmatch(input)
+	ver, err := hashicorpversion.NewSemver(input)
+	if err != nil {
+		panic(fmt.Errorf("cannot parse version %q: %w", input, err))
+	}
 
 	return semver{
-		major: mustParseInt(sm[1]),
-		minor: mustParseInt(sm[2]),
-		patch: mustParseInt(sm[3]),
+		version: ver,
 	}, true
 }
 
 func (s semverList) toStringList() []string {
 	out := make([]string, len(s))
 	for i, ver := range s {
-		out[i] = fmt.Sprintf("%d.%d.%d", ver.major, ver.minor, ver.patch)
+		out[i] = ver.version.String()
 	}
 	return out
 }
