@@ -21,6 +21,7 @@ var (
 )
 
 func main() {
+	ctx := context.Background()
 	targetW, ok := os.LookupEnv("WEAVIATE_VERSION")
 	if !ok {
 		log.Fatal("missing WEAVIATE_VERSION")
@@ -32,7 +33,7 @@ func main() {
 	}
 
 	var err error
-	versions, err = buildVersionList(minimumW, targetW)
+	versions, err = buildVersionList(ctx, minimumW, targetW)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,15 +48,14 @@ func main() {
 	}
 	client := weaviate.New(cfg)
 
-	err = do(client)
+	err = do(ctx, client)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func do(client *weaviate.Client) error {
+func do(ctx context.Context, client *weaviate.Client) error {
 	rand.Seed(time.Now().UnixNano())
-	ctx := context.Background()
 
 	c := newCluster(3)
 
