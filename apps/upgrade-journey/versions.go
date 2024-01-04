@@ -1,23 +1,36 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
+	"time"
+
+	"github.com/docker/go-connections/nat"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
 
-func buildVersionList(min, target string) ([]string, error) {
+func buildVersionList(ctx context.Context, min, target string) ([]string, error) {
 	ghReleases, err := retrieveVersionListFromGH()
 	if err != nil {
 		return nil, err
 	}
 
+	max, err := getTargetVersion(ctx, target)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	versions := parseSemverList(ghReleases)
-	versions = sortSemverAndTrimToMinimum(versions, min)
+	versions = sortSemverAndTrimToMinimum(versions, min, max)
 	list := versions.toStringList()
 
 	return append(list, target), nil
@@ -110,7 +123,7 @@ func mustParseInt(in string) int {
 	return res
 }
 
-func sortSemverAndTrimToMinimum(versions semverList, min string) semverList {
+func sortSemverAndTrimToMinimum(versions semverList, min, max string) semverList {
 	sort.Slice(versions, func(a, b int) bool {
 		if versions[a].major != versions[b].major {
 			return versions[a].major < versions[b].major
@@ -122,6 +135,7 @@ func sortSemverAndTrimToMinimum(versions semverList, min string) semverList {
 	})
 
 	minV := parseSingleSemverWithoutLeadingV(min)
+	maxV := parseSingleSemverWithoutLeadingV(max)
 
 	out := make(semverList, len(versions))
 
@@ -129,6 +143,9 @@ func sortSemverAndTrimToMinimum(versions semverList, min string) semverList {
 	for _, version := range versions {
 		if !version.largerOrEqual(minV) {
 			continue
+		}
+		if version.largerOrEqual(maxV) {
+			break
 		}
 
 		out[i] = version
@@ -168,4 +185,56 @@ func (s semverList) toStringList() []string {
 		out[i] = fmt.Sprintf("%d.%d.%d", ver.major, ver.minor, ver.patch)
 	}
 	return out
+}
+
+func getTargetVersion(ctx context.Context, version string) (string, error) {
+	weaviateImage := fmt.Sprintf("semitechnologies/weaviate:%s", version)
+	env := map[string]string{
+		"AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
+		"LOG_LEVEL":                 "debug",
+		"QUERY_DEFAULTS_LIMIT":      "20",
+		"PERSISTENCE_DATA_PATH":     "./data",
+		"DEFAULT_VECTORIZER_MODULE": "none",
+	}
+	req := testcontainers.ContainerRequest{
+		Image:        weaviateImage,
+		ExposedPorts: []string{"8080/tcp"},
+		Env:          env,
+		WaitingFor: wait.
+			ForHTTP("/v1/.well-known/ready").
+			WithPort(nat.Port("8080")).
+			WithStatusCodeMatcher(func(status int) bool {
+				return status >= 200 && status <= 299
+			}).
+			WithStartupTimeout(30 * time.Second),
+	}
+	c, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: req,
+		Started:          true,
+	})
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		err := c.Terminate(ctx)
+		if err != nil {
+			log.Fatal(fmt.Errorf("cannot terminate Weaviate container that gets target version: %w", err))
+		}
+	}()
+	httpUri, err := c.PortEndpoint(ctx, nat.Port("8080/tcp"), "")
+	if err != nil {
+		return "", err
+	}
+
+	cfg := weaviate.Config{
+		Host:   httpUri,
+		Scheme: "http",
+	}
+	client := weaviate.New(cfg)
+
+	meta, err := client.Misc().MetaGetter().Do(ctx)
+	if err != nil {
+		return "", err
+	}
+	return meta.Version, nil
 }
