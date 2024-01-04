@@ -206,15 +206,15 @@ func findObjectUsingVersionInts(ctx context.Context, client *weaviate.Client,
 			filters.Where().
 				WithOperator(filters.Equal).
 				WithPath([]string{"major_version"}).
-				WithValueInt(int64(parsed.major)),
+				WithValueInt(parsed.major()),
 			filters.Where().
 				WithOperator(filters.Equal).
 				WithPath([]string{"minor_version"}).
-				WithValueInt(int64(parsed.minor)),
+				WithValueInt(parsed.minor()),
 			filters.Where().
 				WithOperator(filters.Equal).
 				WithPath([]string{"patch_version"}).
-				WithValueInt(int64(parsed.patch)),
+				WithValueInt(parsed.patch()),
 		},
 		)
 
@@ -450,14 +450,18 @@ func importTargetObject(ctx context.Context, client *weaviate.Client,
 func importSourceObject(ctx context.Context, client *weaviate.Client,
 	version, targetID string,
 ) error {
-	semver, _ := maybeParseSingleSemverWithoutLeadingV(version)
+	var major, minor, patch int64
+	semver, ok := maybeParseSingleSemverWithoutLeadingV(version)
+	if ok {
+		major, minor, patch = semver.major(), semver.minor(), semver.patch()
+	}
 	props := map[string]interface{}{
 		"version":       version,
 		"object_count":  objectsCreated,
 		"ref_prop":      []interface{}{map[string]interface{}{"beacon": fmt.Sprintf("weaviate://localhost/RefTarget/%s", targetID)}},
-		"major_version": semver.major,
-		"minor_version": semver.minor,
-		"patch_version": semver.patch,
+		"major_version": major,
+		"minor_version": minor,
+		"patch_version": patch,
 	}
 
 	vec := make([]float32, 32)
