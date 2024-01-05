@@ -8,22 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-  run-with-mmap:
+  run-with-sync-indexing:
+    strategy:
+      fail-fast: false
+      matrix:
+        lsm_access_strategy: ["mmap", "pread"]
     uses: ./.github/workflows/tests.yaml
     with:
-      lsm_access_strategy: 'mmap'
-    secrets:
-      AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
-      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-      DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
-      DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
-      GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-      POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
-  run-with-pread:
-    needs: [run-with-mmap]
-    uses: ./.github/workflows/tests.yaml
-    with:
-      lsm_access_strategy: 'pread'
+      lsm_access_strategy: ${{matrix.lsm_access_strategy}}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
