@@ -36,7 +36,6 @@ def invalid_long_classname(client: weaviate.Client):
     }
     client.schema.create_class(class_obj)
     response = client.schema.get();
-    print(response);
     assert (response.status_code == 200)
     return response;
 
