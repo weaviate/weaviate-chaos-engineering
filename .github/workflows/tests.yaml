@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-sharded-locks-lock-contention-93335de
+  WEAVIATE_VERSION: preview-fix-sharded-locks-lock-contention-d293046
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
