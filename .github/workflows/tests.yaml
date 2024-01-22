@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.23.0
+  WEAVIATE_VERSION: preview-execute-near-vector-search-for-hybrid-with-vector-only-4565e4b
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
