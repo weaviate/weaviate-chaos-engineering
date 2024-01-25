@@ -16,7 +16,7 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
     client.collections.create(
         name=class_name,
         vectorizer_config=wvc.Configure.Vectorizer.none(),
-        vector_index_config=wvc.Configure.vector_index(
+        vector_index_config=wvc.Configure.VectorIndex().hnsw(
             ef_construction=efC,
             max_connections=m,
             ef=-1,
@@ -38,8 +38,7 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
     i = 0
     if vectors == None:
         vectors = [None] * 10_000_000
-    client.batch.configure(dynamic=False, batch_size=1000)
-    with client.batch as batch:
+    with client.batch.fixed_size(1000) as batch:
         for vector in vectors:
             if i % 10000 == 0:
                 logger.info(f"writing record {i}/{len(vectors)}")
