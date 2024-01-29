@@ -1,6 +1,7 @@
 """
 https://semi-technology.atlassian.net/browse/WEAVIATE-151
 """
+
 import sys
 from typing import Dict
 import weaviate
