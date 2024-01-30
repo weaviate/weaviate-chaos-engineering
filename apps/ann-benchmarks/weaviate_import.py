@@ -4,7 +4,7 @@ from loguru import logger
 from typing import Optional
 import uuid
 import weaviate
-import weaviate.classes as wvc
+import weaviate.classes.config as wvc
 import h5py
 import time
 
@@ -16,11 +16,11 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
     client.collections.create(
         name=class_name,
         vectorizer_config=wvc.Configure.Vectorizer.none(),
-        vector_index_config=wvc.Configure.vector_index(
+        vector_index_config=wvc.Configure.VectorIndex.hnsw(
             ef_construction=efC,
             max_connections=m,
             ef=-1,
-            distance_metric=wvc.VectorDistance(distance),
+            distance_metric=wvc.VectorDistances(distance),
         ),
         properties=[
             wvc.Property(
@@ -38,20 +38,21 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
     i = 0
     if vectors == None:
         vectors = [None] * 10_000_000
-    client.batch.configure(dynamic=False, batch_size=1000)
-    with client.batch as batch:
-        for vector in vectors:
-            if i % 10000 == 0:
-                logger.info(f"writing record {i}/{len(vectors)}")
+    batch_size = 1000
+    len_objects = len(vectors)
 
+    with client.batch.fixed_size(batch_size=batch_size) as batch:
+        for vector in vectors:
             if i == 100000 and compression == True and override == False:
                 logger.info(f"pausing import to enable compression")
                 break
 
+            if i % 10000 == 0:
+                logger.info(f"writing record {i}/{len_objects}")
+
             data_object = {
                 "i": i,
             }
-
             batch.add_object(
                 properties=data_object,
                 vector=vector,
@@ -60,25 +61,26 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
             )
             i += 1
 
-    for err in batch.failed_objects():
+    for err in client.batch.failed_objects:
         logger.error(err.message)
 
     if compression == True and override == False:
         collection.config.update(
-            vector_index_config=wvc.Reconfigure.vector_index(
-                pq_enabled=True,
-                pq_segments=int(len(vectors[0]) / dim_to_seg_ratio),
+            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
+                    segments=int(len(vectors[0]) / dim_to_seg_ratio),
+                )
             )
         )
 
         wait_for_all_shards_ready(collection)
 
         i = 100000
-        with client.batch as batch:
-            while i < len(vectors):
+        with client.batch.fixed_size(batch_size=batch_size) as batch:
+            while i < len_objects:
                 vector = vectors[i]
                 if i % 10000 == 0:
-                    logger.info(f"writing record {i}/{len(vectors)}")
+                    logger.info(f"writing record {i}/{len_objects}")
 
                 data_object = {
                     "i": i,
@@ -91,10 +93,14 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
                     uuid=uuid.UUID(int=i),
                 )
                 i += 1
-    logger.info(f"Finished writing {len(vectors)} records")
+
+        for err in client.batch.failed_objects:
+            logger.error(err.message)
+
+    logger.info(f"Finished writing {len_objects} records")
 
 
-def wait_for_all_shards_ready(collection: weaviate.Collection):
+def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
     status = [s.status for s in collection.config.get_shards()]
     if not all(s == "READONLY" for s in status):
         raise Exception(f"shards are not READONLY at beginning: {status}")
