@@ -36,7 +36,15 @@ pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
 
 
 parser = argparse.ArgumentParser()
-client = weaviate.connect_to_local()
+# client = weaviate.connect_to_local()
+client = weaviate.connect_to_custom(
+    http_host="host.docker.internal",
+    http_port="8080",
+    http_secure=False,
+    grpc_host="host.docker.internal",
+    grpc_port="50051",
+    grpc_secure=False,
+)
 
 stub = None
 
@@ -87,6 +95,8 @@ vectors = f["train"]
 efC = values["efC"]
 distance = args.distance
 
+max_records = 100_000
+
 print(values["labels"])
 for shards in values["shards"]:
     for m in values["m"]:
@@ -94,26 +104,45 @@ for shards in values["shards"]:
             compression = values["compression"]
             override = values["override"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
-            before_import = time.time()
-            logger.info(
-                f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
-            )
             if override == False:
                 reset_schema(client, efC, m, shards, distance)
-            load_records(client, vectors, compression, dim_to_seg_ratio, override)
-            elapsed = time.time() - before_import
-            logger.info(
-                f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
-            )
-            logger.info(f"Waiting 30s for compactions to settle, etc")
-            time.sleep(30)
+            for loop in range(5):
+                before_import = time.time()
+                logger.info(
+                    f"Starting {loop}. import with efC={efC}, m={m}, shards={shards}, distance={distance}"
+                )
 
-        logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
-        query(
-            client,
-            stub,
-            f,
-            values["ef"],
-            values["labels"],
-        )
-        logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
+                # object1: 0, 1, 4
+                # object2: 2, 3
+                #
+                # 0: full insert
+                # 1: skip all (same props, same vec)
+                # 2: skip vec (diff props, same vec)
+                # 3: skip all (same props, same vec)
+                # 4: skip vec (diff props, same vec)
+                alt_data_object = loop == 2 or loop == 3
+                load_records(
+                    client,
+                    vectors,
+                    compression,
+                    dim_to_seg_ratio,
+                    override,
+                    max_records,
+                    alt_data_object,
+                )
+                elapsed = time.time() - before_import
+                logger.info(
+                    f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
+                )
+            # logger.info(f"Waiting 30s for compactions to settle, etc")
+            # time.sleep(30)
+
+        # logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
+        # query(
+        #     client,
+        #     stub,
+        #     f,
+        #     values["ef"],
+        #     values["labels"],
+        # )
+        # logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
