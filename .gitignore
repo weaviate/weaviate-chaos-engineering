@@ -5,7 +5,9 @@ results/
 logs/
 apps/**/vendor/**
 .DS_Store
-
+datasets/
+results/
+logs/
 # IDE files
 .idea/
 .vscode/
