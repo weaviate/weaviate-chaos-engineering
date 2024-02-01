@@ -78,86 +78,86 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
             #     name="geo",
             #     data_type=wvc.DataType.GEO_COORDINATES,
             # ),
-            # wvc.Property(
-            #     name="object",
-            #     data_type=wvc.DataType.OBJECT,
-            #     nested_properties=[
-            #         wvc.Property(
-            #             name="n_int",
-            #             data_type=wvc.DataType.INT,
-            #         ),
-            #         wvc.Property(
-            #             name="n_number",
-            #             data_type=wvc.DataType.NUMBER,
-            #         ),
-            #         wvc.Property(
-            #             name="n_text",
-            #             data_type=wvc.DataType.TEXT,
-            #         ),
-            #         wvc.Property(
-            #             name="n_boolean",
-            #             data_type=wvc.DataType.BOOL,
-            #         ),
-            #         wvc.Property(
-            #             name="n_uuid",
-            #             data_type=wvc.DataType.UUID,
-            #         ),
-            #         wvc.Property(
-            #             name="n_date",
-            #             data_type=wvc.DataType.DATE,
-            #         ),
-            #         wvc.Property(
-            #             name="n_object",
-            #             data_type=wvc.DataType.OBJECT,
-            #             nested_properties=[
-            #                 wvc.Property(
-            #                     name="nn_int",
-            #                     data_type=wvc.DataType.INT,
-            #                 ),
-            #             ],
-            #         ),
-            #     ],
-            # ),
-            # wvc.Property(
-            #     name="objects",
-            #     data_type=wvc.DataType.OBJECT_ARRAY,
-            #     nested_properties=[
-            #         wvc.Property(
-            #             name="n_ints",
-            #             data_type=wvc.DataType.INT_ARRAY,
-            #         ),
-            #         wvc.Property(
-            #             name="n_numbers",
-            #             data_type=wvc.DataType.NUMBER_ARRAY,
-            #         ),
-            #         wvc.Property(
-            #             name="n_texts",
-            #             data_type=wvc.DataType.TEXT_ARRAY,
-            #         ),
-            #         wvc.Property(
-            #             name="n_booleans",
-            #             data_type=wvc.DataType.BOOL_ARRAY,
-            #         ),
-            #         wvc.Property(
-            #             name="n_uuids",
-            #             data_type=wvc.DataType.UUID_ARRAY,
-            #         ),
-            #         wvc.Property(
-            #             name="n_dates",
-            #             data_type=wvc.DataType.DATE_ARRAY,
-            #         ),
-            #         wvc.Property(
-            #             name="n_objects",
-            #             data_type=wvc.DataType.OBJECT_ARRAY,
-            #             nested_properties=[
-            #                 wvc.Property(
-            #                     name="nn_ints",
-            #                     data_type=wvc.DataType.INT_ARRAY,
-            #                 ),
-            #             ],
-            #         ),
-            #     ],
-            # ),
+            wvc.Property(
+                name="object",
+                data_type=wvc.DataType.OBJECT,
+                nested_properties=[
+                    wvc.Property(
+                        name="n_int",
+                        data_type=wvc.DataType.INT,
+                    ),
+                    wvc.Property(
+                        name="n_number",
+                        data_type=wvc.DataType.NUMBER,
+                    ),
+                    wvc.Property(
+                        name="n_text",
+                        data_type=wvc.DataType.TEXT,
+                    ),
+                    wvc.Property(
+                        name="n_boolean",
+                        data_type=wvc.DataType.BOOL,
+                    ),
+                    wvc.Property(
+                        name="n_uuid",
+                        data_type=wvc.DataType.UUID,
+                    ),
+                    wvc.Property(
+                        name="n_date",
+                        data_type=wvc.DataType.DATE,
+                    ),
+                    wvc.Property(
+                        name="n_object",
+                        data_type=wvc.DataType.OBJECT,
+                        nested_properties=[
+                            wvc.Property(
+                                name="nn_int",
+                                data_type=wvc.DataType.INT,
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+            wvc.Property(
+                name="objects",
+                data_type=wvc.DataType.OBJECT_ARRAY,
+                nested_properties=[
+                    wvc.Property(
+                        name="n_ints",
+                        data_type=wvc.DataType.INT_ARRAY,
+                    ),
+                    wvc.Property(
+                        name="n_numbers",
+                        data_type=wvc.DataType.NUMBER_ARRAY,
+                    ),
+                    wvc.Property(
+                        name="n_texts",
+                        data_type=wvc.DataType.TEXT_ARRAY,
+                    ),
+                    wvc.Property(
+                        name="n_booleans",
+                        data_type=wvc.DataType.BOOL_ARRAY,
+                    ),
+                    wvc.Property(
+                        name="n_uuids",
+                        data_type=wvc.DataType.UUID_ARRAY,
+                    ),
+                    wvc.Property(
+                        name="n_dates",
+                        data_type=wvc.DataType.DATE_ARRAY,
+                    ),
+                    wvc.Property(
+                        name="n_objects",
+                        data_type=wvc.DataType.OBJECT_ARRAY,
+                        nested_properties=[
+                            wvc.Property(
+                                name="nn_ints",
+                                data_type=wvc.DataType.INT_ARRAY,
+                            ),
+                        ],
+                    ),
+                ],
+            ),
         ],
         inverted_index_config=wvc.Configure.inverted_index(index_timestamps=False),
         sharding_config=wvc.Configure.sharding(desired_count=shards),
@@ -266,40 +266,40 @@ def create_data_object(base: int, baseGeo: int) -> Dict[str, WeaviateField]:
         #     "latitude": (baseGeo % 18_000) / 100 - 90,
         #     "longitude": (baseGeo % 36_000) / 100 - 180,
         # },
-        # "object": {
-        #     "n_int": base,
-        #     "n_number": base + 0.5,
-        #     "n_text": f"text{base}",
-        #     "n_boolean": base % 2 == 0,
-        #     "n_uuid": uuid.UUID(int=1234567890 + base),
-        #     "n_date": datetime.fromtimestamp(1704063600 + base).astimezone().isoformat(),
-        #     "n_object": {
-        #         "nn_int": base,
-        #     },
-        # },
-        # "objects": [
-        #     {
-        #         "n_ints": [base, base + 1, base + 2],
-        #         "n_numbers": [base + 0.5, base + 1.5, base + 2.5],
-        #         "n_texts": [f"text{base}", f"text{base+1}", f"text{base+2}"],
-        #         "n_booleans": [base % 2 == 0, base % 2 != 0],
-        #         "n_uuids": [
-        #             uuid.UUID(int=9876543210 + base),
-        #             uuid.UUID(int=9876543211 + base),
-        #             uuid.UUID(int=9876543212 + base),
-        #         ],
-        #         "n_dates": [
-        #             datetime.fromtimestamp(1735686000 + base).astimezone().isoformat(),
-        #             datetime.fromtimestamp(1735686001 + base).astimezone().isoformat(),
-        #             datetime.fromtimestamp(1735686002 + base).astimezone().isoformat(),
-        #         ],
-        #         "n_objects": [
-        #             {
-        #                 "nn_ints": [base, base + 1, base + 2],
-        #             }
-        #         ],
-        #     },
-        # ],
+        "object": {
+            "n_int": base,
+            "n_number": base + 0.5,
+            "n_text": f"text{base}",
+            "n_boolean": base % 2 == 0,
+            "n_uuid": uuid.UUID(int=1234567890 + base),
+            "n_date": datetime.fromtimestamp(1704063600 + base).astimezone().isoformat(),
+            "n_object": {
+                "nn_int": base,
+            },
+        },
+        "objects": [
+            {
+                "n_ints": [base, base + 1, base + 2],
+                "n_numbers": [base + 0.5, base + 1.5, base + 2.5],
+                "n_texts": [f"text{base}", f"text{base+1}", f"text{base+2}"],
+                "n_booleans": [base % 2 == 0, base % 2 != 0],
+                "n_uuids": [
+                    uuid.UUID(int=9876543210 + base),
+                    uuid.UUID(int=9876543211 + base),
+                    uuid.UUID(int=9876543212 + base),
+                ],
+                "n_dates": [
+                    datetime.fromtimestamp(1735686000 + base).astimezone().isoformat(),
+                    datetime.fromtimestamp(1735686001 + base).astimezone().isoformat(),
+                    datetime.fromtimestamp(1735686002 + base).astimezone().isoformat(),
+                ],
+                "n_objects": [
+                    {
+                        "nn_ints": [base, base + 1, base + 2],
+                    }
+                ],
+            },
+        ],
     }
 
 
