@@ -74,10 +74,10 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
                 name="phone",
                 data_type=wvc.DataType.PHONE_NUMBER,
             ),
-            # wvc.Property(
-            #     name="geo",
-            #     data_type=wvc.DataType.GEO_COORDINATES,
-            # ),
+            wvc.Property(
+                name="geo",
+                data_type=wvc.DataType.GEO_COORDINATES,
+            ),
             wvc.Property(
                 name="object",
                 data_type=wvc.DataType.OBJECT,
@@ -262,10 +262,10 @@ def create_data_object(base: int, baseGeo: int) -> Dict[str, WeaviateField]:
             datetime.fromtimestamp(1735686002 + base).astimezone().isoformat(),
         ],
         "phone": {"defaultCountry": "pl", "input": f"{100_000_000+base}"},
-        # "geo": {
-        #     "latitude": (baseGeo % 18_000) / 100 - 90,
-        #     "longitude": (baseGeo % 36_000) / 100 - 180,
-        # },
+        "geo": {
+            "latitude": (baseGeo % 18_000) / 100 - 90,
+            "longitude": (baseGeo % 36_000) / 100 - 180,
+        },
         "object": {
             "n_int": base,
             "n_number": base + 0.5,
