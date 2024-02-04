@@ -233,8 +233,6 @@ def kill_weaviate_docker(max_pause):
     logger.info(f"Killing Weaviate docker container in {pause:.2f}s...")
     time.sleep(pause)
 
-    container_name = "weaviate"
-
     try:
         ps_command = "docker ps -q --filter=name=weaviate"
         container_ids = (
@@ -247,7 +245,7 @@ def kill_weaviate_docker(max_pause):
     for container_id in container_ids:
         try:
             subprocess.run(["docker", "restart", "--signal", "SIGKILL", container_id], check=True)
-            logger.info(f"Restarted Docker container '{container_name}' using SIGKILL")
+            logger.info(f"Restarted Docker container '{container_id}' using SIGKILL")
         except subprocess.CalledProcessError as e:
             logger.error(e)
 
