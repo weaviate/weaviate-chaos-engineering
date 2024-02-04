@@ -267,7 +267,9 @@ class Config:
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Process some data.")
+    parser = argparse.ArgumentParser(
+        description="Kill Weaviate during batch deletes and validate BM25 still works afterwards"
+    )
     parser.add_argument("--skip-schema", action="store_true", help="Skip processing schema if set")
     parser.add_argument("--host", default="localhost", help="Specify the host (default: localhost)")
     parser.add_argument(
