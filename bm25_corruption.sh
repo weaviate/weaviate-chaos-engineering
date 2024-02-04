@@ -25,6 +25,11 @@ docker-compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
 
+function debug_logs() {
+  docker-compose -f apps/weaviate/docker-compose.yml logs --tail 100
+}
+trap debug_logs ERROR
+
 echo "Starting importing and killing"
 docker run \
   --network host \
