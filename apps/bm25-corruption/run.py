@@ -8,7 +8,6 @@ import os, sys
 import argparse
 import psutil, signal
 import concurrent
-import docker
 import subprocess
 
 s = RandomSentence()
@@ -17,8 +16,6 @@ s = RandomSentence()
 cfg = None
 client = None
 
-
-docker_client = docker.from_env()
 
 cycles = 10
 objects_per_cycle = 50_000
@@ -239,12 +236,20 @@ def kill_weaviate_docker(max_pause):
     container_name = "weaviate"
 
     try:
-        subprocess.run(["docker", "restart", "--signal", "SIGKILL", container_name], check=True)
-        logger.info(f"Restarted Docker container '{container_name}' using SIGKILL")
+        ps_command = "docker ps -q --filter=name=weaviate"
+        container_ids = (
+            subprocess.check_output(ps_command, shell=True, text=True).strip().split("\n")
+        )
     except subprocess.CalledProcessError as e:
-        logger.error(e)
-    except Exception as e:
-        logger.error(e)
+        logger.error(f"Error finding container IDs: {e}")
+        return
+
+    for container_id in container_ids:
+        try:
+            subprocess.run(["docker", "restart", "--signal", "SIGKILL", container_id], check=True)
+            logger.info(f"Restarted Docker container '{container_name}' using SIGKILL")
+        except subprocess.CalledProcessError as e:
+            logger.error(e)
 
 
 def configure_logger():
