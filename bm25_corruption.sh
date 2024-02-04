@@ -28,7 +28,7 @@ wait_weaviate
 echo "Starting importing and killing"
 docker run \
   --network host \
-  --rm -it \
+  --rm \
   -v "$PWD:$PWD" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
