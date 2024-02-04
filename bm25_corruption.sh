@@ -28,7 +28,7 @@ wait_weaviate
 function debug_logs() {
   docker-compose -f apps/weaviate/docker-compose.yml logs --tail 100
 }
-trap debug_logs ERROR
+trap debug_logs ERR
 
 echo "Starting importing and killing"
 docker run \
