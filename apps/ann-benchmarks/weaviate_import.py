@@ -14,7 +14,7 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
     client.collections.delete_all()
     client.collections.create(
         name=class_name,
-        vectorizer_config=wvc.Configure.Vectorizer.none(),
+        vectorizer_config=wvc.Configure.Vectorizer.text2vec_contextionary(),
         vector_index_config=wvc.Configure.VectorIndex.hnsw(
             ef_construction=efC,
             max_connections=m,
@@ -198,7 +198,7 @@ def load_records(
 
             batch.add_object(
                 properties=create_data_object(base, i),
-                vector=vector,
+                # vector=vector,
                 collection=class_name,
                 uuid=uuid.UUID(int=i),
             )
@@ -227,7 +227,7 @@ def load_records(
 
                 batch.add_object(
                     properties=create_data_object(i, i),
-                    vector=vector,
+                    # vector=vector,
                     collection=class_name,
                     uuid=uuid.UUID(int=i),
                 )
