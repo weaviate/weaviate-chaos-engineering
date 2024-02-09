@@ -5,7 +5,7 @@ set -e
 ZONE=${ZONE:-"us-central1-a"}
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-standard-8"}
 CLOUD_PROVIDER="gcp"
-OS="ubuntu-2304-amd64"
+OS="ubuntu-2310-amd64"
 
 instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
 
