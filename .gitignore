@@ -1,5 +1,8 @@
 workdir/
 weaviate-data/
+datasets/
+results/
+logs/
 apps/**/vendor/**
 .DS_Store
 
