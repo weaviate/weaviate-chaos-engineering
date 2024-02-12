@@ -1,8 +1,8 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.24.0
-  MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
+  WEAVIATE_VERSION: preview-raft-add-initial-migration-from-non-raft-to-raft-based-representation-9d169cb
+  MINIMUM_WEAVIATE_VERSION: 1.22.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
     inputs:
