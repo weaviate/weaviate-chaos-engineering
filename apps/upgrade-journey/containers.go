@@ -107,6 +107,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 		Logger: log.Default(),
 		ContainerRequest: testcontainers.ContainerRequest{
 			Name:         fmt.Sprintf("%s-%d", c.hostname(nodeId), counter),
+			Hostname:     c.hostname(nodeId),
 			Image:        image,
 			Cmd:          []string{"--host", "0.0.0.0", "--port", "8080", "--scheme", "http"},
 			Networks:     []string{c.networkName},
@@ -122,6 +123,9 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"CLUSTER_DATA_BIND_PORT":                  "7101",
 				"CLUSTER_HOSTNAME":                        c.hostname(nodeId),
 				"CLUSTER_JOIN":                            c.allNodes(),
+				"RAFT_JOIN":                               c.hostname(0),
+				"RAFT_BOOTSTRAP_EXPECT":                   "1",
+				"RAFT_RECOVERY_TIMEOUT":                   "10",
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
 			},
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
