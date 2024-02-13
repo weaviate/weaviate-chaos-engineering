@@ -2,6 +2,8 @@
 
 set -e
 
+SIZE=300000
+
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do
@@ -72,13 +74,15 @@ echo "Import completed successfully, stop killer"
 docker rm -f killer
 
 echo "Wait for Weaviate to be ready again in case there was a kill recently"
-wait_weaviate
+wait_weaviate 8080
+wait_weaviate 8081
+wait_weaviate 8082
 
 echo "Validate the count is correct"
 object_count=$(curl -s 'localhost:8080/v1/graphql' -X POST \
   -H 'content-type: application/json' \
-  -d '{"query":"{Aggregate{DemoClass{meta{count}}}}"}' | \
-  jq '.data.Aggregate.DemoClass[0].meta.count')
+  -d '{"query":"{Aggregate{Document{meta{count}}}}"}' | \
+  jq '.data.Aggregate.Document[0].meta.count')
 
 if [ "$object_count" -lt "$SIZE" ]; then
   echo "Not enough objects present, wanted $SIZE, got $object_count"

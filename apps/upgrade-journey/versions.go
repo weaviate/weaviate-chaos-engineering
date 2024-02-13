@@ -184,6 +184,7 @@ func (s semverList) toStringList() []string {
 	return out
 }
 
+// Spawn a Weaviate container to get the version as it is not possible to infer the version from the container image
 func getTargetVersion(ctx context.Context, version string) (string, error) {
 	weaviateImage := fmt.Sprintf("semitechnologies/weaviate:%s", version)
 	env := map[string]string{
@@ -192,6 +193,9 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 		"QUERY_DEFAULTS_LIMIT":      "20",
 		"PERSISTENCE_DATA_PATH":     "./data",
 		"DEFAULT_VECTORIZER_MODULE": "none",
+		"CLUSTER_HOSTNAME":          "weaviate-test",
+		"RAFT_JOIN":                 "weaviate-test",
+		"RAFT_BOOTSTRAP_EXPECT":     "1",
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        weaviateImage,
