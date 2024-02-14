@@ -29,4 +29,5 @@ services:
       BACKUP_FILESYSTEM_PATH: '/var/lib/snapshots'
       CLUSTER_HOSTNAME: 'node1'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
 ...
