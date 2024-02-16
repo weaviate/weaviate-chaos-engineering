@@ -152,15 +152,23 @@ func parseSingleSemverWithoutLeadingV(input string) semver {
 	return v
 }
 
-func maybeParseSingleSemverWithoutLeadingV(input string) (semver, bool) {
-	r := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)$`)
-	if !r.MatchString(input) {
-		return semver{}, false
+func maybeParseSingleSemverWithoutLeadingVForImport(input string) (semver, bool) {
+	ver, ok := maybeParseSingleSemverWithoutLeadingV(input)
+	if !ok {
+		// let's return a dummy version bc here we got a preview image
+		ver, err := hashicorpversion.NewSemver("0.0.0")
+		if err != nil {
+			panic("cannot parse 0.0.0 dummy version")
+		}
+		return semver{version: ver}, true
 	}
+	return ver, true
+}
 
+func maybeParseSingleSemverWithoutLeadingV(input string) (semver, bool) {
 	ver, err := hashicorpversion.NewSemver(input)
 	if err != nil {
-		panic(fmt.Errorf("cannot parse version %q: %w", input, err))
+		return semver{version: nil}, false
 	}
 
 	return semver{
