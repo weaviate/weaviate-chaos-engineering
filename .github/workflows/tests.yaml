@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-introduce-class-multi-vector-support-770d00b
+  WEAVIATE_VERSION: preview-introduce-class-multi-vector-support-a173494
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
