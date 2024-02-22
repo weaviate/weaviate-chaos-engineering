@@ -24,377 +24,13 @@ on:
         required: true
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
-  # ann-benchmarks-sift-aws:
-  #   name: "[bench AWS] SIFT1M pq=false"
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
-  #     AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-  #     DATASET: sift-128-euclidean
-  #     DISTANCE: l2-squared
-  #     REQUIRED_RECALL: 0.999
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - id: 'gcs_auth'
-  #       name: 'Authenticate to Google Cloud'
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: Run chaos test
-  #       if: always()
-  #       run: ./ann_benchmark_aws.sh
-  #     - id: 'upload-files'
-  #       uses: 'google-github-actions/upload-cloud-storage@v1'
-  #       with:
-  #         path: 'results'
-  #         destination: 'ann-pipelines/github-action-runs'
-  #         glob: '*.json'
-  # ann-benchmarks-glove-aws:
-  #   name: "[bench AWS] Glove100 pq=false"
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
-  #     AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-  #     DATASET: glove-100-angular
-  #     DISTANCE: cosine
-  #     REQUIRED_RECALL: 0.965
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - id: 'gcs_auth'
-  #       name: 'Authenticate to Google Cloud'
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: Run chaos test
-  #       if: always()
-  #       run: ./ann_benchmark_aws.sh
-  #     - id: 'upload-files'
-  #       uses: 'google-github-actions/upload-cloud-storage@v1'
-  #       with:
-  #         path: 'results'
-  #         destination: 'ann-pipelines/github-action-runs'
-  #         glob: '*.json'
-  # ann-benchmarks-pq-sift-aws:
-  #   name: "[bench AWS] SIFT1M pq=true"
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
-  #     AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-  #     DATASET: sift-128-euclidean
-  #     DISTANCE: l2-squared
-  #     REQUIRED_RECALL: 0.992
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - id: 'gcs_auth'
-  #       name: 'Authenticate to Google Cloud'
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: Run chaos test
-  #       if: always()
-  #       run: ./ann_benchmark_compression_aws.sh
-  #     - id: 'upload-files'
-  #       uses: 'google-github-actions/upload-cloud-storage@v1'
-  #       with:
-  #         path: 'results'
-  #         destination: 'ann-pipelines/github-action-runs'
-  #         glob: '*.json'
-  # ann-benchmarks-pq-glove-aws:
-  #   name: "[bench AWS] Glove100 pq=true"
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
-  #     AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
-  #     DATASET: glove-100-angular
-  #     DISTANCE: cosine
-  #     REQUIRED_RECALL: 0.89
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - id: 'gcs_auth'
-  #       name: 'Authenticate to Google Cloud'
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: Run chaos test
-  #       if: always()
-  #       run: ./ann_benchmark_compression_aws.sh
-  #     - id: 'upload-files'
-  #       uses: 'google-github-actions/upload-cloud-storage@v1'
-  #       with:
-  #         path: 'results'
-  #         destination: 'ann-pipelines/github-action-runs'
-  #         glob: '*.json'
-  # ann-benchmarks-sift-gcp:
-  #   name: "[bench GCP] SIFT1M pq=false"
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     DATASET: sift-128-euclidean
-  #     DISTANCE: l2-squared
-  #     REQUIRED_RECALL: 0.999
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - id: 'gcs_auth'
-  #       name: 'Authenticate to Google Cloud'
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: Run chaos test
-  #       if: always()
-  #       run: ./ann_benchmark_gcp.sh
-  #     - id: 'upload-files'
-  #       uses: 'google-github-actions/upload-cloud-storage@v1'
-  #       with:
-  #         path: 'results'
-  #         destination: 'ann-pipelines/github-action-runs'
-  #         glob: '*.json'
-  # ann-benchmarks-pq-sift-gcp:
-  #   name: "[bench GCP] SIFT1M pq=true"
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     DATASET: sift-128-euclidean
-  #     DISTANCE: l2-squared
-  #     REQUIRED_RECALL: 0.992
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - id: 'gcs_auth'
-  #       name: 'Authenticate to Google Cloud'
-  #       uses: 'google-github-actions/auth@v1'
-  #       with:
-  #         credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
-  #     - name: 'Set up Cloud SDK'
-  #       uses: 'google-github-actions/setup-gcloud@v1'
-  #     - name: Run chaos test
-  #       if: always()
-  #       run: ./ann_benchmark_compression_gcp.sh
-  #     - id: 'upload-files'
-  #       uses: 'google-github-actions/upload-cloud-storage@v1'
-  #       with:
-  #         path: 'results'
-  #         destination: 'ann-pipelines/github-action-runs'
-  #         glob: '*.json'
-  # batch-import-many-classes:
-  #   name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./batch_import_many_classes.sh
-  # upgrade-journey:
-  #   name: Rolling updates in multi-node setup from min to target version
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Set up Go
-  #       uses: actions/setup-go@v3
-  #       with:
-  #         go-version: '1.20'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./upgrade_journey.sh
-  # replicated-imports-with-choas-killing:
-  #   name: Replicated imports with chaos killing
-  #   runs-on: ubuntu-latest-8-cores
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./replication_importing_while_crashing.sh
-  # replicated-imports-with-backup:
-  #   name: Replicated imports with backup loop
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./replication_importing_with_backup.sh
-  # replication-tunable-consistency:
-  #   name: Replication tunable consistency
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./replication_tunable_consistency.sh
-  # counting-while-compacting:
-  #   name: Counting while compacting
-  #   runs-on: ubuntu-latest-8-cores
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./counting_while_compacting.sh
-  # segfault-on-batch-ref:
-  #   name: Segfault on batch ref
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./segfault_batch_ref.sh
-  # import-with-kills:
-  #   name: Import during constant kills/crashes
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./import_while_crashing.sh
   heave-imports-crashing-1:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -414,7 +50,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-2:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -434,7 +70,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-3:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -454,7 +90,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-4:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -474,7 +110,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-5:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -494,7 +130,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-6:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -514,7 +150,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-7:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -534,7 +170,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-8:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -554,7 +190,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-9:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -574,7 +210,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-10:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -594,7 +230,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-11:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -614,7 +250,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-12:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -634,7 +270,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-13:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -654,7 +290,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-14:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -674,7 +310,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-15:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -694,7 +330,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-16:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -714,7 +350,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-17:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -734,7 +370,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-18:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -754,7 +390,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-19:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -774,7 +410,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-20:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -792,340 +428,603 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
         run: ./import_while_crashing_no_vector.sh
-  # segfault-filtered-search:
-  #   name: Segfault on filtered vector search (race with hash bucket compaction)
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./segfault_filtered_vector_search.sh
-  # backup-restore-crud:
-  #   name: Backup & Restore CRUD
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./backup_and_restore_crud.sh
-  # backup-restore-crud-multi-node:
-  #   name: Backup & Restore multi node CRUD
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./backup_and_restore_multi_node_crud.sh
-  # backup-restore-version-compat:
-  #   name: Backup & Restore version compatibility
-  #   runs-on: ubuntu-latest-8-cores
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./backup_and_restore_version_compatibility.sh
-  # compare-recall:
-  #   name: Compare Recall after import to after restart
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./compare_recall_after_restart.sh
-  # concurrent-read-write:
-  #   name: Concurrent inverted index read/write
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./concurrent_inverted_index_read_write.sh
-  # consecutive-create-update:
-  #   name: Consecutive create and update operations
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./consecutive_create_and_update_operations.sh
-  # batch-insert-mismatch:
-  #   name: Batch insert mismatch
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./consecutive_create_and_update_operations.sh
-  # rest-patch-restart:
-  #   name: REST PATCH requests stop working after restart
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./rest_patch_stops_working_after_restart.sh
-  # delete-recreate-updates:
-  #   name: Delete and recreate class with frequent updates
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./delete_and_recreate_class.sh
-  # geo-crash:
-  #   name: Preventing crashing of geo properties during HNSW maintenance cycles
-  #   runs-on: ubuntu-latest-8-cores
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./geo_crash.sh
-  # compaction-roaringset:
-  #   name: Preventing panic on compaction of roaringsets
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./compaction_roaringset.sh
-  # multi-node-references:
-  #   name: Large batches with many cross-refs on a multi-node cluster
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./multi_node_ref_imports.sh
-  # multi-tenancy-concurrent-imports:
-  #   name: Concurrent clients importing into multi-node cluster
-  #   runs-on: ubuntu-latest-8-cores
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./multi_tenancy_concurrent_importing.sh
-  # multi_tenancy_activate_deactivate:
-  #   name: Activate and deactivate tenants' shards
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./multi_tenancy_activate_deactivate.sh
-  # goroutine_leak_class_delete:
-  #   name: Check for degraded performance from goroutine leak on class delete
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     # - name: Polar Signals Continuous Profiling
-  #     #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
-  #     #   with:
-  #     #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
-  #     #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./goroutine_leak_on_class_delete.sh
-  # Commented only because this chaos pipeline was able to interrupt save operation
-  # just in the middle of it being performed and since Weaviate doesn't have a transaction
-  # mechanism implemented then this was causing an error which is a different error then
-  # the discrepancy one, but this pipeline is really good in crashing Weaviate so we want to
-  # save it for future tests
-  # compare-while-crashing:
-  #   name: Compare REST and GraphQL while crashing
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Run chaos test
-  #       run: ./compare_rest_graphql_while_crashing.sh
+  heave-imports-crashing-21:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-22:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-23:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-24:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-25:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-26:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-27:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-28:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-29:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-30:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-31:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-32:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-33:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-34:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-35:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-36:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-37:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-38:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-39:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-40:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+heave-imports-crashing-41:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-42:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-43:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-44:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-45:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-46:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-47:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-48:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-49:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
+  heave-imports-crashing-50:
+    name: Heavy object store imports while crashing
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./import_while_crashing_no_vector.sh
