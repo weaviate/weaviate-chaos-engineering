@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.23.9
+  WEAVIATE_VERSION: preview-prepare-release-v1-24-0-4be295b
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
@@ -294,7 +294,7 @@ jobs:
   #       run: ./replication_importing_while_crashing.sh
   # replicated-imports-with-backup:
   #   name: Replicated imports with backup loop
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -314,7 +314,7 @@ jobs:
   #       run: ./replication_importing_with_backup.sh
   # replication-tunable-consistency:
   #   name: Replication tunable consistency
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -374,7 +374,7 @@ jobs:
   #       run: ./segfault_batch_ref.sh
   # import-with-kills:
   #   name: Import during constant kills/crashes
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -394,7 +394,7 @@ jobs:
   #       run: ./import_while_crashing.sh
   heave-imports-crashing-1:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -414,7 +414,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-2:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -434,7 +434,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-3:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -454,7 +454,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-4:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -474,7 +474,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-5:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -494,7 +494,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-6:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -514,7 +514,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-7:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -534,7 +534,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-8:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -554,7 +554,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-9:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -574,7 +574,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-10:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -594,7 +594,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-11:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -614,7 +614,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-12:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -634,7 +634,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-13:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -654,7 +654,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-14:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -674,7 +674,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-15:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -694,7 +694,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-16:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -714,7 +714,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-17:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -734,7 +734,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-18:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -754,7 +754,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-19:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -774,7 +774,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-20:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -814,7 +814,7 @@ jobs:
   #       run: ./segfault_filtered_vector_search.sh
   # backup-restore-crud:
   #   name: Backup & Restore CRUD
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -834,7 +834,7 @@ jobs:
   #       run: ./backup_and_restore_crud.sh
   # backup-restore-crud-multi-node:
   #   name: Backup & Restore multi node CRUD
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -934,7 +934,7 @@ jobs:
   #       run: ./consecutive_create_and_update_operations.sh
   # batch-insert-mismatch:
   #   name: Batch insert mismatch
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -954,7 +954,7 @@ jobs:
   #       run: ./consecutive_create_and_update_operations.sh
   # rest-patch-restart:
   #   name: REST PATCH requests stop working after restart
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -974,7 +974,7 @@ jobs:
   #       run: ./rest_patch_stops_working_after_restart.sh
   # delete-recreate-updates:
   #   name: Delete and recreate class with frequent updates
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1014,7 +1014,7 @@ jobs:
   #       run: ./geo_crash.sh
   # compaction-roaringset:
   #   name: Preventing panic on compaction of roaringsets
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1034,7 +1034,7 @@ jobs:
   #       run: ./compaction_roaringset.sh
   # multi-node-references:
   #   name: Large batches with many cross-refs on a multi-node cluster
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1074,7 +1074,7 @@ jobs:
   #       run: ./multi_tenancy_concurrent_importing.sh
   # multi_tenancy_activate_deactivate:
   #   name: Activate and deactivate tenants' shards
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   timeout-minutes: 60
   #   env:
   #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1119,7 +1119,7 @@ jobs:
   # save it for future tests
   # compare-while-crashing:
   #   name: Compare REST and GraphQL while crashing
-  #   runs-on: ubuntu-latest-4-cores
+  #   runs-on: ubuntu-latest
   #   steps:
   #     - uses: actions/checkout@v3
   #     - name: Login to Docker Hub
