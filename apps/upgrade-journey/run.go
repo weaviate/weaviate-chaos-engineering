@@ -463,7 +463,7 @@ func importSourceObject(ctx context.Context, client *weaviate.Client,
 	version, targetID string,
 ) error {
 	var major, minor, patch int64
-	semver, ok := maybeParseSingleSemverWithoutLeadingVForImport(version)
+	semver, ok := maybeParseSingleSemverWithoutLeadingV(version)
 	if ok {
 		major, minor, patch = semver.major(), semver.minor(), semver.patch()
 	}

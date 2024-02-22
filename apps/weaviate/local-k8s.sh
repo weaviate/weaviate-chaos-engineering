@@ -45,6 +45,71 @@ function get_voters() {
     fi
 }
 
+function upgrade_to_raft() {
+    echo "upgrade # Upgrading to RAFT"
+    rm -rf "/tmp/weaviate-helm"
+    git clone -b raft-configuration https://github.com/weaviate/weaviate-helm.git "/tmp/weaviate-helm"
+    # Package Weaviate Helm chart
+    helm package -d /tmp/weaviate-helm /tmp/weaviate-helm/weaviate
+    helm upgrade weaviate /tmp/weaviate-helm/weaviate-*.tgz  \
+        --namespace weaviate \
+        --set image.tag="preview-implement-schema-updates-using-raft-consensus-de44225" \
+        --set replicas=$REPLICAS \
+        --set grpcService.enabled=true \
+        --set env.RAFT_BOOTSTRAP_EXPECT=$(get_voters $REPLICAS)
+
+    # Wait for Weaviate to be up
+    kubectl wait sts/weaviate -n weaviate --for jsonpath='{.status.readyReplicas}'=${REPLICAS} --timeout=100s
+    port_forward_to_weaviate
+    wait_weaviate
+
+    # Check if Weaviate is up
+    curl http://localhost:${WEAVIATE_PORT}/v1/nodes
+}
+
+function port_forward_to_weaviate() {
+    # Install kube-relay tool to perform port-forwarding
+    # Check if kubectl-relay binary is available
+    if ! command -v kubectl-relay &> /dev/null; then
+        # Retrieve the operating system
+        OS=$(uname -s)
+
+        # Retrieve the processor architecture
+        ARCH=$(uname -m)
+
+        VERSION="v0.0.6"
+
+        # Determine the download URL based on the OS and ARCH
+        if [[ $OS == "Darwin" && $ARCH == "x86_64" ]]; then
+            OS_ID="darwin"
+            ARCH_ID="amd64"
+        elif [[ $OS == "Darwin" && $ARCH == "arm64" ]]; then
+            OS_ID="darwin"
+            ARCH_ID="arm64"
+        elif [[ $OS == "Linux" && $ARCH == "x86_64" ]]; then
+            OS_ID="linux"
+            ARCH_ID="amd64"
+        elif [[ $OS == "Linux" && $ARCH == "aarch64" ]]; then
+            OS_ID="linux"
+            ARCH_ID="arm64"
+        else
+            echo "Unsupported operating system or architecture"
+            exit 1
+        fi
+
+        KUBE_RELAY_FILENAME="kubectl-relay_${VERSION}_${OS_ID}-${ARCH_ID}.tar.gz"
+        # Download the appropriate version
+        curl -L "https://github.com/knight42/krelay/releases/download/${VERSION}/${KUBE_RELAY_FILENAME}" -o /tmp/${KUBE_RELAY_FILENAME}
+
+        # Extract the downloaded file
+        tar -xzf "/tmp/${KUBE_RELAY_FILENAME}" -C /tmp
+    fi
+
+    /tmp/kubectl-relay svc/weaviate -n weaviate ${WEAVIATE_PORT}:80 -n weaviate &> /tmp/weaviate_frwd.log &
+
+    /tmp/kubectl-relay svc/weaviate-grpc -n weaviate ${WEAVIATE_GRPC_PORT}:50051 -n weaviate &> /tmp/weaviate_grpc_frwd.log &
+}
+
 function setup() {
 
     echo "setup # Setting up Weaviate on local k8s"
@@ -88,86 +153,13 @@ EOF
     --set image.tag=$WEAVIATE_VERSION \
     --set replicas=$REPLICAS \
     --set grpcService.enabled=true \
-    --set env.RAFT_BOOTRSTRAP_EXPECT=$(get_voters $REPLICAS) \
+    --set env.RAFT_BOOTSTRAP_EXPECT=$(get_voters $REPLICAS) \
     --set env.LOG_LEVEL="debug"
     #--set debug=true
 
     # Wait for Weaviate to be up
     kubectl wait sts/weaviate -n weaviate --for jsonpath='{.status.readyReplicas}'=${REPLICAS} --timeout=100s
-
-    # Install kube-relay tool to perform port-forwarding
-    # Check if kubectl-relay binary is available
-    if ! command -v kubectl-relay &> /dev/null; then
-        # Retrieve the operating system
-        OS=$(uname -s)
-
-        # Retrieve the processor architecture
-        ARCH=$(uname -m)
-
-        VERSION="v0.0.6"
-
-        # Determine the download URL based on the OS and ARCH
-        if [[ $OS == "Darwin" && $ARCH == "x86_64" ]]; then
-            OS_ID="darwin"
-            ARCH_ID="amd64"
-        elif [[ $OS == "Darwin" && $ARCH == "arm64" ]]; then
-            OS_ID="darwin"
-            ARCH_ID="arm64"
-        elif [[ $OS == "Linux" && $ARCH == "x86_64" ]]; then
-            OS_ID="linux"
-            ARCH_ID="amd64"
-        elif [[ $OS == "Linux" && $ARCH == "aarch64" ]]; then
-            OS_ID="linux"
-            ARCH_ID="arm64"
-        else
-            echo "Unsupported operating system or architecture"
-            exit 1
-        fi
-
-        KUBE_RELAY_FILENAME="kubectl-relay_${VERSION}_${OS_ID}-${ARCH_ID}.tar.gz"
-        # Download the appropriate version
-        curl -L "https://github.com/knight42/krelay/releases/download/${VERSION}/${KUBE_RELAY_FILENAME}" -o /tmp/${KUBE_RELAY_FILENAME}
-        
-        # Extract the downloaded file
-        tar -xzf "/tmp/${KUBE_RELAY_FILENAME}" -C /tmp
-        
-        # Copy the binary to the desired location
-        #cp /tmp/kubectl-relay "$(go env GOPATH)/bin/kubectl-relay"
-    fi
-
-    /tmp/kubectl-relay svc/weaviate -n weaviate ${WEAVIATE_PORT}:80 -n weaviate &> /tmp/weaviate_frwd.log &
-
-    /tmp/kubectl-relay svc/weaviate-grpc -n weaviate ${WEAVIATE_GRPC_PORT}:50051 -n weaviate &> /tmp/weaviate_grpc_frwd.log &
-    # Install nginx-ingress controller and ingress to make the weaviate loadbalancer service available $WEAVIATE_PORT
-    # Alternative, port-forwarding, but the connection is loss during rolling updates:
-    # nohup kubectl port-forward --pod-running-timeout=0 svc/weaviate ${WEAVIATE_PORT}:80 -n weaviate &
-
-#     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-#     kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
-
-#     # Define an ingress that allows redirecting all traffic to localhost into weaviate LB service.
-#     kubectl apply -f - <<EOF
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: weaviate-ingress
-#   namespace: weaviate
-#   annotations:
-#     nginx.ingress.kubernetes.io/rewrite-target: /\$2
-# spec:
-#   ingressClassName: nginx
-#   defaultBackend:
-#     service:
-#       name: weaviate
-#       port:
-#         number: 80
-# EOF
-
-
-
-    # Expose gRPC port locally into 50051
-#    nohup kubectl port-forward svc/weaviate-grpc ${WEAVIATE_GRPC_PORT}:50051 -n weaviate &
-
+    port_forward_to_weaviate
     wait_weaviate
 
     # Check if Weaviate is up
@@ -224,6 +216,9 @@ done
 case $1 in
     "setup")
         setup
+        ;;
+    "upgrade")
+        upgrade_to_raft
         ;;
     "clean")
         clean
