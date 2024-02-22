@@ -828,7 +828,7 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
         run: ./import_while_crashing_no_vector.sh
-heave-imports-crashing-41:
+  heave-imports-crashing-41:
     name: Heavy object store imports while crashing
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
