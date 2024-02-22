@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-prepare-release-v1-24-0-4be295b
+  WEAVIATE_VERSION: v1.23.9
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
@@ -394,7 +394,7 @@ jobs:
   #       run: ./import_while_crashing.sh
   heave-imports-crashing-1:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -414,7 +414,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-2:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -434,7 +434,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-3:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -454,7 +454,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-4:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -474,7 +474,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-5:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -494,7 +494,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-6:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -514,7 +514,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-7:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -534,7 +534,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-8:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -554,7 +554,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-9:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -574,7 +574,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-10:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -594,7 +594,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-11:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -614,7 +614,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-12:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -634,7 +634,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-13:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -654,7 +654,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-14:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -674,7 +674,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-15:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -694,7 +694,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-16:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -714,7 +714,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-17:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -734,7 +734,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-18:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -754,7 +754,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-19:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -774,7 +774,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   heave-imports-crashing-20:
     name: Heavy object store imports while crashing
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
