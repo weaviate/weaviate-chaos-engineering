@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-prints-os-remove-os-removeall-os-rename-b9c5bcd
+  WEAVIATE_VERSION: 1.23.10
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
