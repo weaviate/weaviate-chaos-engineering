@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-fix-segment-pread-use-readfully-6f6de2d
+  WEAVIATE_VERSION: preview-wip-log-and-skip-remaning-objects-on-malformed-segment-e39f7a8
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
