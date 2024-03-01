@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-merge-stable-v1-23-into-stable-v1-24-567ac2a
+  WEAVIATE_VERSION: preview-prepare-v1-24-1-release-60c7eea
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
