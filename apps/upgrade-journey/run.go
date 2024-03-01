@@ -57,17 +57,17 @@ func main() {
 func do(ctx context.Context, client *weaviate.Client) error {
 	rand.Seed(time.Now().UnixNano())
 
-	c := newCluster(3)
+	//c := newCluster(3)
 
-	if err := c.startNetwork(ctx); err != nil {
-		return err
-	}
+	//if err := c.startNetwork(ctx); err != nil {
+	//	return err
+	//}
 
 	for i, version := range versions {
 
-		if err := startOrUpgrade(ctx, c, i, version); err != nil {
-			return err
-		}
+		//if err := startOrUpgrade(ctx, c, i, version); err != nil {
+		//	return err
+		//}
 
 		if i == 0 {
 			if err := createSchema(ctx, client); err != nil {
