@@ -3,7 +3,7 @@ import time
 import uuid
 import argparse
 import weaviate
-import weaviate.classes.config as wvc
+import weaviate.classes as wvc
 from weaviate.exceptions import WeaviateQueryException
 import h5py
 import json
@@ -16,7 +16,7 @@ class_name = "Vector"
 results = []
 
 
-def search_grpc(collection: weaviate.collections.Collection, dataset, i, input_vec):
+def search_grpc(collection: weaviate.Collection, dataset, i, input_vec):
     out = {}
     before = time.time()
     try:
@@ -49,14 +49,14 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
 
     for ef in ef_values:
         for api in ["grpc"]:
-            collection.config.update(vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(ef=ef))
+            collection.config.update(vector_index_config=wvc.Reconfigure.vector_index(ef=ef))
 
             took = 0
             recall = 0
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(collection, dataset, i, list(vec))
+                    res = search_grpc(collection, dataset, i, vec)
                 elif api == "grpc_clientless":
                     res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":
