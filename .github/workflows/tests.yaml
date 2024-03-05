@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-raft-add-initial-migration-from-non-raft-to-raft-based-representation-9d169cb
+  WEAVIATE_VERSION: preview-remove-assignment-to-nil-73143c4
 on:
   workflow_call:
     inputs:
