@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -32,7 +33,17 @@ func main() {
 		log.Fatal("missing MINIMUM_WEAVIATE_VERSION")
 	}
 
+	nodes, ok := os.LookupEnv("NUM_NODES")
+	if !ok {
+		log.Fatal("missing NUM_NODES")
+	}
+
 	var err error
+	numNodes, err := strconv.Atoi(nodes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	versions, err = buildVersionList(ctx, minimumW, targetW)
 	if err != nil {
 		log.Fatal(err)
@@ -40,6 +51,7 @@ func main() {
 
 	log.Printf("configured minimum version is %s", minimumW)
 	log.Printf("configured target version is %s", targetW)
+	log.Printf("number of nodes is %d", numNodes)
 	log.Printf("identified the following versions: %v", versions)
 
 	cfg := weaviate.Config{
@@ -48,16 +60,16 @@ func main() {
 	}
 	client := weaviate.New(cfg)
 
-	err = do(ctx, client)
+	err = do(ctx, client, numNodes)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func do(ctx context.Context, client *weaviate.Client) error {
+func do(ctx context.Context, client *weaviate.Client, numNodes int) error {
 	rand.Seed(time.Now().UnixNano())
 
-	c := newCluster(3)
+	c := newCluster(numNodes)
 
 	if err := c.startNetwork(ctx); err != nil {
 		return err
@@ -451,7 +463,7 @@ func importSourceObject(ctx context.Context, client *weaviate.Client,
 	version, targetID string,
 ) error {
 	var major, minor, patch int64
-	semver, ok := maybeParseSingleSemverWithoutLeadingVForImport(version)
+	semver, ok := maybeParseSingleSemverWithoutLeadingV(version)
 	if ok {
 		major, minor, patch = semver.major(), semver.minor(), semver.patch()
 	}

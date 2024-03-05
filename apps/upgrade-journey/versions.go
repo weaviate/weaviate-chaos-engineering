@@ -152,23 +152,15 @@ func parseSingleSemverWithoutLeadingV(input string) semver {
 	return v
 }
 
-func maybeParseSingleSemverWithoutLeadingVForImport(input string) (semver, bool) {
-	ver, ok := maybeParseSingleSemverWithoutLeadingV(input)
-	if !ok {
-		// let's return a dummy version bc here we got a preview image
-		ver, err := hashicorpversion.NewSemver("0.0.0")
-		if err != nil {
-			panic("cannot parse 0.0.0 dummy version")
-		}
-		return semver{version: ver}, true
-	}
-	return ver, true
-}
-
 func maybeParseSingleSemverWithoutLeadingV(input string) (semver, bool) {
+	r := regexp.MustCompile(`^([0-9]+)\.([0-9]+)\.([0-9]+)$`)
+	if !r.MatchString(input) {
+		return semver{}, false
+	}
+
 	ver, err := hashicorpversion.NewSemver(input)
 	if err != nil {
-		return semver{version: nil}, false
+		panic(fmt.Errorf("cannot parse version %q: %w", input, err))
 	}
 
 	return semver{
@@ -184,6 +176,7 @@ func (s semverList) toStringList() []string {
 	return out
 }
 
+// Spawn a Weaviate container to get the version as it is not possible to infer the version from the container image
 func getTargetVersion(ctx context.Context, version string) (string, error) {
 	weaviateImage := fmt.Sprintf("semitechnologies/weaviate:%s", version)
 	env := map[string]string{
@@ -192,6 +185,9 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 		"QUERY_DEFAULTS_LIMIT":      "20",
 		"PERSISTENCE_DATA_PATH":     "./data",
 		"DEFAULT_VECTORIZER_MODULE": "none",
+		"CLUSTER_HOSTNAME":          "weaviate-test",
+		"RAFT_JOIN":                 "weaviate-test",
+		"RAFT_BOOTSTRAP_EXPECT":     "1",
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        weaviateImage,
