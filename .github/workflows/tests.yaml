@@ -787,13 +787,14 @@ jobs:
   ## compare-while-crashing:
   ##   name: Compare REST and GraphQL while crashing
   ##   runs-on: ubuntu-latest-4-cores
-  weaviate_with_k8s_cluster:
-    name: Deploy Weaviate in a k8s cluster using helm
+  ann-benchmarks-sift-local-k8s:
+    name: Ann-benchmark in a k8s cluster using helm
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
       HELM_BRANCH: 'raft-configuration'
       REPLICAS: 3
+      SETUP: 'k8s'
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -801,8 +802,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - name: Start local k8s cluster
-        run: ./apps/weaviate/local-k8s.sh setup
+      - name: Run ann-benchmark in k8s cluster
+        run: ./ann_benchmark.sh
       # - name: Create Kind config file
       #   run: |
       #     cat <<EOF > kind-config.yaml

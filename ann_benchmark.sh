@@ -5,6 +5,7 @@ set -e
 
 dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
+setup=${SETUP:-"docker"}
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
@@ -25,13 +26,24 @@ echo "Building all required containers"
 ( cd apps/ann-benchmarks/ && docker build -t ann_benchmarks . )
 
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+if [ "$setup" == "docker" ]
+then
+  echo "Using docker setup"
+  docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+elif [ "$setup" == "k8s" ]
+then
+  echo "Using k8s setup"
+  apps/weaviate/local-k8s.sh setup
+else
+  echo "Unknown setup"
+  exit 1
+fi
 
 wait_weaviate
 
 echo "Run benchmark script"
 mkdir -p datasets
-( 
+(
   cd datasets;
   if [ -f ${dataset}.hdf5 ]
   then
@@ -46,8 +58,15 @@ docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/dataset
 
 echo "Initial run complete, now restart Weaviate"
 
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml stop weaviate
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start weaviate
+if [ "$setup" == "docker" ]
+then
+  docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml stop weaviate
+  docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml start weaviate
+elif [ "$setup" == "k8s" ]
+then
+  kubectl scale --replicas=0 statefulset/weaviate -n weaviate
+  kubectl scale --replicas=${REPLICAS} statefulset/weaviate -n weaviate
+fi
 
 wait_weaviate
 echo "Weaviate ready, wait 30s for caches to be hot"

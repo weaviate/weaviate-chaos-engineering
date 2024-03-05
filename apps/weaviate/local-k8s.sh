@@ -9,9 +9,11 @@ REQUIREMENTS=(
   "nohup"
 )
 
-# Due to the nature of the ingress, you can't change the Weaviate port. If for whatever reason you would like to use
-# a different port you can set it in this WEAVIATE_PORT variable, but you will have to comment all ingress logic and uncomment
-# the kubectl port-forward line.
+# NOTE: If triggering some of the scripts locally on Mac, you might find an error from the test complaining
+# that the injection Docker container can't connect to localhost:8080. This is because the Docker container
+# is running in a separate network and can't access the host network. To fix this, you can use the IP address
+# of the host machine instead of localhost, using "host.docker.internal". For example:
+# client = weaviate.connect_to_local(host="host.docker.internal")
 WEAVIATE_PORT=8080
 WEAVIATE_GRPC_PORT=50051
 PROMETHEUS_PORT=9091
@@ -36,10 +38,8 @@ function get_voters() {
         echo 7
     elif [[ $1 -ge 7 && $1 -lt 10 ]]; then
         echo 5
-    elif [[ $1 -ge 4 && $1 -lt 7 ]]; then
+    elif [[ $1 -ge 3 && $1 -lt 7 ]]; then
         echo 3
-    elif [[ $1 -ge 3 && $1 -lt 4 ]]; then
-        echo 2
     else
         echo 1
     fi
@@ -53,7 +53,7 @@ function upgrade_to_raft() {
     helm package -d /tmp/weaviate-helm /tmp/weaviate-helm/weaviate
     helm upgrade weaviate /tmp/weaviate-helm/weaviate-*.tgz  \
         --namespace weaviate \
-        --set image.tag="preview-implement-schema-updates-using-raft-consensus-de44225" \
+        --set image.tag="preview-raft-add-initial-migration-from-non-raft-to-raft-based-representation-c242ac4" \
         --set replicas=$REPLICAS \
         --set grpcService.enabled=true \
         --set env.RAFT_BOOTSTRAP_EXPECT=$(get_voters $REPLICAS)
@@ -154,11 +154,19 @@ EOF
     --set replicas=$REPLICAS \
     --set grpcService.enabled=true \
     --set env.RAFT_BOOTSTRAP_EXPECT=$(get_voters $REPLICAS) \
-    --set env.LOG_LEVEL="debug"
+    --set env.LOG_LEVEL="debug" \
+    --set env.DISABLE_TELEMETRY="true"
     #--set debug=true
 
+    # Calculate the timeout value based on the number of replicas
+    if [[ $REPLICAS -le 1 ]]; then
+        TIMEOUT=60s
+    else
+        TIMEOUT=$((REPLICAS * 60))s
+    fi
+
     # Wait for Weaviate to be up
-    kubectl wait sts/weaviate -n weaviate --for jsonpath='{.status.readyReplicas}'=${REPLICAS} --timeout=100s
+    kubectl wait sts/weaviate -n weaviate --for jsonpath='{.status.readyReplicas}'=${REPLICAS} --timeout=${TIMEOUT}
     port_forward_to_weaviate
     wait_weaviate
 
