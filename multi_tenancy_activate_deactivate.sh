@@ -22,7 +22,7 @@ function wait_weaviate() {
 function shutdown() {
   echo "Cleaning up ressources..."
   docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true
+  sudo rm -rf apps/weaviate/data* || true
   docker container rm -f multi-tenancy-activate-deactivate &>/dev/null && echo 'Deleted container multi-tenancy-activate-deactivate'
 }
 trap 'shutdown; exit 1' SIGINT ERR

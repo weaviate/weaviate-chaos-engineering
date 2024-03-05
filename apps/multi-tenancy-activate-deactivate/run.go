@@ -586,7 +586,7 @@ func test2() {
 			log.Printf("loop [%d][%d] activated\n", l, i)
 		}
 
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(time.Second)
 		// ==================================================================================
 
 		log.Printf("loop [%d] populating 1st half of ALL tenants\n", l)
