@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.24.0
+  WEAVIATE_VERSION: preview-flush-memtable-after-timeout-since-got-dirty-1st-write-instead-of-idle-last-write-93eade8
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
