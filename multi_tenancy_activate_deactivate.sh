@@ -19,14 +19,7 @@ function wait_weaviate() {
   exit 1
 }
 
-function shutdown() {
-  docker logs weaviate-weaviate-node-1-1 2>&1 | grep error
-  docker logs weaviate-weaviate-node-2-1 2>&1 | grep error
-  docker logs weaviate-weaviate-node-3-1 2>&1 | grep error
-
-  docker logs weaviate-weaviate-node-1-1 2>&1 | grep panic
-  docker logs weaviate-weaviate-node-2-1 2>&1 | grep panic
-  docker logs weaviate-weaviate-node-3-1 2>&1 | grep panic
+function shutdown() {  
   echo "Cleaning up ressources..."
   docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   sudo rm -rf apps/weaviate/data* || true
@@ -45,6 +38,14 @@ echo "Building all required containers"
 
 echo "Run script"
 docker run --network host --name multi-tenancy-activate-deactivate -t multi-tenancy-activate-deactivate
+
+docker logs weaviate-weaviate-node-1-1 2>&1 | grep error
+docker logs weaviate-weaviate-node-2-1 2>&1 | grep error
+docker logs weaviate-weaviate-node-3-1 2>&1 | grep error
+
+docker logs weaviate-weaviate-node-1-1 2>&1 | grep panic
+docker logs weaviate-weaviate-node-2-1 2>&1 | grep panic
+docker logs weaviate-weaviate-node-3-1 2>&1 | grep panic
 
 echo "Success"
 shutdown
