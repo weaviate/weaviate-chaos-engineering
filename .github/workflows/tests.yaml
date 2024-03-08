@@ -4,6 +4,7 @@ env:
   WEAVIATE_VERSION: 1.24.0
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       lsm_access_strategy:
