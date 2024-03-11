@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-protecting-the-cleanup-from-concurrent-use-with-the-compression-1a1db67
+  WEAVIATE_VERSION: preview--9a6ae5d
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:
