@@ -758,6 +758,8 @@ jobs:
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      ASYNC_INDEXING: true
+      TOMBSTONE_DELETION_CONCURRENCY: 1000
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling
@@ -778,6 +780,8 @@ jobs:
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      ASYNC_INDEXING: true
+      TOMBSTONE_DELETION_CONCURRENCY: 100
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling

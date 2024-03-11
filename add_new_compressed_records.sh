@@ -25,3 +25,9 @@ wait_weaviate
 
 echo "Run imports, compress, and add new compressed records"
 docker run --network host -t add-new-compressed-records python3 run.py
+
+if docker-compose -f apps/weaviate/docker-compose.yml logs | grep -q 'panic'; then 
+  echo "panic found"
+  exit 1
+fi
+echo "Passed!"
