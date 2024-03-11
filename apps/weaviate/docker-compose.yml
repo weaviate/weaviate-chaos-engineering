@@ -22,6 +22,7 @@ services:
       - ./data:/var/lib/weaviate
     environment:
       QUERY_DEFAULTS_LIMIT: 25
+      LOG_LEVEL: 'info'
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'
@@ -30,4 +31,6 @@ services:
       CLUSTER_HOSTNAME: 'node1'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
+      TOMBSTONE_DELETION_CONCURRENCY: '${TOMBSTONE_DELETION_CONCURRENCY}'
+      ASYNC_INDEXING: '${ASYNC_INDEXING}'
 ...
