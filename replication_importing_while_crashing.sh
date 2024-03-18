@@ -81,13 +81,27 @@ wait_weaviate 8081
 wait_weaviate 8082
 
 echo "Validate the count is correct"
-object_count=$(curl -s 'localhost:8080/v1/graphql' -X POST \
-  -H 'content-type: application/json' \
-  -d '{"query":"{Aggregate{Document{meta{count}}}}"}' | \
-  jq '.data.Aggregate.Document[0].meta.count')
+attempt=1
+retries=3
+while [ $attempt -le $retries ]; do
+  object_count=$(curl -s 'localhost:8080/v1/graphql' -X POST \
+    -H 'content-type: application/json' \
+    -d '{"query":"{Aggregate{Document{meta{count}}}}"}' | \
+    jq '.data.Aggregate.Document[0].meta.count')
 
-if [ "$object_count" -lt "$SIZE" ]; then
+  if [ "$object_count" -ge "$SIZE" ]; then
+    echo "Object count is correct"
+    break
+  fi
+
   echo "Not enough objects present, wanted $SIZE, got $object_count"
+  echo "Retrying in 5 seconds..."
+  sleep 5
+  attempt=$((attempt + 1))
+done
+
+if [ $attempt -gt $retries ]; then
+  echo "Failed to validate object count after $retries attempts"
   exit 1
 fi
 
