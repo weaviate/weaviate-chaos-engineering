@@ -18,12 +18,19 @@ function wait_weaviate_cluster() {
     fi
 
     if $node1_ready && $node2_ready; then
-      break
+      return 0
     fi
 
     echo "Weaviate cluster is not ready, trying again in 1s"
     sleep 1
   done
+  if ! $node1_ready; then
+    echo "ERROR: Weaviate node1 is not ready after 120s"
+  fi
+  if ! $node2_ready; then
+    echo "ERROR: Weaviate node2 is not ready after 120s"
+  fi
+  exit 1
 }
 
 echo "Building app container"
