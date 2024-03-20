@@ -3,6 +3,8 @@ name: Chaos tests
 env:
   WEAVIATE_VERSION: 1.24.2
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
+  DISABLE_RECOVERY_ON_PANIC: true
+
 on:
   workflow_call:
     inputs:
