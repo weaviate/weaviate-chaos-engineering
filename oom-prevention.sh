@@ -32,7 +32,12 @@ if ! docker run \
   --network host \
   -t importer python3 run.py; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
+  echo "Node 1:"
+  docker-compose -f apps/weaviate/docker-compose-memory-constrained.yml.yml logs weaviate-node-1
+  echo "Node 2:"
+  docker-compose -f apps/weaviate/docker-compose-memory-constrained.yml.yml logs weaviate-node-2
+  echo "Node 3:"
+  docker-compose -f apps/weaviate/docker-compose-memory-constrained.yml.yml logs weaviate-node-3
   exit 1
 fi
 
