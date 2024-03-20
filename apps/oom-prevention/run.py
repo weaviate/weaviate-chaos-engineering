@@ -26,7 +26,7 @@ def download_file_if_not_exists(filename, url):
             with open(filename, "wb") as f:
                 f.write(response.content)
             logger.info(f"Downloaded {filename} successfully.")
-            extract_tarball("sphere.1M.jsonl")
+            extract_tarball("sphere.1M.jsonl.tar.gz")
         else:
             logger.error(f"Failed to download {filename}. HTTP Status Code: {response.status_code}")
     else:
