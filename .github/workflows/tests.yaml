@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-don-t-merge-wip-memory-investigations-eabedd0
+  WEAVIATE_VERSION: preview-don-t-merge-wip-memory-investigations-7081e28
   MINIMUM_WEAVIATE_VERSION: 1.15.0 # this is used as the start in the upgrade journey test
 on:
   workflow_call:

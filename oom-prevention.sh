@@ -39,7 +39,6 @@ if ! docker run \
   echo "Node 3:"
   docker-compose -f apps/weaviate/docker-compose-memory-constrained.yml logs weaviate-node-3
   docker-compose -f apps/weaviate/docker-compose-memory-constrained.yml ps
-  docker stats
 
   exit 1
 fi
