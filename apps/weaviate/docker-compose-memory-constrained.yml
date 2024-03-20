@@ -28,7 +28,7 @@ services:
       CLUSTER_DATA_BIND_PORT: '7101'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       REPLICATION_MINIMUM_FACTOR: 3
-      GOMEMLIMIT: 2048Mi
+      GOMEMLIMIT: 2048MiB
     deploy:
       resources:
         limits:
@@ -63,7 +63,7 @@ services:
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       REPLICATION_MINIMUM_FACTOR: 3
       CLUSTER_JOIN: 'weaviate-node-1:7100'
-      GOMEMLIMIT: 2048Mi
+      GOMEMLIMIT: 2048MiB
     deploy:
       resources:
         limits:
@@ -98,7 +98,7 @@ services:
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       REPLICATION_MINIMUM_FACTOR: 3
       CLUSTER_JOIN: 'weaviate-node-1:7100'
-      GOMEMLIMIT: 2048Mi
+      GOMEMLIMIT: 2048MiB
     deploy:
       resources:
         limits:
