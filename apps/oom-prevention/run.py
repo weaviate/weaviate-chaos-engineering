@@ -23,7 +23,7 @@ def download_file_if_not_exists(filename, url):
         logger.info(f"{filename} not found, downloading from {url}...")
         response = requests.get(url, stream=True)
         if response.status_code == 200:
-            with open(filename, "wb") as f:
+            with open(filename + ".tar.gz", "wb") as f:
                 f.write(response.content)
             logger.info(f"Downloaded {filename} successfully.")
             extract_tarball("sphere.1M.jsonl.tar.gz")
