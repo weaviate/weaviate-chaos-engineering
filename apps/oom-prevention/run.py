@@ -76,17 +76,17 @@ def import_dataset(client: weaviate.WeaviateClient, file_path: str):
                     err_count = batch.number_errors
                     logger.info(f"Progress {i}, control: objects={len(col)}, errors={err_count}")
 
-                if i % delete_threshold == 0:
-                    batch.flush()
-                    upper_bound = (i / delete_threshold) * 1000
-                    start_time = time.time()
-                    del_res = col.data.delete_many(
-                        where=wvc.query.Filter.by_property("i").less_or_equal(upper_bound)
-                    )
-                    took = time.time() - start_time
-                    logger.info(
-                        f"Successfully deleted {del_res.successful} out of {del_res.matches} in {took:.2f}s"
-                    )
+                # if i % delete_threshold == 0:
+                #     batch.flush()
+                #     upper_bound = (i / delete_threshold) * 1000
+                #     start_time = time.time()
+                #     del_res = col.data.delete_many(
+                #         where=wvc.query.Filter.by_property("i").less_or_equal(upper_bound)
+                #     )
+                #     took = time.time() - start_time
+                #     logger.info(
+                #         f"Successfully deleted {del_res.successful} out of {del_res.matches} in {took:.2f}s"
+                #     )
 
                 i += 1
 
