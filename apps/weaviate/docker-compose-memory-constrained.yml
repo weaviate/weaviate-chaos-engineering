@@ -34,7 +34,7 @@ services:
         limits:
           # used in a chaos pipeline that tries to get Weaviate
           # OOM-killed
-          memory: 2048M
+          memory: 2148M
   weaviate-node-2:
     init: true
     command:
@@ -69,7 +69,7 @@ services:
         limits:
           # used in a chaos pipeline that tries to get Weaviate
           # OOM-killed
-          memory: 2048M
+          memory: 2148M
   weaviate-node-3:
     init: true
     command:
@@ -104,4 +104,4 @@ services:
         limits:
           # used in a chaos pipeline that tries to get Weaviate
           # OOM-killed
-          memory: 2048M
+          memory: 2148M
