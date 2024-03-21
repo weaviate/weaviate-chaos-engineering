@@ -28,13 +28,13 @@ services:
       CLUSTER_DATA_BIND_PORT: '7101'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       REPLICATION_MINIMUM_FACTOR: 3
-      GOMEMLIMIT: 1948MiB
+      GOMEMLIMIT: 1948MiB # This assumes 2048MiB-100MiB for binary, etc.
     deploy:
       resources:
         limits:
           # used in a chaos pipeline that tries to get Weaviate
           # OOM-killed
-          memory: 2148M
+          memory: 2148M # This is MB, not MiB, so it's basically a 2048MiB limit
   weaviate-node-2:
     init: true
     command:
