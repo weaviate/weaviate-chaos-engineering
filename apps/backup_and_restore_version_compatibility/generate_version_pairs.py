@@ -33,9 +33,9 @@ def get_version_tags():
 
 
 def is_version_since_backup_introduced(tag):
-    # backups were introduced starting from v1.15.0
+    # restoring backups older than 1.17.0 isn't possible after 1.23.0
     parts = tag.split(".")
-    if int(parts[0]) > 1 or int(parts[1]) >= 15:
+    if int(parts[0]) > 1 or int(parts[1]) >= 17:
         return True
     return False
 

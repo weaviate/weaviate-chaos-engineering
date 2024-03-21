@@ -82,13 +82,25 @@ def load_records(client: weaviate.Client, class_name="Class"):
     logger.info(f"Finished writing {num_objects} records")
 
 
-def validate_records(client: weaviate.Client, class_name: str):
-    res = client.query.get(class_name=class_name, properties=["name", "index"]).do()["data"]["Get"][
-        class_name
-    ]
-    sorted_res = sorted(res, key=lambda d: d["index"])
-    for idx, item in enumerate(sorted_res):
-        if item["index"] != idx:
+def validate_records(client_orig: weaviate.Client, client_dest: weaviate.Client, class_name: str):
+    res_orig = client_orig.query.get(class_name=class_name, properties=["name", "index"]).do()[
+        "data"
+    ]["Get"][class_name]
+
+    res_dest = client_dest.query.get(class_name=class_name, properties=["name", "index"]).do()[
+        "data"
+    ]["Get"][class_name]
+
+    sorted_res_orig = sorted(res_orig, key=lambda d: d["index"])
+    sorted_res_dest = sorted(res_dest, key=lambda d: d["index"])
+
+    if len(sorted_res_orig) != len(sorted_res_dest):
+        fatal(
+            f"'{class_name}' was not properly restored. expected {len(sorted_res_orig)} results, received {len(sorted_res_dest)}"
+        )
+
+    for idx, item in enumerate(sorted_res_orig):
+        if item["name"] != sorted_res_dest[idx]["name"]:
             fatal(
                 f"'{class_name}' was not properly restored. expected {num_objects} results, received {len(res)}"
             )
@@ -167,6 +179,6 @@ restore_backup(node2_client, backup_name)
 
 logger.info("Validating restored data...")
 for class_name in class_names:
-    validate_records(node2_client, class_name)
+    validate_records(node1_client, node2_client, class_name)
 
 success("Test complete!")
