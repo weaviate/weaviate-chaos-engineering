@@ -4,7 +4,7 @@
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready on $1"
   for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:$1; then
+    if curl -sf -o /dev/null localhost:$1/v1/.well-known/ready; then
       echo "Weaviate is ready"
       return 0
     fi

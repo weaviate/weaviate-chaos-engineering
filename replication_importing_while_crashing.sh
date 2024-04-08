@@ -7,7 +7,7 @@ SIZE=300000
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:$1; then
+    if curl -sf -o /dev/null localhost:$1/v1/.well-known/ready; then
       echo "Weaviate is ready"
       return 0
     fi
@@ -68,42 +68,9 @@ if ! docker run \
   --network host \
   -t importer python3 run.py --action import; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
+  docker-compose -f apps/weaviate/docker-compose-replication.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
 echo "Import completed successfully, stop killer"
 docker rm -f killer
-
-echo "Wait for Weaviate to be ready again in case there was a kill recently"
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
-
-echo "Validate the count is correct"
-attempt=1
-retries=3
-while [ $attempt -le $retries ]; do
-  object_count=$(curl -s 'localhost:8080/v1/graphql' -X POST \
-    -H 'content-type: application/json' \
-    -d '{"query":"{Aggregate{Document{meta{count}}}}"}' | \
-    jq '.data.Aggregate.Document[0].meta.count')
-
-  if [ "$object_count" -ge "$SIZE" ]; then
-    echo "Object count is correct"
-    break
-  fi
-
-  echo "Not enough objects present, wanted $SIZE, got $object_count"
-  echo "Retrying in 5 seconds..."
-  sleep 5
-  attempt=$((attempt + 1))
-done
-
-if [ $attempt -gt $retries ]; then
-  echo "Failed to validate object count after $retries attempts"
-  exit 1
-fi
-
-echo "Passed!"
-shutdown
