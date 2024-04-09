@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview--21c08df
+  WEAVIATE_VERSION: preview--19640a5
   DISABLE_RECOVERY_ON_PANIC: true
 on:
   workflow_call:
