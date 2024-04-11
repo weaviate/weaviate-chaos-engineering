@@ -2,7 +2,7 @@
 
 set -e
 
-git submodule update --init --recursive
+git submodule update --init --remote --recursive
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
