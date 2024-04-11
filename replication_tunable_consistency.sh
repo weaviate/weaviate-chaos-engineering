@@ -54,8 +54,6 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
-sleep 10
-
 # POST objects with consistency level ALL
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer -t importer
 
