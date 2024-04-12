@@ -52,8 +52,8 @@ services:
     environment:
       HOST: localhost
       HOST_GRPC: localhost
-      HOST_PORT: 8082
-      GRPC_PORT: 50053
+      HOST_PORT: 8080
+      GRPC_PORT: 50051
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
@@ -67,6 +67,7 @@ services:
       HOST: localhost
       HOST_GRPC: localhost
       HOST_PORT: 8082
+      GRPC_PORT: 50053
       TOTAL_TENANTS: 1000
       OBJECTS_PER_TENANT: 1000
       TENANTS_PER_CYCLE: 50
