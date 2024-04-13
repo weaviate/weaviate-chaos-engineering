@@ -85,12 +85,12 @@ def load_objects(client: weaviate.Client, size: int, batch_size: int, uuid_offse
 # most one node death, so a quorum must always work. The assumption is that any
 # write request could either be written to at least two nodes successfully – or
 # if it could not be written – has been repeated client-side
-def validate_objects(client: weaviate.Client, max_id: int, random_picks: int, uuid_offset: int):
+def validate_objects(client: weaviate.Client, object_count: int, uuid_offset: int):
     missing_objects = 0
     errors = 0
 
-    for i in range(random_picks):
-        obj_id = uuid.UUID(int=random.randrange(0, max_id) + uuid_offset)
+    for i in range(object_count):
+        obj_id = uuid.UUID(int=i + uuid_offset)
         try:
             data_object = client.data_object.get_by_id(
                 uuid=obj_id, class_name="Document", consistency_level="QUORUM"
@@ -101,7 +101,7 @@ def validate_objects(client: weaviate.Client, max_id: int, random_picks: int, uu
             errors += 1
             logger.error(e)
         if i % 1000 == 0:
-            logger.info(f"validated {i}/{random_picks} random objects")
+            logger.info(f"validated {i}/{object_count} random objects")
 
     logger.info(f"Finished validation with {missing_objects} missing objects and {errors} errors")
     if errors > 0 or missing_objects > 0:
@@ -182,7 +182,6 @@ if __name__ == "__main__":
     batch_size = config_batch_size()
     uuid_offset = config_uuid_offset()
     repl_factor = config_repl_factor()
-    random_picks = int(object_count / 10)
 
     client = weaviate.Client(host, timeout_config=int(30))
     parser = argparse.ArgumentParser()
@@ -195,7 +194,7 @@ if __name__ == "__main__":
         )
         load_objects(client, object_count, batch_size, uuid_offset)
         # load_references(client, 400, ids_class_1, ids_class_2)
-        validate_objects(client, object_count, random_picks, uuid_offset)
+        validate_objects(client, object_count, uuid_offset)
     elif args.action == "schema":
         logger.info(f"CONFIG: host={host}; repl_factor={repl_factor}")
         reset_schema(client, repl_factor)

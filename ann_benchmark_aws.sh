@@ -34,6 +34,7 @@ echo "instance ready: $instance_id"
 
 function cleanup() {
   aws ec2 terminate-instances --instance-ids "$instance_id" --region "$region" | jq
+  aws ec2 wait instance-terminated --instance-ids "$instance_id" --region "$region"
   aws ec2 delete-key-pair --key-name "$key_id" --region "$region" | jq
   aws ec2 delete-security-group --group-id "$group_id" --region "$region" | jq
 }
