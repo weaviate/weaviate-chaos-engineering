@@ -194,7 +194,7 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 		"PERSISTENCE_DATA_PATH":     "./data",
 		"DEFAULT_VECTORIZER_MODULE": "none",
 		"CLUSTER_HOSTNAME":          "weaviate-test",
-		"RAFT_JOIN":                 "weaviate-test",
+		"RAFT_JOIN":                 "weaviate-test:8300",
 		"RAFT_BOOTSTRAP_EXPECT":     "1",
 	}
 	req := testcontainers.ContainerRequest{
