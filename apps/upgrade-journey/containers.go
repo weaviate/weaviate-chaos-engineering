@@ -123,9 +123,8 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"CLUSTER_DATA_BIND_PORT":                  "7101",
 				"CLUSTER_HOSTNAME":                        c.hostname(nodeId),
 				"CLUSTER_JOIN":                            c.allNodes(),
-				"RAFT_JOIN":                               c.hostname(0),
+				"RAFT_JOIN":                               fmt.Sprintf("%s:8300", c.hostname(nodeId)),
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
-				"RAFT_RECOVERY_TIMEOUT":                   "10",
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
 			},
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
