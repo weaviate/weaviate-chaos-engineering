@@ -7,7 +7,7 @@ function wait_weaviate_cluster() {
   local node1_ready=false
   local node2_ready=false
   for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080; then
+    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
       echo "Weaviate node1 is ready"
       node1_ready=true
     fi

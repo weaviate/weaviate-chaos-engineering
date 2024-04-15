@@ -9,7 +9,7 @@ distance=${DISTANCE:-"l2-squared"}
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080; then
+    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
       echo "Weaviate is ready"
       return 0
     fi
