@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: 1.25.0-raft-f216c6a
+  WEAVIATE_VERSION: preview-pread-migration-0785d0c
   DISABLE_RECOVERY_ON_PANIC: true
 on:
   workflow_call:
