@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	test1()
+	// test1()
 	test2()
 }
 
@@ -25,7 +25,7 @@ func test1() {
 	classSoup := "Soup"
 	ctx := context.Background()
 
-	client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: "localhost:8080"})
+	client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: "host.docker.internal:8080"})
 	requireNil(err)
 
 	cleanup := func() {
@@ -382,7 +382,7 @@ func test2() {
 	ctx := context.Background()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: "localhost:8080"})
+	client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: "host.docker.internal:8080"})
 	requireNil(err)
 
 	cleanup := func() {
