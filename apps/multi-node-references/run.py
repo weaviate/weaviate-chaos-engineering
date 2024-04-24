@@ -3,6 +3,7 @@ import uuid
 import random
 import os
 import sys
+import backoff
 from typing import Optional
 from loguru import logger
 
@@ -19,9 +20,15 @@ def do():
     load_sources(client, 0, 1_000_000, 5, targets)
 
 
+@backoff.on_predicate(backoff.constant, max_time=10, interval=1, jitter=None)
+def wait_for_collection(client: weaviate.Client, class_name: str):
+    return client.schema.exists("123123")
+
+
 def load_sources(client: weaviate.Client, start, end, ref_per_obj, targets):
     client.batch.configure(batch_size=10_000, callback=handle_errors)
     class_name = "Source"
+    wait_for_collection(client, class_name)
     with client.batch as batch:
         for i in range(start, end):
             if i % 10000 == 0:
@@ -50,6 +57,7 @@ def load_sources(client: weaviate.Client, start, end, ref_per_obj, targets):
 def load_targets(client: weaviate.Client, start, end):
     client.batch.configure(batch_size=100, callback=handle_errors)
     class_name = "Target"
+    wait_for_collection(client, class_name)
     with client.batch as batch:
         for i in range(start, end):
             if i % 10000 == 0:
