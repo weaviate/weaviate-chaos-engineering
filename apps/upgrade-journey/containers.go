@@ -62,12 +62,14 @@ func (c *cluster) rollingUpdate(ctx context.Context, version string) error {
 		container, err := c.startWeaviateNode(ctx, i, version)
 		if err != nil {
 			log.Print(err)
-			logReader, logErr := container.Logs(context.Background())
-			if logErr != nil {
-				log.Fatal(logErr)
-			}
+			if container != nil {
+				logReader, logErr := container.Logs(context.Background())
+				if logErr != nil {
+					log.Fatal(logErr)
+				}
 
-			io.Copy(os.Stdout, logReader)
+				io.Copy(os.Stdout, logReader)
+			}
 			return err
 		}
 

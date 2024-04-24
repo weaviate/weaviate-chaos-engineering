@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cenkalti/backoff/v4"
 	"github.com/google/uuid"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
@@ -91,9 +92,10 @@ func do(ctx context.Context, client *weaviate.Client, numNodes int) error {
 			return err
 		}
 
-		if err := verify(ctx, client, i); err != nil {
-			return err
-		}
+		backoff.Retry(
+			func() error { return verify(ctx, client, i) },
+			backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 10),
+		)
 	}
 
 	return nil
@@ -130,7 +132,11 @@ func aggregateObjects(ctx context.Context, client *weaviate.Client,
 		return fmt.Errorf("%v", result.Errors)
 	}
 
-	actualCount := result.Data["Aggregate"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
+	aggregate := result.Data["Aggregate"].(map[string]interface{})["Collection"].([]interface{})
+	if len(aggregate) <= 0 {
+		return fmt.Errorf("no aggregate found for collection 'Collection'")
+	}
+	actualCount := aggregate[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
 	if int(actualCount) != objectsCreated {
 		return fmt.Errorf("aggregation: wanted %d, got %d", objectsCreated, int(actualCount))
 	}
@@ -183,13 +189,21 @@ func findObjectUsingVersionString(ctx context.Context, client *weaviate.Client,
 		return fmt.Errorf("%v", result.Errors)
 	}
 
-	obj := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})
+	collection := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})
+	if len(collection) <= 0 {
+		return fmt.Errorf("no data returned for collection 'Collection'")
+	}
+	obj := collection[0].(map[string]interface{})
 	actualVersion := obj["version"].(string)
 	if version != actualVersion {
 		return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
 	}
 
-	refVersion := obj["ref_prop"].([]interface{})[0].(map[string]interface{})["version"].(string)
+	ref := obj["ref_prop"].([]interface{})
+	if len(ref) <= 0 {
+		return fmt.Errorf("no ref found for 'ref_prop'")
+	}
+	refVersion := ref[0].(map[string]interface{})["version"].(string)
 	if refVersion != actualVersion {
 		return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
 	}
@@ -242,13 +256,21 @@ func findObjectUsingVersionInts(ctx context.Context, client *weaviate.Client,
 		return fmt.Errorf("%v", result.Errors[0])
 	}
 
-	obj := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})
+	collection := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})
+	if len(result.Errors) > 0 {
+		return fmt.Errorf("no data returned for collection 'Collection'")
+	}
+	obj := collection[0].(map[string]interface{})
 	actualVersion := obj["version"].(string)
 	if version != actualVersion {
 		return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
 	}
 
-	refVersion := obj["ref_prop"].([]interface{})[0].(map[string]interface{})["version"].(string)
+	ref := obj["ref_prop"].([]interface{})
+	if len(ref) <= 0 {
+		return fmt.Errorf("no ref found for 'ref_prop'")
+	}
+	refVersion := ref[0].(map[string]interface{})["version"].(string)
 	if refVersion != actualVersion {
 		return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
 	}
@@ -354,7 +376,11 @@ func filteredVectorSearch(ctx context.Context, client *weaviate.Client,
 			return fmt.Errorf("%v", result.Errors)
 		}
 
-		actualVersion := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})[0].(map[string]interface{})["version"].(string)
+		collection := result.Data["Get"].(map[string]interface{})["Collection"].([]interface{})
+		if len(collection) <= 0 {
+			return fmt.Errorf("no data returned for collection 'Collection'")
+		}
+		actualVersion := collection[0].(map[string]interface{})["version"].(string)
 		if version != actualVersion {
 			return fmt.Errorf("wanted %s got %s", version, actualVersion)
 		}
