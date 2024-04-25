@@ -1,7 +1,7 @@
 name: Chaos tests
 
 env:
-  WEAVIATE_VERSION: preview-migrate-segments-to-pread-1-24-dont-merge-a80808b
+  WEAVIATE_VERSION: preview-migrate-segments-to-pread-1-24-dont-merge-f81959a
   DISABLE_RECOVERY_ON_PANIC: true
 on:
   workflow_call:
