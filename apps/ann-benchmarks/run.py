@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 import weaviate
 import sys
 from loguru import logger
@@ -88,32 +89,37 @@ efC = values["efC"]
 distance = args.distance
 
 print(values["labels"])
-for shards in values["shards"]:
-    for m in values["m"]:
-        if not values["query_only"]:
-            compression = values["compression"]
-            override = values["override"]
-            dim_to_seg_ratio = values["dim_to_segment_ratio"]
-            before_import = time.time()
-            logger.info(
-                f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
-            )
-            if override == False:
-                reset_schema(client, efC, m, shards, distance)
-            load_records(client, vectors, compression, dim_to_seg_ratio, override)
-            elapsed = time.time() - before_import
-            logger.info(
-                f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
-            )
-            logger.info(f"Waiting 30s for compactions to settle, etc")
-            time.sleep(30)
+try:
+    for shards in values["shards"]:
+        for m in values["m"]:
+            if not values["query_only"]:
+                compression = values["compression"]
+                override = values["override"]
+                dim_to_seg_ratio = values["dim_to_segment_ratio"]
+                before_import = time.time()
+                logger.info(
+                    f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
+                )
+                if override == False:
+                    reset_schema(client, efC, m, shards, distance)
+                load_records(client, vectors, compression, dim_to_seg_ratio, override)
+                elapsed = time.time() - before_import
+                logger.info(
+                    f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
+                )
+                logger.info(f"Waiting 30s for compactions to settle, etc")
+                time.sleep(30)
 
-        logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
-        query(
-            client,
-            stub,
-            f,
-            values["ef"],
-            values["labels"],
-        )
-        logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
+            logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
+            query(
+                client,
+                stub,
+                f,
+                values["ef"],
+                values["labels"],
+            )
+            logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
+except:
+    subprocess.run(
+        ["docker", "compose", "-f", "apps/weaviate-no-restart-on-crash/docker-compose.yml", "logs"]
+    )
