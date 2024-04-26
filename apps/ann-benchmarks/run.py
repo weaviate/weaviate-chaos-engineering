@@ -120,6 +120,7 @@ try:
             )
             logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
 except:
+    subprocess.run(args=["du", "-h", "/var/lib/weaviate/vector/"])
     subprocess.run(
         ["docker", "compose", "-f", "apps/weaviate-no-restart-on-crash/docker-compose.yml", "logs"]
     )
