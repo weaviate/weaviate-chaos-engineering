@@ -228,11 +228,38 @@ func createData(client *weaviate.Client, objects []*models.Object) {
 	requireNil(err)
 	requireNotNil(resp)
 	requireTrue(len(resp) == len(objects), "expected len(resp) == len(objects)")
+	// failTest := false
 	for i := 0; i < len(resp); i++ {
 		s := resp[i].Result.Status
 		requireNotNil(s)
 		requireTrue(*s == "SUCCESS", "*s == SUCCESS")
+		/*
+			if *s != "SUCCESS" {
+				tenant := objects[i].Tenant
+				msg := strings.ReplaceAll(resp[i].Result.Errors.Error[0].Message, "\n", "\\n")
+				fmt.Println(i, msg, tenant, objects[i].Class, objects[i].ID)
+				failTest = true
+			}
+		*/
 	}
+	/*
+		if failTest {
+			// append to a file
+			time := timestamp.Timestamp{}
+			file, err := os.OpenFile("errors.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+			requireNil(err)
+			defer file.Close()
+			for i := 0; i < len(resp); i++ {
+				s := resp[i].Result.Status
+				if *s != "SUCCESS" {
+					tenant := objects[i].Tenant
+					msg := strings.ReplaceAll(resp[i].Result.Errors.Error[0].Message, "\n", "\\n")
+					_, err := file.WriteString(fmt.Sprintf("%v %d %s %s %s %s\n", time.String(), i, msg, tenant, objects[i].Class, objects[i].ID))
+					requireNil(err)
+				}
+			}
+		}
+	*/
 }
 
 func CreateDataPizzaQuattroFormaggiForTenants(client *weaviate.Client, tenantNames ...string) {
@@ -371,6 +398,7 @@ func createDataForTenants(client *weaviate.Client,
 			objects = append(objects, object)
 		}
 	}
+	// fmt.Println("Creating data for tenants", tenantNames)
 	createData(client, objects)
 }
 
@@ -548,12 +576,14 @@ func CreateTenantsFood(client *weaviate.Client, tenants ...models.Tenant) {
 }
 
 func createTenants(client *weaviate.Client, className string, tenants []models.Tenant) {
+	// fmt.Println(className)
+	// fmt.Println(tenants)
 	err := client.Schema().TenantsCreator().
 		WithClassName(className).
 		WithTenants(tenants...).
 		Do(context.Background())
-
 	requireNil(err)
+	// fmt.Println(className + " created")
 }
 
 type Tenants []models.Tenant
