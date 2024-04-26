@@ -90,6 +90,10 @@ func main() {
 		CreateTenantsPizza(client, batchTenants...)
 		// CreateTenantsSoup(client, batchTenants...)
 		// CreateTenantsRisotto(client, batchTenants...)
+
+		// // TODO test with interval
+		// time.Sleep(2 * time.Second)
+
 		CreateDataPizzaForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
 		// CreateDataSoupForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
 		// CreateDataRisottoForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
@@ -241,6 +245,9 @@ func main() {
 		// ==================================================================================
 
 		log.Printf("loop [%d] populating 1st half of ALL tenants\n", l)
+
+		// // TODO test with interval
+		// time.Sleep(2 * time.Second)
 
 		CreateDataPizzaForTenantsWithIds(client, getId, allTenants[:half].Names()...)
 		// CreateDataSoupForTenantsWithIds(client, getId, allTenants[:half].Names()...)
