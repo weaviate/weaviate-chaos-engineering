@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -e
 
@@ -28,7 +28,7 @@ ami=$(aws ec2 describe-images --region $region --owner amazon --filter "Name=nam
 aws ec2 create-key-pair --key-name "$key_id" --region "$region" | jq -r '.KeyMaterial' > "${key_id}.pem"
 chmod 600 "${key_id}.pem"
 
-instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600 | jq -r '.Instances[0].InstanceId' )
+instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600 --ebs-optimized --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 120 } } ]" | jq -r '.Instances[0].InstanceId' )
 
 echo "instance ready: $instance_id"
 
