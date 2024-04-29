@@ -229,13 +229,24 @@ func createData(client *weaviate.Client, objects []*models.Object) {
 	requireNil(err)
 	requireNotNil(resp)
 	requireTrue(len(resp) == len(objects), "expected len(resp) == len(objects)")
+
+	errors := 0
 	for i := 0; i < len(resp); i++ {
 		s := resp[i].Result.Status
 		if *s != "SUCCESS" {
+			errors++
 			for _, e := range resp[i].Result.Errors.Error {
-				fmt.Printf("  ==> %v\n", e)
+				fmt.Printf("  ==> %#v\n", e)
 			}
 		}
+	}
+
+	if errors > 0 {
+		fmt.Printf("  ==> had errors [%d/%d]\n", errors, len(resp))
+	}
+
+	for i := 0; i < len(resp); i++ {
+		s := resp[i].Result.Status
 		requireNotNil(s)
 		requireTrue(*s == "SUCCESS", "*s == SUCCESS")
 	}

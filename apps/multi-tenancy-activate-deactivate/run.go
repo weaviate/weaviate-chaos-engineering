@@ -38,7 +38,9 @@ func main() {
 	requireNil(err)
 
 	cleanup := func() {
+		fmt.Printf("  ==> defer cleanup start\n")
 		err := client.Schema().AllDeleter().Do(context.Background())
+		fmt.Printf("  ==> defer cleanup end %T %#v\n", err, err)
 		requireNil(err)
 	}
 	cleanup()
