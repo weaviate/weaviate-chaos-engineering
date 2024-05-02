@@ -37,6 +37,9 @@ echo "Building all required containers"
 ( cd apps/backup_and_restore_multi_tenant/ && docker build -t backup_and_restore_multi_tenant \
   --build-arg backend="s3" --build-arg expected_shard_count=150000 . )
 
+# verify WEAVIATE_VERSION is set
+[ -z "$WEAVIATE_VERSION" ] && echo "ERROR: Need to set the WEAVIATE_VERSION env var to the docker tag for the image (e.g.: X.X.X-raft-XXXXXXX)" && exit 1
+
 export WEAVIATE_NODE_1_VERSION=$WEAVIATE_VERSION
 export WEAVIATE_NODE_2_VERSION=$WEAVIATE_VERSION
 

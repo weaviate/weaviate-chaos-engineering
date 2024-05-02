@@ -7,10 +7,12 @@ import sys
 import time
 import uuid
 import weaviate
-from weaviate import Tenant
+from weaviate import Tenant, schema
 
 from loguru import logger
-from typing import Optional
+from typing import Optional, List
+
+WEAVIATE_PORT = 8080
 
 
 def assert_expected_shard_count(client: weaviate.Client):
@@ -112,8 +114,8 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def create_tenants(client: weaviate.Client, class_name, tenants, stage="stage_1"):
-    client.schema.add_class_tenants(class_name=class_name, tenants=[Tenant(name=f"tenant_{i}") for i in range(tenants)])
+def create_tenants(client: weaviate.Client, class_name: str, tenants: List[Tenant], stage="stage_1"):
+    client.schema.add_class_tenants(class_name=class_name, tenants=tenants)
 
 def delete_records(client: weaviate.Client, class_name):
     client.batch.delete_objects(
@@ -140,19 +142,19 @@ def backend_provider():
 
 
 def temp_backup_url_create():
-    return f"http://localhost:8080/v1/backups/{backend_provider()}"
+    return f"http://localhost:{WEAVIATE_PORT}/v1/backups/{backend_provider()}"
 
 
 def temp_backup_url_create_status(backup_name):
-    return f"http://localhost:8080/v1/backups/{backend_provider()}/{backup_name}"
+    return f"http://localhost:{WEAVIATE_PORT}/v1/backups/{backend_provider()}/{backup_name}"
 
 
 def temp_backup_url_restore(backup_name):
-    return f"http://localhost:8080/v1/backups/{backend_provider()}/{backup_name}/restore"
+    return f"http://localhost:{WEAVIATE_PORT}/v1/backups/{backend_provider()}/{backup_name}/restore"
 
 
 def temp_backup_url_restore_status(backup_name):
-    return f"http://localhost:8080/v1/backups/{backend_provider()}/{backup_name}/restore"
+    return f"http://localhost:{WEAVIATE_PORT}/v1/backups/{backend_provider()}/{backup_name}/restore"
 
 
 def create_backup(client: weaviate.Client, name):
@@ -189,17 +191,25 @@ def restore_backup(client: weaviate.Client, name):
             fatal(f"Restore failed with res: {res_json}")
 
 
-client = weaviate.Client("http://localhost:8080")
+client = weaviate.Client(f"http://localhost:{WEAVIATE_PORT}")
 
 backup_name = f"{int(datetime.datetime.now().timestamp())}_stage_1"
 
 class_names = ["Class_A", "Class_B"]
-tenants = 12_000
+num_tenants_hot = 1_000
+num_tenants_cold = num_tenants_hot * 2
 
 logger.info(f"Step 0, reset everything, import schema")
 reset_schema(client, class_names)
 
-logger.info(f"Step 1, create {tenants} tenants per class")
+logger.info(f"Step 1, create {num_tenants_hot} hot tenants and {num_tenants_cold} cold tenants per class")
+tenants = [
+    Tenant(name=f"{i}_tenant", activity_status=schema.TenantActivityStatus.HOT)
+    for i in range(num_tenants_hot)
+] + [
+    Tenant(name=f"{i + num_tenants_hot}_tenant", activity_status=schema.TenantActivityStatus.COLD)
+    for i in range(num_tenants_cold)
+]
 for class_name in class_names:
     create_tenants(
         client,
@@ -223,5 +233,5 @@ for class_name in class_names:
     
     actual_tenants = client.schema.get_class_tenants(class_name)
     logger.info(f"{class_name}: {len(actual_tenants)} tenants")
-    assert len(actual_tenants) == tenants, f"Expected {tenants} tenants, but got {len(actual_tenants)}"
+    assert len(actual_tenants) == len(tenants), f"Expected {tenants} tenants, but got {len(actual_tenants)}"
 
