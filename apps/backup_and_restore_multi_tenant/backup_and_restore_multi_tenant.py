@@ -157,15 +157,24 @@ def temp_backup_url_restore_status(backup_name):
     return f"http://localhost:{WEAVIATE_PORT}/v1/backups/{backend_provider()}/{backup_name}/restore"
 
 
-def create_backup(client: weaviate.Client, name):
+def create_backup(client: weaviate.Client, name, max_num_connection_errors: int = 120):
     create_body = {"id": name}
     res = requests.post(temp_backup_url_create(), json=create_body)
     if res.status_code > 399:
         fatal(f"Backup Create returned status code {res.status_code} with body: {res.json()}")
 
+    num_connection_errors = 0
     while True:
-        time.sleep(3)
-        res = requests.get(temp_backup_url_create_status(name))
+        time.sleep(10)
+        try:
+            res = requests.get(temp_backup_url_create_status(name))
+        except requests.exceptions.ConnectionError as e:
+            # sometimes the server becomes unresponsive during the backup but recovers later
+            num_connection_errors += 1
+            if num_connection_errors >= max_num_connection_errors:
+                raise e
+            logger.info(f"Failed to get backup status, will keep trying: {e}. {max_num_connection_errors - num_connection_errors} tries left.")
+            continue
         res_json = res.json()
         if res_json["status"] == "SUCCESS":
             success(f"Backup creation successful")
