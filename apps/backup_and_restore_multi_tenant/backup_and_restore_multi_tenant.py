@@ -216,7 +216,7 @@ backup_name = f"{int(datetime.datetime.now().timestamp())}_stage_1"
 
 class_names = ["Class_A", "Class_B"]
 # 60k total tenants
-num_tenants_hot = 2_000
+num_tenants_hot = 3_000
 num_tenants_cold = num_tenants_hot * 2
 
 logger.info(f"Step 0, reset everything, import schema")
