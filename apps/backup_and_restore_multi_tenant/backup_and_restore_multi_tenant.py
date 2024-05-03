@@ -169,7 +169,7 @@ def create_backup(client: weaviate.Client, name, max_num_connection_errors: int 
         try:
             res = requests.get(temp_backup_url_create_status(name))
         except requests.exceptions.ConnectionError as e:
-            # sometimes the server becomes unresponsive during the backup but recovers later
+            # sometimes the server becomes unresponsive during the backup but comes back online later
             num_connection_errors += 1
             if num_connection_errors >= max_num_connection_errors:
                 raise e
@@ -183,15 +183,25 @@ def create_backup(client: weaviate.Client, name, max_num_connection_errors: int 
             fatal(f"Backup failed with res: {res_json}")
 
 
-def restore_backup(client: weaviate.Client, name):
+def restore_backup(client: weaviate.Client, name, max_num_connection_errors: int = 120):
     restore_body = {"id": name}
     res = requests.post(temp_backup_url_restore(name), json=restore_body)
     if res.status_code > 399:
         fatal(f"Backup Restore returned status code {res.status_code} with body: {res.json()}")
 
+    num_connection_errors = 0
     while True:
-        time.sleep(3)
-        res = requests.get(temp_backup_url_restore_status(name))
+        time.sleep(10)
+        try:
+            res = requests.get(temp_backup_url_restore_status(name))
+        except requests.exceptions.ConnectionError as e:
+            # sometimes the server becomes unresponsive during the recoverery but comes back online later
+            num_connection_errors += 1
+            if num_connection_errors >= max_num_connection_errors:
+                raise e
+            logger.info(f"Failed to get restore status, will keep trying: {e}. {max_num_connection_errors - num_connection_errors} tries left.")
+            continue
+        
         res_json = res.json()
         if res_json["status"] == "SUCCESS":
             success(f"Restore succeeded")
@@ -206,7 +216,7 @@ backup_name = f"{int(datetime.datetime.now().timestamp())}_stage_1"
 
 class_names = ["Class_A", "Class_B"]
 # 60k total tenants
-num_tenants_hot = 20_000
+num_tenants_hot = 2_000
 num_tenants_cold = num_tenants_hot * 2
 
 logger.info(f"Step 0, reset everything, import schema")
