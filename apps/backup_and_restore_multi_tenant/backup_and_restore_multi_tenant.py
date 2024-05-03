@@ -196,7 +196,7 @@ client = weaviate.Client(f"http://localhost:{WEAVIATE_PORT}")
 backup_name = f"{int(datetime.datetime.now().timestamp())}_stage_1"
 
 class_names = ["Class_A", "Class_B"]
-num_tenants_hot = 1_000
+num_tenants_hot = 20_000
 num_tenants_cold = num_tenants_hot * 2
 
 logger.info(f"Step 0, reset everything, import schema")
