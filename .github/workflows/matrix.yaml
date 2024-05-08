@@ -1,11 +1,16 @@
 name: Test matrix
 
 on:
-  push
-
+  workflow_dispatch:
+    inputs:
+      weaviate_version:
+        description: "The weaviate docker image to version to run tests against"
+        type: string
+        required: true
+  push:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || inputs.weaviate_version || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,6 +26,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
+      weaviate_version: "${{ inputs.weaviate_version || '1.25.0-raft-83a51ad' }}"
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}

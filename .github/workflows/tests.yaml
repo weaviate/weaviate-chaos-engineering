@@ -1,11 +1,11 @@
 name: Chaos tests
 
-env:
-  WEAVIATE_VERSION: 1.25.0-raft-83a51ad
-  DISABLE_RECOVERY_ON_PANIC: true
 on:
   workflow_call:
     inputs:
+      weaviate_version:
+        required: true
+        type: string
       lsm_access_strategy:
         required: true
         type: string
@@ -22,6 +22,11 @@ on:
         required: true
       POLARSIGNALS_TOKEN:
         required: true
+
+env:
+  WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
+  DISABLE_RECOVERY_ON_PANIC: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
