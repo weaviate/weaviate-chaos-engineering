@@ -9,3 +9,5 @@ apps/**/vendor/**
 # IDE files
 .idea/
 .vscode/
+.venv/
+__pycache__
