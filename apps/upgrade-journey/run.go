@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -61,35 +62,43 @@ func main() {
 	}
 	client := weaviate.New(cfg)
 
-	err = do(ctx, client, numNodes)
-	if err != nil {
+	if cluster, err := do(ctx, client, numNodes); err != nil {
 		log.Fatal(err)
+		ctx := context.Background()
+		for _, c := range cluster.containers {
+			logReader, logErr := c.Logs(ctx)
+			if logErr != nil {
+				name, _ := c.Name(ctx)
+				log.Fatal(fmt.Printf("can't get container %s logs, err: %w", name, logErr))
+			}
+			io.Copy(os.Stdout, logReader)
+		}
 	}
 }
 
-func do(ctx context.Context, client *weaviate.Client, numNodes int) error {
+func do(ctx context.Context, client *weaviate.Client, numNodes int) (*cluster, error) {
 	rand.Seed(time.Now().UnixNano())
 
 	c := newCluster(numNodes)
 
 	if err := c.startNetwork(ctx); err != nil {
-		return err
+		return c, err
 	}
 
 	for i, version := range versions {
 
 		if err := startOrUpgrade(ctx, c, i, version); err != nil {
-			return err
+			return c, err
 		}
 
 		if i == 0 {
 			if err := createSchema(ctx, client); err != nil {
-				return err
+				return c, err
 			}
 		}
 
 		if err := importForVersion(ctx, client, version); err != nil {
-			return err
+			return c, err
 		}
 
 		backoff.Retry(
@@ -98,7 +107,7 @@ func do(ctx context.Context, client *weaviate.Client, numNodes int) error {
 		)
 	}
 
-	return nil
+	return c, nil
 }
 
 func verify(ctx context.Context, client *weaviate.Client, i int) error {

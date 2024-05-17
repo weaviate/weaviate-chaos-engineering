@@ -3,6 +3,7 @@ module upgrade-journey
 go 1.20
 
 require (
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/docker/go-connections v0.4.0
 	github.com/google/uuid v1.3.1
 	github.com/hashicorp/go-version v1.6.0
@@ -17,7 +18,6 @@ require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/containerd/containerd v1.7.3 // indirect
 	github.com/cpuguy83/dockercfg v0.3.1 // indirect
 	github.com/docker/distribution v2.8.2+incompatible // indirect
