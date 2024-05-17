@@ -209,7 +209,7 @@ func findObjectUsingVersionString(ctx context.Context, client *weaviate.Client,
 	}
 
 	refProp, exists := obj["ref_prop"]
-	if !exists {
+	if !exists || refProp == nil {
 		return fmt.Errorf("no ref found for 'ref_prop'")
 	}
 
