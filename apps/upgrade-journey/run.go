@@ -94,7 +94,7 @@ func do(ctx context.Context, client *weaviate.Client, numNodes int) error {
 
 		backoff.Retry(
 			func() error { return verify(ctx, client, i) },
-			backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 10),
+			backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 15),
 		)
 	}
 
@@ -199,11 +199,21 @@ func findObjectUsingVersionString(ctx context.Context, client *weaviate.Client,
 		return fmt.Errorf("root obj: wanted %s got %s", version, actualVersion)
 	}
 
-	ref := obj["ref_prop"].([]interface{})
+	refProp, exists := obj["ref_prop"]
+	if !exists {
+		return fmt.Errorf("no ref found for 'ref_prop'")
+	}
+
+	ref := refProp.([]interface{})
 	if len(ref) <= 0 {
 		return fmt.Errorf("no ref found for 'ref_prop'")
 	}
-	refVersion := ref[0].(map[string]interface{})["version"].(string)
+	v, exists := ref[0].(map[string]interface{})["version"]
+	if !exists {
+		return fmt.Errorf("no version found for 'ref'")
+	}
+
+	refVersion := v.(string)
 	if refVersion != actualVersion {
 		return fmt.Errorf("ref object: wanted %s got %s", version, actualVersion)
 	}
