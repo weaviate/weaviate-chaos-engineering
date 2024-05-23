@@ -851,7 +851,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      WEAVIATE_NON_RAFT_VERSION: 1.24.13
+      WEAVIATE_NON_RAFT_VERSION: 1.24.14
       WEAVIATE_RAFT_VERSION_1: 1.25.0-rc.0
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
@@ -920,7 +920,7 @@ jobs:
             echo "Synchronization of schema V1 failed"
             exit 1
           else
-            echo "Schema V1 succesfully synchronized"
+            echo "Schema V1 successfully synchronized"
           fi
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
         uses: weaviate/weaviate-local-k8s@v2
