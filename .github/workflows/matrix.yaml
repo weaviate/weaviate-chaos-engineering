@@ -8,6 +8,8 @@ on:
         type: string
         required: true
   push:
+  schedule:
+    - cron: '0 0 */2 * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || inputs.weaviate_version || github.ref }}
@@ -21,7 +23,7 @@ jobs:
   weaviate-version-information:
     runs-on: ubuntu-latest
     env:
-      weaviate_version: "${{inputs.weaviate_version || '1.25.0'}}"
+      weaviate_version: "${{inputs.weaviate_version || '1.25.1'}}"
     steps:
       - run: |
           echo "Running chaos pipelines against Weaviate version: $weaviate_version" >> $GITHUB_STEP_SUMMARY
@@ -33,7 +35,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
-      weaviate_version: "${{inputs.weaviate_version || '1.25.0'}}"
+      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.25.1' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
@@ -41,3 +43,33 @@ jobs:
       DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
+  send-slack-message-on-failure:
+    needs: run-with-sync-indexing
+    if: ${{ github.event_name == 'schedule' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check job status
+        id: job-status
+        uses: actions/github-script@v4
+        with:
+          script: |
+            const jobStatus = github.runs.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: context.workflow,
+              event: context.eventName,
+              status: 'failure'
+            });
+            return jobStatus.data.total_count > 0;
+      - name: Send Slack message
+        if: steps.job-status.outputs.result == 'true'
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          # This data has been defined as a Workflow in the slack channel chaos-pipeline
+          payload: |
+            {
+              "message": "Chaos pipeline failed with ${{ steps.job-status.outputs.result }} tests failed for Weaviate version: ${{ matrix.weaviate_version }}.<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link to the pipeline>",
+              "slack_channel": "chaos-pipeline"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
