@@ -32,7 +32,6 @@ jobs:
           echo "Running chaos pipelines against Weaviate version: $weaviate_version" >> $GITHUB_STEP_SUMMARY
           echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT
   run-with-sync-indexing:
-    needs: weaviate-version-information
     strategy:
       fail-fast: false
       matrix:
@@ -49,9 +48,11 @@ jobs:
       GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
   send-slack-message-on-failure:
-    needs: run-with-sync-indexing
+    needs: [weaviate-version-information, run-with-sync-indexing]
     if: failure() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    env:
+      SLACK_CHANNEL: 'C074U2W8FU3'
     steps:
       - name: Send Slack message
         uses: slackapi/slack-github-action@v1.26.0
@@ -59,8 +60,8 @@ jobs:
           # This data has been defined as a Workflow in the slack channel chaos-pipeline
           payload: |
             {
-              "message": "Chaos pipeline failed for Weaviate version: ${{ needs.weaviate-version-information.outputs.weaviate_version }}.<https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|Link to the pipeline>",
-              "slack_channel": "chaos-pipeline"
+              "message": "Chaos pipeline failed for Weaviate version: ${{ needs.weaviate-version-information.outputs.weaviate_version }}.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "slack_channel": "${{ env.SLACK_CHANNEL }}"
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
