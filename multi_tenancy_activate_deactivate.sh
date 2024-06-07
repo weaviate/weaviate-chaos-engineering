@@ -19,15 +19,17 @@ function wait_weaviate() {
   exit 1
 }
 
-function shutdown() {
-  docker compose -f apps/weaviate/docker-compose-replication.yml logs --tail=1000
+function logs() {
+  docker compose -f apps/weaviate/docker-compose-replication.yml logs --tail=100000
+}
 
+function shutdown() {
   echo "Cleaning up ressources..."
   docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
   docker container rm -f multi-tenancy-activate-deactivate &>/dev/null && echo 'Deleted container multi-tenancy-activate-deactivate'
 }
-trap 'shutdown; exit 1' SIGINT ERR
+trap 'logs; shutdown; exit 1' SIGINT ERR
 
 echo "Starting Weaviate..."
 docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
