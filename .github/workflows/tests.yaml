@@ -851,8 +851,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      WEAVIATE_NON_RAFT_VERSION: 1.24.13
-      WEAVIATE_RAFT_VERSION_1: 1.25.0-rc.0
+      WEAVIATE_NON_RAFT_VERSION: 1.24.15
+      WEAVIATE_RAFT_VERSION_1: 1.25.0
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
@@ -955,7 +955,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      WEAVIATE_RAFT_VERSION_1: 1.25.0-rc.0
+      WEAVIATE_RAFT_VERSION_1: 1.25.0
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
