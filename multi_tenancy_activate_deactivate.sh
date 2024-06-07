@@ -20,6 +20,8 @@ function wait_weaviate() {
 }
 
 function shutdown() {
+  docker compose -f apps/weaviate/docker-compose-replication.yml logs --tail=1000
+
   echo "Cleaning up ressources..."
   docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
