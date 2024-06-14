@@ -30,6 +30,7 @@ def reset_schema(client: weaviate.WeaviateClient):
                 data_type=wvc.DataType.INT,
             ),
         ],
+        replication_config=wvc.Configure.replication(async_enabled=True),
     )
 
 

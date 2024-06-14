@@ -19,6 +19,7 @@ def create_weaviate_schema():
                 "description": "A wikipedia article with a title and crefs",
                 "vectorizer": "text2vec-contextionary",
                 "vectorIndexConfig": {"skip": False},
+                "replicationConfig": {"asyncEnabled": True},
                 "properties": [
                     {
                         "dataType": ["string"],
@@ -63,6 +64,7 @@ def create_weaviate_schema():
                 "description": "A wiki paragraph",
                 "vectorizer": "text2vec-contextionary",
                 "vectorIndexConfig": {"skip": False},
+                "replicationConfig": {"asyncEnabled": True},
                 "properties": [
                     {
                         "dataType": ["string"],

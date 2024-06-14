@@ -40,7 +40,7 @@ def _create_books_schema(client: weaviate.WeaviateClient):
             Property(name="genre", data_type=DataType.TEXT),
             Property(name="page_count", data_type=DataType.INT),
         ],
-        replication_config=Configure.replication(factor=2),
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 name="title",
@@ -71,7 +71,7 @@ def _create_authors_schema(client: weaviate.WeaviateClient):
             Property(name="genres", data_type=DataType.TEXT_ARRAY),
         ],
         references=[ReferenceProperty(name="wroteBooks", target_collection="Books")],
-        replication_config=Configure.replication(factor=2),
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 name="author",

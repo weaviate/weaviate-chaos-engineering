@@ -84,6 +84,10 @@ def create_target_class(client: weaviate.Client):
             "cleanupIntervalSeconds": 10,
         },
         "class": "Target",
+        "replicationConfig": {
+            "factor": 1,
+            "asyncEnabled": True,
+        },
         "invertedIndexConfig": {
             "indexTimestamps": True,
         },

@@ -141,6 +141,8 @@ def reset_schema(client: weaviate.Client):
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },
+        "replicationConfig": {
+            "asyncEnabled": True},
         "properties": [
             {
                 "dataType": ["boolean"],

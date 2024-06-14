@@ -30,6 +30,7 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
         ],
         inverted_index_config=wvc.Configure.inverted_index(index_timestamps=False),
         sharding_config=wvc.Configure.sharding(desired_count=shards),
+        replication_config=wvc.Configure.replication(async_enabled=True),
     )
 
 

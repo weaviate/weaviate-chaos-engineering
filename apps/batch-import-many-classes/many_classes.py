@@ -5,7 +5,7 @@ import random
 import sys
 from loguru import logger
 
-client = weaviate.connect_to_local(timeout=(20, 240))
+client = weaviate.connect_to_local()
 
 timeout = 5
 

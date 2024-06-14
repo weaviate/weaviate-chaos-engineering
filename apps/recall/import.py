@@ -29,6 +29,9 @@ schema = {
             # "shardingConfig": {
             #     "desiredCount":4,
             # },
+            "replicationConfig": {
+                "asyncEnabled": True,
+            },
             "vectorizer": "none",
             "properties": [
                 {"dataType": ["string"], "description": "ID", "name": "reference"},

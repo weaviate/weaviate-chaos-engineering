@@ -1,2 +1,2 @@
-weaviate-client>=3.9.0
+weaviate-client @ git+https://github.com/weaviate/weaviate-python-client.git@feat_async_rep
 loguru==0.5.3

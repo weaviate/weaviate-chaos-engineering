@@ -25,6 +25,7 @@ def create_weaviate_schema(client: weaviate.Client) -> None:
         ],
         "vectorizer": "none",
         "vectorIndexType": "hnsw",
+        "replicationConfig": {"asyncEnabled": True},
         "invertedIndexConfig": {
             "bm25": {"b": 0.75, "k1": 1.2},
             "cleanupIntervalSeconds": 60,

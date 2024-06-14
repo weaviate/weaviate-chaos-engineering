@@ -18,6 +18,9 @@ def reset_schema(client: weaviate.Client):
             "cleanupIntervalSeconds": 10,
         },
         "class": "Example",
+        "replicationConfig": {
+            "asyncEnabled": True,
+        },
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },

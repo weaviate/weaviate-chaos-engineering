@@ -49,6 +49,7 @@ class TestConsecutiveCreateAndUpdate:
                     "class": cls_name,
                     "vectorizer": "none",
                     "vectorIndexConfig": {"skip": False},
+                    "replicationConfig": {"asyncEnabled": True},
                     "properties": [
                         {
                             "dataType": ["blob"],

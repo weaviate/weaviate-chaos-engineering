@@ -1,4 +1,4 @@
 numpy==1.22.2
 loguru==0.5.3
-weaviate-client>=3.19.0
+weaviate-client @ git+https://github.com/weaviate/weaviate-python-client.git@feat_async_rep
 backoff==2.2.1

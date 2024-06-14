@@ -37,7 +37,7 @@ def reset_schema(cycle: int) -> weaviate.collections.Collection:
         client.collections.delete_all()
         col = client.collections.create(
             "Book",
-            replication_config=wvc.config.Configure.replication(factor=int(cfg.replication_factor)),
+            replication_config=wvc.config.Configure.replication(factor=int(cfg.replication_factor),async_enabled=True),
             sharding_config=wvc.config.Configure.sharding(desired_count=1),
             properties=[
                 wvc.config.Property(name="random_number", data_type=wvc.config.DataType.INT)

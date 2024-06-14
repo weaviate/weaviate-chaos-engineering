@@ -69,7 +69,7 @@ def _create_multitenancy_schema(client: weaviate.WeaviateClient, i: int, suffix:
             Property(name="genre", data_type=DataType.TEXT),
             Property(name="page_count", data_type=DataType.INT),
         ],
-        replication_config=Configure.replication(factor=2),
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 name="description",

@@ -49,6 +49,7 @@ def reset_schema(client: weaviate.Client):
             "skip": True,
         },
         "class": "Example1",
+        "replicationConfig": {"asyncEnabled": True},
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },
@@ -68,6 +69,7 @@ def reset_schema(client: weaviate.Client):
             "skip": True,
         },
         "class": "Example2",
+        "replicationConfig": {"asyncEnabled": True},
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },

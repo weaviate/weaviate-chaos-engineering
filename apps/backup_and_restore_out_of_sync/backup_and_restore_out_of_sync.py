@@ -13,7 +13,7 @@ def create_class(client: weaviate.Client, class_name):
         "class": class_name,
         "vectorizer": "none",
         "invertedIndexConfig": {"bm25": {"b": 0.75, "k1": 1.2}},
-        "replicationConfig": {"factor": 1},
+        "replicationConfig": {"factor": 1, "asyncEnabled": True},
         "shardingConfig": {
             "desiredCount": 1,
         },

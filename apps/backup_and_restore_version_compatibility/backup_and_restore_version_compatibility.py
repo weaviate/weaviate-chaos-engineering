@@ -18,6 +18,9 @@ def reset_schema(client: weaviate.Client, class_names):
     for class_name in class_names:
         class_obj = {
             "vectorizer": "none",
+            "replicationConfig": {
+                "asyncEnabled": True,
+            },
             "vectorIndexConfig": {
                 "efConstruction": 128,
                 "maxConnections": 16,

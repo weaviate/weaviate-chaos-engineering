@@ -18,6 +18,9 @@ def reset_schema(client: weaviate.Client):
             "maxConnections": 4,
         },
         "class": "Example",
+        "replicationConfig": {
+            "asyncEnabled": True
+        },
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },
