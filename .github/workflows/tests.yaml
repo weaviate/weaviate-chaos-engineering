@@ -674,7 +674,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
-        run: ./deletes_withj_node_out_of_sync.sh
+        run: ./deletes_with_node_out_of_sync.sh
   geo-crash:
     name: Preventing crashing of geo properties during HNSW maintenance cycles
     runs-on: ubuntu-latest-8-cores
