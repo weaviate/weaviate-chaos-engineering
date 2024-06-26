@@ -1,5 +1,6 @@
 import argparse
 import sys
+import time
 from typing import List, Union
 import uuid
 from loguru import logger
@@ -11,16 +12,19 @@ import weaviate
 import weaviate.classes as wvc
 from weaviate.classes.config import Property, DataType, ReferenceProperty, Configure, VectorDistances
 from weaviate.classes.query import Filter, QueryReference
-
+from weaviate.collections.filters import _FilterOr
 s = RandomSentence()
 
 # Initialize the global singleton
 cfg = None
 client = None
 
-total_paragraphs = 1_000_000
-paragraph_to_pages_ratio = 5
-pages_to_documents_ratio = 10
+total_paragraphs = 50_000_000
+paragraph_to_pages_ratio = 1
+pages_to_documents_ratio = 3
+filter_count = 40
+
+number_range = 1000
 
 objects_per_cycle = 10_000
 
@@ -169,7 +173,7 @@ def import_data(document, page, paragraph):
                     "title": random.choice(sentences),
                     "description": random.choice(sentences),
                     "category": random.choice(categories),
-                    "random_number": random.randint(0, 1000),
+                    "random_number": random.randint(0, number_range),
                     "number": i,
                 }
             )
@@ -185,7 +189,7 @@ def import_data(document, page, paragraph):
                 uuid=uuid_from_int(i),
                 properties={
                     "category": random.choice(categories),
-                    "random_number": random.randint(0, 1000),
+                    "random_number": random.randint(0, number_range),
                     "number": i,
                 },
                 references={
@@ -205,7 +209,7 @@ def import_data(document, page, paragraph):
                 uuid=uuid_from_int(i),
                 properties={
                     "text": random.choice(sentences),
-                    "random_number": random.randint(0, 1000),
+                    "random_number": random.randint(0, number_range),
                 },
                 vector=generate_random_vector(),
                 references={
@@ -222,12 +226,24 @@ def validate_data(document, page, paragraph):
 
 def query_data():
     document, page, paragraph = get_collections()
-    response = paragraph.query.near_vector(
-        near_vector=generate_random_vector(),
-        filters=Filter.by_ref(link_on="document").by_property("number").equal(1),
-        return_references=QueryReference(link_on="document", return_properties=["category"]),
-        limit=100,
-    )
+    for i in range(100):
+        doc_id_range = [i for i in range(number_range)]
+        random.shuffle(doc_id_range)
+        filters = [
+            Filter.by_ref(link_on="document").by_property("number").equal(x)
+            for x in doc_id_range[:filter_count]
+        ]
+        start_time = time.time()
+        response = paragraph.query.near_vector(
+            near_vector=generate_random_vector(),
+            filters=(
+                Filter.by_ref(link_on="document").by_property("number").contains_any(doc_id_range[:filter_count])
+            ),
+            return_references=QueryReference(link_on="document", return_properties=["category"]),
+            limit=400,
+        )
+        end_time = time.time()
+        logger.info(f"Query took {end_time - start_time} seconds")
 
     return response
 
