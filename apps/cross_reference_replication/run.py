@@ -24,8 +24,8 @@ pages_to_documents_ratio = 10
 
 objects_per_cycle = 10_000
 
-replication_factor = 1
-sharding_factor = 1
+replication_factor = 3
+sharding_factor = 3
 
 report_ratio = 1000
 
@@ -94,7 +94,13 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
             Property(name="category", data_type=DataType.TEXT),
             Property(name="random_number", data_type=DataType.INT),
         ],
-        vectorizer_config=wvc.config.Configure.Vectorizer.none()
+        vectorizer_config=wvc.config.Configure.Vectorizer.none(),
+        replication_config=Configure.replication(
+            factor=replication_factor
+        ),
+        sharding_config=Configure.sharding(
+            desired_count=sharding_factor
+        ),
     )
 
     page = client.collections.create(
@@ -111,7 +117,13 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
                 name="document",
                 target_collection="Document",
             )
-        ]
+        ],
+        replication_config=Configure.replication(
+            factor=replication_factor
+        ),
+        sharding_config=Configure.sharding(
+            desired_count=sharding_factor
+        ),
     )
 
     paragraph = client.collections.create(
@@ -135,8 +147,13 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
         vector_index_config=Configure.VectorIndex.flat(
             distance_metric=VectorDistances.COSINE,                     # Distance metric
             vector_cache_max_objects=1000000,                           # Maximum number of objects in the cache
-        )
-
+        ),
+        replication_config=Configure.replication(
+            factor=replication_factor
+        ),
+        sharding_config=Configure.sharding(
+            desired_count=sharding_factor
+        ),
     )
     return document, page, paragraph
 
@@ -215,10 +232,10 @@ def query_data():
     return response
 
 def run():
-    #delete_data()
-    #document, page, paragraph = reset_schema()
-    #import_data(document, page, paragraph)
-    #validate_data(document, page, paragraph)
+    delete_data()
+    document, page, paragraph = reset_schema()
+    import_data(document, page, paragraph)
+    validate_data(document, page, paragraph)
     query_data()
 
 
