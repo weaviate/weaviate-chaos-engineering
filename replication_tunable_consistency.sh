@@ -69,6 +69,7 @@ fi
 # PATCH objects with one node down, consistency level QUORUM
 echo "Killing node 3"
 docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+sleep 10
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name patcher -t patcher; then
   echo "All objects patched with consistency level QUORUM with one node down".
 else
@@ -92,6 +93,7 @@ echo "Killing node 2"
 docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-2
 echo "Killing node 3"
 docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+sleep 10
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name updater -t updater; then
   echo "All objects updated with consistency level ONE with only weaviate-node-1 up".
 else
