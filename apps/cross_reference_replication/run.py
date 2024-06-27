@@ -10,28 +10,27 @@ from wonderwords import RandomSentence
 
 import weaviate
 import weaviate.classes as wvc
-from weaviate.classes.config import Property, DataType, ReferenceProperty, Configure, VectorDistances
+from weaviate.classes.config import Property, DataType, ReferenceProperty, Configure
 from weaviate.classes.query import Filter, QueryReference
-from weaviate.collections.filters import _FilterOr
 s = RandomSentence()
 
 # Initialize the global singleton
 cfg = None
 client = None
 
-total_paragraphs = 50_000_000
-paragraph_to_pages_ratio = 1
-pages_to_documents_ratio = 3
+total_paragraphs = 1_000_000
+paragraph_to_document_ratio = 3
 filter_count = 40
 
 number_range = 1000
 
 objects_per_cycle = 10_000
 
-replication_factor = 3
-sharding_factor = 3
+replication_factor = 1
+sharding_factor = 1
 
 report_ratio = 1000
+use_vectors = True
 
 # the wonderwords library is fairly slow to create sentences. Therefore we're
 # not creating them on the fly. Let's pre-create some sentences and then pick
@@ -84,19 +83,19 @@ def uuid_from_int(i: int) -> str:
 
 def get_collections() -> Union[weaviate.collections.Collection, weaviate.collections.Collection, weaviate.collections.Collection]:
     paragraphs = client.collections.get("Paragraph")
-    pages = client.collections.get("Page")
-    documents = client.collections.get("Document")
-    return documents, pages, paragraphs
+    documents1 = client.collections.get("Document1")
+    documents2 = client.collections.get("Document2")
+    return documents1, documents2, paragraphs
 
 def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collections.Collection, weaviate.collections.Collection]:
-    document = client.collections.create(
-        name="Document",
+    document1 = client.collections.create(
+        name="Document1",
         description="A document with pages",
         properties=[
             Property(name="title", data_type=DataType.TEXT),
             Property(name="description", data_type=DataType.TEXT),
             Property(name="category", data_type=DataType.TEXT),
-            Property(name="random_number", data_type=DataType.INT),
+            Property(name="number", data_type=DataType.INT),
         ],
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
         replication_config=Configure.replication(
@@ -107,27 +106,22 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
         ),
     )
 
-    page = client.collections.create(
-        name="Page",
-        description="A page of text",
+    document2 = client.collections.create(
+        name="Document2",
+        description="A document with pages",
         properties=[
+            Property(name="title", data_type=DataType.TEXT),
+            Property(name="description", data_type=DataType.TEXT),
             Property(name="category", data_type=DataType.TEXT),
-            Property(name="number", data_type=DataType.NUMBER),
-            Property(name="random_number", data_type=DataType.INT),
+            Property(name="number", data_type=DataType.INT),
         ],
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
-        references=[
-            ReferenceProperty(
-                name="document",
-                target_collection="Document",
-            )
-        ],
         replication_config=Configure.replication(
             factor=replication_factor
         ),
         sharding_config=Configure.sharding(
             desired_count=sharding_factor
-        ),
+        )
     )
 
     paragraph = client.collections.create(
@@ -135,23 +129,15 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
         description="A paragraph of a document",
         properties=[
             Property(name="text", data_type=DataType.TEXT),
-            Property(name="random_number", data_type=DataType.INT),
+            Property(name="number", data_type=DataType.INT),
         ],
         vectorizer_config=wvc.config.Configure.Vectorizer.none(),
         references=[
             ReferenceProperty(
-                name="page",
-                target_collection="Page",
-            ),
-            ReferenceProperty(
-                name="document",
-                target_collection="Document",
+                name="document2",
+                target_collection="Document2",
             )
         ],
-        vector_index_config=Configure.VectorIndex.flat(
-            distance_metric=VectorDistances.COSINE,                     # Distance metric
-            vector_cache_max_objects=1000000,                           # Maximum number of objects in the cache
-        ),
         replication_config=Configure.replication(
             factor=replication_factor
         ),
@@ -159,99 +145,111 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
             desired_count=sharding_factor
         ),
     )
-    return document, page, paragraph
+    return document1, document2, paragraph
 
 def delete_data():
     client.collections.delete_all()
 
-def import_data(document, page, paragraph):
-    with document.batch.dynamic() as batch:
-        for i in range(total_paragraphs//pages_to_documents_ratio//paragraph_to_pages_ratio):
+def import_data():   
+    document1, document2, paragraph = get_collections() 
+    with document1.batch.dynamic() as batch:
+        for i in range(total_paragraphs//paragraph_to_document_ratio):
+            other_document_2 = uuid_from_int(random.randint(0, total_paragraphs//paragraph_to_document_ratio))
             batch.add_object(
                 uuid=uuid_from_int(i),
                 properties={
                     "title": random.choice(sentences),
                     "description": random.choice(sentences),
                     "category": random.choice(categories),
-                    "random_number": random.randint(0, number_range),
                     "number": i,
+                },
+            )
+            if i % report_ratio == 0:
+                logger.info(f"document {i}")
+            
+
+    with document2.batch.dynamic() as batch:
+        for i in range(total_paragraphs//paragraph_to_document_ratio):
+            other_document_1 = uuid_from_int(random.randint(0, total_paragraphs//paragraph_to_document_ratio))
+            batch.add_object(
+                uuid=uuid_from_int(i),
+                properties={
+                    "title": random.choice(sentences),
+                    "description": random.choice(sentences),
+                    "category": random.choice(categories),
+                    "number": random.randint(0, number_range),
                 }
             )
-
             if i % report_ratio == 0:
                 logger.info(f"document {i}")
 
 
-    with page.batch.dynamic() as batch:
-        for i in range(total_paragraphs//paragraph_to_pages_ratio):
-            document = uuid_from_int(i//pages_to_documents_ratio)
-            batch.add_object(
-                uuid=uuid_from_int(i),
-                properties={
-                    "category": random.choice(categories),
-                    "random_number": random.randint(0, number_range),
-                    "number": i,
-                },
-                references={
-                    "document": document,
-                },
-            )
-
-            if i % report_ratio == 0:
-                logger.info(f"page {i}")
-
-
     with paragraph.batch.dynamic() as batch:
         for i in range(total_paragraphs):
-            page = uuid_from_int(i//paragraph_to_pages_ratio)
-            document = uuid_from_int(i//pages_to_documents_ratio//paragraph_to_pages_ratio)
-            batch.add_object(
-                uuid=uuid_from_int(i),
-                properties={
+            #page_id = uuid_from_int(i//paragraph_to_pages_ratio)
+            document_id = uuid_from_int(i//paragraph_to_document_ratio)
+            object = {
+                "uuid": uuid_from_int(i),
+                "properties": {
                     "text": random.choice(sentences),
-                    "random_number": random.randint(0, number_range),
+                    "number": random.randint(0, number_range),
                 },
-                vector=generate_random_vector(),
-                references={
-                    "document": document,
-                    "page": page,
-                },
+                "references": {
+                    "document2": document_id,
+                    #"page": page_id,
+                }
+            }
+            if use_vectors:
+                object["vector"] = generate_random_vector()
+            batch.add_object(
+                **object                
             )
             if i % report_ratio == 0:
                 logger.info(f"paragraph {i}")
 
-def validate_data(document, page, paragraph):
+def validate_data():
     # Validate the data
-    logger.info(f"{len(document)} documents, {len(page)} pages, {len(paragraph)} paragraphs")
+    document1, document2, paragraph = get_collections()
+    logger.info(f"{len(document1)} documents1, {len(document2)} document2, {len(paragraph)} paragraphs")
 
 def query_data():
-    document, page, paragraph = get_collections()
+    _, _, paragraph = get_collections()
     for i in range(100):
         doc_id_range = [i for i in range(number_range)]
         random.shuffle(doc_id_range)
         filters = [
-            Filter.by_ref(link_on="document").by_property("number").equal(x)
+            Filter.by_ref(link_on="document2").by_property("number").equal(x)
             for x in doc_id_range[:filter_count]
         ]
         start_time = time.time()
-        response = paragraph.query.near_vector(
-            near_vector=generate_random_vector(),
-            filters=(
-                Filter.by_ref(link_on="document").by_property("number").contains_any(doc_id_range[:filter_count])
-            ),
-            return_references=QueryReference(link_on="document", return_properties=["category"]),
-            limit=400,
-        )
+        if use_vectors:
+            response = paragraph.query.near_vector(
+                near_vector=generate_random_vector(),
+                filters=(
+                    Filter.by_ref(link_on="document2").by_property("number").contains_any(doc_id_range[:filter_count])
+                ),
+                return_references=QueryReference(link_on="document2", return_properties=["category"]),
+                limit=400,
+            )
+        else:
+            response = paragraph.query.bm25(
+                query="word_that_does_not_exist",
+                filters=(
+                    Filter.by_ref(link_on="document2").by_property("number").contains_any(doc_id_range[:filter_count])
+                ),
+                return_references=QueryReference(link_on="document2", return_properties=["category"]),
+                limit=400,
+            )
         end_time = time.time()
-        logger.info(f"Query took {end_time - start_time} seconds")
+        logger.info(f"Query took {(end_time - start_time)*1000} ms")
 
     return response
 
 def run():
     delete_data()
-    document, page, paragraph = reset_schema()
-    import_data(document, page, paragraph)
-    validate_data(document, page, paragraph)
+    reset_schema()
+    import_data()
+    validate_data()
     query_data()
 
 
