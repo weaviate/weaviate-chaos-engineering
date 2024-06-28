@@ -143,6 +143,9 @@ func classForTenants(class *models.Class) *models.Class {
 	class.MultiTenancyConfig = &models.MultiTenancyConfig{
 		Enabled: true,
 	}
+	class.ReplicationConfig = &models.ReplicationConfig{
+		Factor: 1,
+	}
 	return class
 }
 

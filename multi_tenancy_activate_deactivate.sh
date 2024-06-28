@@ -24,10 +24,12 @@ function logs() {
 }
 
 function shutdown() {
+  #echo "Showing logs..."
   echo "Cleaning up ressources..."
   docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
   docker container rm -f multi-tenancy-activate-deactivate &>/dev/null && echo 'Deleted container multi-tenancy-activate-deactivate'
+  #docker container rm -f multi-tenancy-activate-deactivate &>/dev/null && echo 'Deleted container multi-tenancy-activate-deactivate'
 }
 trap 'logs; shutdown; exit 1' SIGINT ERR
 
@@ -41,7 +43,7 @@ echo "Building all required containers"
 ( cd apps/multi-tenancy-activate-deactivate/ && docker build -t multi-tenancy-activate-deactivate . )
 
 echo "Run script"
-docker run --network host --name multi-tenancy-activate-deactivate -t multi-tenancy-activate-deactivate
+docker run --network host --ulimit nofile=262144:262144 --name multi-tenancy-activate-deactivate -t multi-tenancy-activate-deactivate
 
 echo "Success"
 shutdown
