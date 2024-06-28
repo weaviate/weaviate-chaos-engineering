@@ -6,6 +6,7 @@ import uuid
 from loguru import logger
 import random
 
+import requests
 from wonderwords import RandomSentence
 
 import weaviate
@@ -26,11 +27,13 @@ number_range = 1000
 
 objects_per_cycle = 10_000
 
-replication_factor = 1
-sharding_factor = 1
+replication_factor = 3
+sharding_factor = 3
 
 report_ratio = 1000
-use_vectors = True
+use_vectors = False
+filter_cross_reference = True
+get_cross_reference = True
 
 # the wonderwords library is fairly slow to create sentences. Therefore we're
 # not creating them on the fly. Let's pre-create some sentences and then pick
@@ -214,43 +217,56 @@ def validate_data():
 
 def query_data():
     _, _, paragraph = get_collections()
+    random.seed(42)
     for i in range(100):
         doc_id_range = [i for i in range(number_range)]
         random.shuffle(doc_id_range)
-        filters = [
-            Filter.by_ref(link_on="document2").by_property("number").equal(x)
-            for x in doc_id_range[:filter_count]
-        ]
         start_time = time.time()
+        filters = None
+        if filter_cross_reference:
+            filters = (
+                Filter.by_ref(link_on="document2").by_property("number").contains_any(doc_id_range[:filter_count])
+            )
+        return_references = None
+        if get_cross_reference:
+            return_references = QueryReference(link_on="document2", return_properties=["category"])
         if use_vectors:
             response = paragraph.query.near_vector(
                 near_vector=generate_random_vector(),
-                filters=(
-                    Filter.by_ref(link_on="document2").by_property("number").contains_any(doc_id_range[:filter_count])
-                ),
-                return_references=QueryReference(link_on="document2", return_properties=["category"]),
+                filters=filters,
+                return_references=return_references,
                 limit=400,
             )
         else:
             response = paragraph.query.bm25(
                 query="word_that_does_not_exist",
-                filters=(
-                    Filter.by_ref(link_on="document2").by_property("number").contains_any(doc_id_range[:filter_count])
-                ),
-                return_references=QueryReference(link_on="document2", return_properties=["category"]),
+                filters=filters,
+                return_references=return_references,
                 limit=400,
             )
         end_time = time.time()
-        logger.info(f"Query took {(end_time - start_time)*1000} ms")
-
+        logger.info(f"Query took {(end_time - start_time)*1000:.2f}")
     return response
 
+def get_stats():
+    time.sleep(10)
+    timestamp = int(time.time())
+    for port in [2112, 2113, 2114]:
+        url = f"http://localhost:{port}/metrics"
+        logger.info(f"Getting stats from {url}")
+        data = requests.get(url)
+        with open(f"metrics_{port}_{timestamp}_{replication_factor}_{sharding_factor}.txt", "w") as f:
+            f.write(data.text)
+
+
+
 def run():
-    delete_data()
-    reset_schema()
-    import_data()
-    validate_data()
+    #delete_data()
+    #reset_schema()
+    #import_data()
+    #validate_data()
     query_data()
+    get_stats()
 
 
 if __name__ == "__main__":
