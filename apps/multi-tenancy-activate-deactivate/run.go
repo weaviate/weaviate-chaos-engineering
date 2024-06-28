@@ -366,8 +366,8 @@ func test2() {
 
 	loops := 50
 	classPizza := "Pizza"
-	// classSoup := "Soup"
-	// classRisotto := "Risotto"
+	classSoup := "Soup"
+	classRisotto := "Risotto"
 
 	uuidCounter := uint32(0)
 	getId := func() strfmt.UUID {
@@ -397,15 +397,15 @@ func test2() {
 	log.Println("creating MT classes")
 
 	CreateSchemaPizzaForTenants(client)
-	// CreateSchemaSoupForTenants(client)
-	// CreateSchemaRisottoForTenants(client)
+	CreateSchemaSoupForTenants(client)
+	CreateSchemaRisottoForTenants(client)
 
 	coldBuf := make(Tenants, 10)
 	hotBuf := make(Tenants, 10)
 	hotWithDataBuf := make(Tenants, 10)
 	var allTenants Tenants
 
-	for l := 1; l <= loops; l++ {
+	for l := 1; l <= loops*0; l++ {
 		log.Printf("loop [%d/%d] started\n", l, loops)
 
 		for i := 0; i < 10; i++ {
@@ -436,11 +436,11 @@ func test2() {
 		log.Printf("loop [%d] creating tenants and populating 1/3 of them\n", l)
 
 		CreateTenantsPizza(client, batchTenants...)
-		// CreateTenantsSoup(client, batchTenants...)
-		// CreateTenantsRisotto(client, batchTenants...)
+		CreateTenantsSoup(client, batchTenants...)
+		CreateTenantsRisotto(client, batchTenants...)
 		CreateDataPizzaForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
-		// CreateDataSoupForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
-		// CreateDataRisottoForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
+		CreateDataSoupForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
+		CreateDataRisottoForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
 
 		// ==================================================================================
 
@@ -452,7 +452,7 @@ func test2() {
 			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
 		requireNil(err)
-		/*err = client.Schema().TenantsUpdater().
+		err = client.Schema().TenantsUpdater().
 			WithClassName(classSoup).
 			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
@@ -461,7 +461,7 @@ func test2() {
 			WithClassName(classRisotto).
 			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
-		requireNil(err)*/
+		requireNil(err)
 
 		// ==================================================================================
 
@@ -480,7 +480,7 @@ func test2() {
 				Do(ctx)
 			requireNil(err)
 
-			/*err = client.Schema().TenantsUpdater().
+			err = client.Schema().TenantsUpdater().
 				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
 				WithClassName(classSoup).
 				Do(ctx)
@@ -500,7 +500,7 @@ func test2() {
 				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
 				WithClassName(classRisotto).
 				Do(ctx)
-			requireNil(err)*/
+			requireNil(err)
 
 			log.Printf("loop [%d][%d] activated\n", l, i)
 		}
@@ -519,7 +519,7 @@ func test2() {
 		requireTrue(gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT),
 			"gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT)")
 
-		/*gotTenantsSoup, err := client.Schema().TenantsGetter().
+		gotTenantsSoup, err := client.Schema().TenantsGetter().
 			WithClassName(classPizza).
 			Do(ctx)
 		requireNil(err)
@@ -538,7 +538,7 @@ func test2() {
 		requireTrue(len(gotBatchTenantsRisotto) == 30, "len(gotBatchTenantsRisotto) == 30")
 		requireTrue(gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT),
 			"gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT)")
-		*/
+
 		half := len(allTenants) / 2
 		r.Shuffle(len(allTenants), func(i, j int) {
 			allTenants[i], allTenants[j] = allTenants[j], allTenants[i]
@@ -554,7 +554,7 @@ func test2() {
 			WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
 		requireNil(err)
-		/*err = client.Schema().TenantsUpdater().
+		err = client.Schema().TenantsUpdater().
 			WithClassName(classSoup).
 			WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
@@ -563,7 +563,7 @@ func test2() {
 			WithClassName(classRisotto).
 			WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
-		requireNil(err)*/
+		requireNil(err)
 
 		for i := 0; i < 3; i++ {
 			err := client.Schema().TenantsUpdater().
@@ -576,28 +576,28 @@ func test2() {
 				WithClassName(classPizza).
 				Do(ctx)
 			requireNil(err)
-			/*
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-					WithClassName(classSoup).
-					Do(ctx)
-				requireNil(err)
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-					WithClassName(classSoup).
-					Do(ctx)
-				requireNil(err)
 
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-					WithClassName(classRisotto).
-					Do(ctx)
-				requireNil(err)
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-					WithClassName(classRisotto).
-					Do(ctx)
-				requireNil(err)*/
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
+				WithClassName(classSoup).
+				Do(ctx)
+			requireNil(err)
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
+				WithClassName(classSoup).
+				Do(ctx)
+			requireNil(err)
+
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
+				WithClassName(classRisotto).
+				Do(ctx)
+			requireNil(err)
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
+				WithClassName(classRisotto).
+				Do(ctx)
+			requireNil(err)
 
 			log.Printf("loop [%d][%d] activated\n", l, i)
 		}
@@ -607,8 +607,8 @@ func test2() {
 		log.Printf("loop [%d] populating 1st half of ALL tenants\n", l)
 
 		CreateDataPizzaForTenantsWithIds(client, getId, allTenants[:half].Names()...)
-		// CreateDataSoupForTenantsWithIds(client, getId, allTenants[:half].Names()...)
-		// CreateDataRisottoForTenantsWithIds(client, getId, allTenants[:half].Names()...)
+		CreateDataSoupForTenantsWithIds(client, getId, allTenants[:half].Names()...)
+		CreateDataRisottoForTenantsWithIds(client, getId, allTenants[:half].Names()...)
 
 		// ==================================================================================
 
@@ -626,29 +626,29 @@ func test2() {
 				WithClassName(classPizza).
 				Do(ctx)
 			requireNil(err)
-			/*
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-					WithClassName(classSoup).
-					Do(ctx)
-				requireNil(err)
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
-					WithClassName(classSoup).
-					Do(ctx)
-				requireNil(err)
 
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-					WithClassName(classRisotto).
-					Do(ctx)
-				requireNil(err)
-				err = client.Schema().TenantsUpdater().
-					WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
-					WithClassName(classRisotto).
-					Do(ctx)
-				requireNil(err)
-			*/
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
+				WithClassName(classSoup).
+				Do(ctx)
+			requireNil(err)
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
+				WithClassName(classSoup).
+				Do(ctx)
+			requireNil(err)
+
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
+				WithClassName(classRisotto).
+				Do(ctx)
+			requireNil(err)
+			err = client.Schema().TenantsUpdater().
+				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
+				WithClassName(classRisotto).
+				Do(ctx)
+			requireNil(err)
+
 			log.Printf("loop [%d][%d] activated\n", l, i)
 		}
 
@@ -657,7 +657,7 @@ func test2() {
 			WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
 			Do(ctx)
 		requireNil(err)
-		/*err = client.Schema().TenantsUpdater().
+		err = client.Schema().TenantsUpdater().
 			WithClassName(classSoup).
 			WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
 			Do(ctx)
@@ -666,7 +666,7 @@ func test2() {
 			WithClassName(classRisotto).
 			WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
 			Do(ctx)
-		requireNil(err)*/
+		requireNil(err)
 
 		log.Printf("loop [%d/%d] finished\n", l, loops)
 	}
