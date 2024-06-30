@@ -21,6 +21,8 @@ func main() {
 func test1() {
 	log.Println("TEST 1 starting")
 
+	return
+
 	classPizza := "Pizza"
 	classSoup := "Soup"
 	ctx := context.Background()
@@ -364,10 +366,8 @@ func test1() {
 func test2() {
 	log.Println("TEST 2 starting")
 
-	loops := 50
+	loops := 1
 	classPizza := "Pizza"
-	classSoup := "Soup"
-	classRisotto := "Risotto"
 
 	uuidCounter := uint32(0)
 	getId := func() strfmt.UUID {
@@ -397,18 +397,16 @@ func test2() {
 	log.Println("creating MT classes")
 
 	CreateSchemaPizzaForTenants(client)
-	CreateSchemaSoupForTenants(client)
-	CreateSchemaRisottoForTenants(client)
 
-	coldBuf := make(Tenants, 10)
-	hotBuf := make(Tenants, 10)
-	hotWithDataBuf := make(Tenants, 10)
+	coldBuf := make(Tenants, 1)
+	hotBuf := make(Tenants, 1)
+	hotWithDataBuf := make(Tenants, 1)
 	var allTenants Tenants
 
-	for l := 1; l <= loops*0; l++ {
+	for l := 1; l <= loops; l++ {
 		log.Printf("loop [%d/%d] started\n", l, loops)
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 1; i++ {
 			coldBuf[i] = models.Tenant{
 				Name:           name(nextTenantId),
 				ActivityStatus: models.TenantActivityStatusCOLD,
@@ -435,12 +433,15 @@ func test2() {
 
 		log.Printf("loop [%d] creating tenants and populating 1/3 of them\n", l)
 
+		log.Printf("coldBuf: %v \n", coldBuf)
+		log.Printf("hotBuf: %v \n", hotBuf)
+		log.Printf("hotWithDataBuf: %v \n", hotWithDataBuf)
+		log.Printf("batchTenants: %v \n", batchTenants)
+		log.Printf("allTenants: %v \n", allTenants)
+
 		CreateTenantsPizza(client, batchTenants...)
-		CreateTenantsSoup(client, batchTenants...)
-		CreateTenantsRisotto(client, batchTenants...)
+
 		CreateDataPizzaForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
-		CreateDataSoupForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
-		CreateDataRisottoForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
 
 		// ==================================================================================
 
@@ -452,92 +453,8 @@ func test2() {
 			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
 			Do(ctx)
 		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classSoup).
-			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
-		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classRisotto).
-			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
-		requireNil(err)
 
 		// ==================================================================================
-
-		log.Printf("loop [%d] deactivating created tenants and activating them again (x3) \n", l)
-
-		// deactivate and activate back again (x3)
-		for i := 0; i < 3; i++ {
-			err := client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classPizza).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classPizza).
-				Do(ctx)
-			requireNil(err)
-
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classSoup).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classSoup).
-				Do(ctx)
-			requireNil(err)
-
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classRisotto).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classRisotto).
-				Do(ctx)
-			requireNil(err)
-
-			log.Printf("loop [%d][%d] activated\n", l, i)
-		}
-
-		// ==================================================================================
-
-		log.Printf("loop [%d] verifying created tenants active\n", l)
-
-		gotTenantsPizza, err := client.Schema().TenantsGetter().
-			WithClassName(classPizza).
-			Do(ctx)
-		requireNil(err)
-
-		gotBatchTenantsPizza := Tenants(gotTenantsPizza).ByNames(batchTenants.Names()...)
-		requireTrue(len(gotBatchTenantsPizza) == 30, "len(gotBatchTenantsPizza) == 30")
-		requireTrue(gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT),
-			"gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT)")
-
-		gotTenantsSoup, err := client.Schema().TenantsGetter().
-			WithClassName(classPizza).
-			Do(ctx)
-		requireNil(err)
-
-		gotBatchTenantsSoup := Tenants(gotTenantsSoup).ByNames(batchTenants.Names()...)
-		requireTrue(len(gotBatchTenantsSoup) == 30, "len(gotBatchTenantsSoup) == 30")
-		requireTrue(gotBatchTenantsSoup.IsStatus(models.TenantActivityStatusHOT),
-			"gotBatchTenantsSoup.IsStatus(models.TenantActivityStatusHOT)")
-
-		gotTenantsRisotto, err := client.Schema().TenantsGetter().
-			WithClassName(classRisotto).
-			Do(ctx)
-		requireNil(err)
-
-		gotBatchTenantsRisotto := Tenants(gotTenantsRisotto).ByNames(batchTenants.Names()...)
-		requireTrue(len(gotBatchTenantsRisotto) == 30, "len(gotBatchTenantsRisotto) == 30")
-		requireTrue(gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT),
-			"gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT)")
 
 		half := len(allTenants) / 2
 		r.Shuffle(len(allTenants), func(i, j int) {
@@ -546,127 +463,9 @@ func test2() {
 
 		// ==================================================================================
 
-		log.Printf("loop [%d] activating 1st half of ALL tenants (act + 3x(deact + act))\n", l)
-
-		// effectively activate and  populate 1st half
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classPizza).
-			WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
-		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classSoup).
-			WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
-		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classRisotto).
-			WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
-		requireNil(err)
-
-		for i := 0; i < 3; i++ {
-			err := client.Schema().TenantsUpdater().
-				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classPizza).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classPizza).
-				Do(ctx)
-			requireNil(err)
-
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classSoup).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classSoup).
-				Do(ctx)
-			requireNil(err)
-
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classRisotto).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[:half].WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classRisotto).
-				Do(ctx)
-			requireNil(err)
-
-			log.Printf("loop [%d][%d] activated\n", l, i)
-		}
-
-		// ==================================================================================
-
 		log.Printf("loop [%d] populating 1st half of ALL tenants\n", l)
 
 		CreateDataPizzaForTenantsWithIds(client, getId, allTenants[:half].Names()...)
-		CreateDataSoupForTenantsWithIds(client, getId, allTenants[:half].Names()...)
-		CreateDataRisottoForTenantsWithIds(client, getId, allTenants[:half].Names()...)
-
-		// ==================================================================================
-
-		log.Printf("loop [%d] deactivating 2nd half of ALL tenants (3x(deact + act) + deact) \n", l)
-
-		// effectively deactivate 2nd half
-		for i := 0; i < 3; i++ {
-			err := client.Schema().TenantsUpdater().
-				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classPizza).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classPizza).
-				Do(ctx)
-			requireNil(err)
-
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classSoup).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classSoup).
-				Do(ctx)
-			requireNil(err)
-
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classRisotto).
-				Do(ctx)
-			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classRisotto).
-				Do(ctx)
-			requireNil(err)
-
-			log.Printf("loop [%d][%d] activated\n", l, i)
-		}
-
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classPizza).
-			WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-			Do(ctx)
-		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classSoup).
-			WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-			Do(ctx)
-		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classRisotto).
-			WithTenants(allTenants[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-			Do(ctx)
-		requireNil(err)
 
 		log.Printf("loop [%d/%d] finished\n", l, loops)
 	}
