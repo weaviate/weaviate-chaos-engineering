@@ -394,37 +394,46 @@ func test2() {
 
 	CreateSchemaPizzaForTenants(client)
 
-	coldTenants := make(Tenants, 1)
+	tenants := make(Tenants, 1)
 
-	coldTenants[0] = models.Tenant{
+	tenants[0] = models.Tenant{
 		Name:           name(0),
-		ActivityStatus: models.TenantActivityStatusCOLD,
+		ActivityStatus: models.TenantActivityStatusHOT,
 	}
 
 	// ==================================================================================
 
-	log.Printf("creating inactive tenant\n")
+	log.Printf("creating tenant\n")
 
-	log.Printf("coldTenants: %v \n", coldTenants)
+	log.Printf("tenants: %v \n", tenants)
 
-	CreateTenantsPizza(client, coldTenants...)
-
-	// ==================================================================================
-
-	log.Printf("activating tenants created as inactive\n")
-
-	// activate created as inactive
-	err = client.Schema().TenantsUpdater().
-		WithClassName(classPizza).
-		WithTenants(coldTenants.WithStatus(models.TenantActivityStatusHOT)...).
-		Do(ctx)
-	requireNil(err)
+	CreateTenantsPizza(client, tenants...)
 
 	// ==================================================================================
 
-	log.Printf("populating tenants\n")
+	log.Printf("deactivating and activating tenant\n")
 
-	CreateDataPizzaForTenantsWithIds(client, getId, coldTenants.Names()...)
+	// deactivate / activate tenant
+
+	for i := 0; i < 1_000; i++ {
+		err = client.Schema().TenantsUpdater().
+			WithClassName(classPizza).
+			WithTenants(tenants.WithStatus(models.TenantActivityStatusCOLD)...).
+			Do(ctx)
+		requireNil(err)
+
+		err = client.Schema().TenantsUpdater().
+			WithClassName(classPizza).
+			WithTenants(tenants.WithStatus(models.TenantActivityStatusHOT)...).
+			Do(ctx)
+		requireNil(err)
+	}
+
+	// ==================================================================================
+
+	log.Printf("populating tenant\n")
+
+	CreateDataPizzaForTenantsWithIds(client, getId, tenants.Names()...)
 
 	log.Println("TEST 2 finished. OK")
 }
