@@ -378,7 +378,7 @@ func createDataForTenants(client *weaviate.Client,
 			objects = append(objects, object)
 		}
 	}
-	createData(client, objects)
+	createData(client, objects[:1])
 }
 
 // ##### OBJECTS #####

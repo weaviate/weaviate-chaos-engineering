@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
-	"time"
 
 	"github.com/go-openapi/strfmt"
 	wvt "github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -366,7 +364,6 @@ func test1() {
 func test2() {
 	log.Println("TEST 2 starting")
 
-	loops := 1
 	classPizza := "Pizza"
 
 	uuidCounter := uint32(0)
@@ -374,13 +371,12 @@ func test2() {
 		uuidCounter++
 		return strfmt.UUID(fmt.Sprintf("00000000-0000-0000-0000-%012x", uuidCounter-1))
 	}
-	nextTenantId := 0
+
 	name := func(id int) string {
 		return fmt.Sprintf("tenant_%d", id)
 	}
 
 	ctx := context.Background()
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: "localhost:8080"})
 	requireNil(err)
@@ -398,77 +394,37 @@ func test2() {
 
 	CreateSchemaPizzaForTenants(client)
 
-	coldBuf := make(Tenants, 1)
-	hotBuf := make(Tenants, 1)
-	hotWithDataBuf := make(Tenants, 1)
-	var allTenants Tenants
+	coldTenants := make(Tenants, 1)
 
-	for l := 1; l <= loops; l++ {
-		log.Printf("loop [%d/%d] started\n", l, loops)
-
-		for i := 0; i < 1; i++ {
-			coldBuf[i] = models.Tenant{
-				Name:           name(nextTenantId),
-				ActivityStatus: models.TenantActivityStatusCOLD,
-			}
-			nextTenantId++
-
-			hotBuf[i] = models.Tenant{
-				Name:           name(nextTenantId),
-				ActivityStatus: models.TenantActivityStatusHOT,
-			}
-			nextTenantId++
-
-			hotWithDataBuf[i] = models.Tenant{
-				Name:           name(nextTenantId),
-				ActivityStatus: models.TenantActivityStatusHOT,
-			}
-			nextTenantId++
-		}
-
-		batchTenants := coldBuf.Merge(hotBuf).Merge(hotWithDataBuf)
-		allTenants = append(allTenants, batchTenants...)
-
-		// ==================================================================================
-
-		log.Printf("loop [%d] creating tenants and populating 1/3 of them\n", l)
-
-		log.Printf("coldBuf: %v \n", coldBuf)
-		log.Printf("hotBuf: %v \n", hotBuf)
-		log.Printf("hotWithDataBuf: %v \n", hotWithDataBuf)
-		log.Printf("batchTenants: %v \n", batchTenants)
-		log.Printf("allTenants: %v \n", allTenants)
-
-		CreateTenantsPizza(client, batchTenants...)
-
-		CreateDataPizzaForTenantsWithIds(client, getId, hotWithDataBuf.Names()...)
-
-		// ==================================================================================
-
-		log.Printf("loop [%d] activating tenants created as inactive\n", l)
-
-		// activate created as inactive
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classPizza).
-			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
-		requireNil(err)
-
-		// ==================================================================================
-
-		half := len(allTenants) / 2
-		r.Shuffle(len(allTenants), func(i, j int) {
-			allTenants[i], allTenants[j] = allTenants[j], allTenants[i]
-		})
-
-		// ==================================================================================
-
-		log.Printf("loop [%d] populating 1st half of ALL tenants\n", l)
-
-		CreateDataPizzaForTenantsWithIds(client, getId, allTenants[:half].Names()...)
-
-		log.Printf("loop [%d/%d] finished\n", l, loops)
+	coldTenants[0] = models.Tenant{
+		Name:           name(0),
+		ActivityStatus: models.TenantActivityStatusCOLD,
 	}
+
+	// ==================================================================================
+
+	log.Printf("creating inactive tenant\n")
+
+	log.Printf("coldTenants: %v \n", coldTenants)
+
+	CreateTenantsPizza(client, coldTenants...)
+
+	// ==================================================================================
+
+	log.Printf("activating tenants created as inactive\n")
+
+	// activate created as inactive
+	err = client.Schema().TenantsUpdater().
+		WithClassName(classPizza).
+		WithTenants(coldTenants.WithStatus(models.TenantActivityStatusHOT)...).
+		Do(ctx)
+	requireNil(err)
+
+	// ==================================================================================
+
+	log.Printf("populating tenants\n")
+
+	CreateDataPizzaForTenantsWithIds(client, getId, coldTenants.Names()...)
 
 	log.Println("TEST 2 finished. OK")
 }
