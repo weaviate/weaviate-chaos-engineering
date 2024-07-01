@@ -33,7 +33,9 @@ sharding_factor = 3
 report_ratio = 1000
 use_vectors = False
 filter_cross_reference = True
+double_filter_cross_reference = True
 get_cross_reference = True
+
 
 # the wonderwords library is fairly slow to create sentences. Therefore we're
 # not creating them on the fly. Let's pre-create some sentences and then pick
@@ -124,7 +126,13 @@ def reset_schema() -> Union[weaviate.collections.Collection, weaviate.collection
         ),
         sharding_config=Configure.sharding(
             desired_count=sharding_factor
-        )
+        ),
+        references=[
+            ReferenceProperty(
+                name="document1",
+                target_collection="Document1",
+            )
+        ],
     )
 
     paragraph = client.collections.create(
@@ -181,6 +189,10 @@ def import_data():
                     "description": random.choice(sentences),
                     "category": random.choice(categories),
                     "number": random.randint(0, number_range),
+                },
+                references={
+                    "document1": other_document_1,
+                    #"page": page_id,
                 }
             )
             if i % report_ratio == 0:
@@ -217,7 +229,6 @@ def validate_data():
 
 def query_data():
     _, _, paragraph = get_collections()
-    random.seed(42)
     for i in range(100):
         doc_id_range = [i for i in range(number_range)]
         random.shuffle(doc_id_range)
@@ -226,6 +237,10 @@ def query_data():
         if filter_cross_reference:
             filters = (
                 Filter.by_ref(link_on="document2").by_property("number").contains_any(doc_id_range[:filter_count])
+            )
+        if double_filter_cross_reference:
+            filters = (
+                Filter.by_ref(link_on="document2").by_ref(link_on="document1").by_property("number").contains_any(doc_id_range[:filter_count])
             )
         return_references = None
         if get_cross_reference:
@@ -239,7 +254,7 @@ def query_data():
             )
         else:
             response = paragraph.query.bm25(
-                query="word_that_does_not_exist",
+                query="a query about something that exists the a document",
                 filters=filters,
                 return_references=return_references,
                 limit=400,
@@ -261,10 +276,10 @@ def get_stats():
 
 
 def run():
-    #delete_data()
-    #reset_schema()
-    #import_data()
-    #validate_data()
+    delete_data()
+    reset_schema()
+    import_data()
+    validate_data()
     query_data()
     get_stats()
 
@@ -274,4 +289,5 @@ if __name__ == "__main__":
     configure_logger()
     cfg = parse_arguments()
     client = weaviate.connect_to_local(host=cfg.host)
+    random.seed(42)
     run()
