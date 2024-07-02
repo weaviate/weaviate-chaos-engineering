@@ -33,7 +33,7 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
     )
 
 
-def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_seg_ratio, override):
+def load_records(client: weaviate.WeaviateClient, vectors, quantization, dim_to_seg_ratio, override):
     collection = client.collections.get(class_name)
     i = 0
     if vectors == None:
@@ -43,8 +43,8 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
 
     with client.batch.fixed_size(batch_size=batch_size) as batch:
         for vector in vectors:
-            if i == 100000 and compression == True and override == False:
-                logger.info(f"pausing import to enable compression")
+            if i == 100000 and quantization in ["pq", "sq"] and override == False:
+                logger.info(f"pausing import to enable quantization")
                 break
 
             if i % 10000 == 0:
@@ -64,14 +64,22 @@ def load_records(client: weaviate.WeaviateClient, vectors, compression, dim_to_s
     for err in client.batch.failed_objects:
         logger.error(err.message)
 
-    if compression == True and override == False:
-        collection.config.update(
-            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
-                    segments=int(len(vectors[0]) / dim_to_seg_ratio),
+    if quantization in ["pq", "sq"] and override == False:
+
+        if quantization == "pq":
+            collection.config.update(
+                vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                    quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
+                        segments=int(len(vectors[0]) / dim_to_seg_ratio),
+                    )
                 )
             )
-        )
+        elif quantization == "sq":
+            collection.config.update(
+                vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                    quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+                )
+            )
 
         wait_for_all_shards_ready(collection)
 

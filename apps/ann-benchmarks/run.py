@@ -27,7 +27,7 @@ values = {
         256,
         512,
     ],
-    "compression": False,
+    "quantization": False,
     "dim_to_segment_ratio": 4,
     "override": False,
 }
@@ -44,7 +44,7 @@ parser.add_argument("-v", "--vectors")
 parser.add_argument("-d", "--distance")
 parser.add_argument("-m", "--max-connections")
 parser.add_argument("-l", "--labels")
-parser.add_argument("-c", "--compression", action=argparse.BooleanOptionalAction)
+parser.add_argument("-q", "--quantization")
 parser.add_argument("-q", "--query-only", action=argparse.BooleanOptionalAction)
 parser.add_argument("-o", "--override", action=argparse.BooleanOptionalAction)
 parser.add_argument("-s", "--dim-to-segment-ratio")
@@ -73,7 +73,7 @@ if (args.labels) != None:
         labels[kv[0]] = kv[1]
     values["labels"] = labels
 
-values["compression"] = args.compression or False
+values["quantization"] = args.quantization or False
 values["override"] = args.override or False
 values["query_only"] = args.query_only
 if (args.dim_to_segment_ratio) != None:
@@ -91,7 +91,7 @@ print(values["labels"])
 for shards in values["shards"]:
     for m in values["m"]:
         if not values["query_only"]:
-            compression = values["compression"]
+            quantization = values["quantization"]
             override = values["override"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
             before_import = time.time()
@@ -100,7 +100,7 @@ for shards in values["shards"]:
             )
             if override == False:
                 reset_schema(client, efC, m, shards, distance)
-            load_records(client, vectors, compression, dim_to_seg_ratio, override)
+            load_records(client, vectors, quantization, dim_to_seg_ratio, override)
             elapsed = time.time() - before_import
             logger.info(
                 f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"

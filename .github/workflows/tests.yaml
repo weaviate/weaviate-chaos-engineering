@@ -111,6 +111,7 @@ jobs:
       DATASET: sift-128-euclidean
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.992
+      QUANTIZATION: pq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
@@ -128,7 +129,42 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_compression_aws.sh
+        run: ./ann_benchmark_quantization_aws.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
+  ann-benchmarks-sq-sift-aws:
+    name: "[bench AWS] SIFT1M sq=true"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.992
+      QUANTIZATION: sq
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: Run chaos test
+        if: always()
+        run: ./ann_benchmark_quantization_aws.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -145,6 +181,7 @@ jobs:
       DATASET: glove-100-angular
       DISTANCE: cosine
       REQUIRED_RECALL: 0.89
+      QUANTIZATION: pq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v3
@@ -162,7 +199,42 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_compression_aws.sh
+        run: ./ann_benchmark_quantization_aws.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v1'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
+  ann-benchmarks-sq-glove-aws:
+    name: "[bench AWS] Glove100 sq=true"
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
+      AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+      DATASET: glove-100-angular
+      DISTANCE: cosine
+      REQUIRED_RECALL: 0.89
+      QUANTIZATION: sq
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: Run chaos test
+        if: always()
+        run: ./ann_benchmark_quantization_aws.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -226,7 +298,7 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_compression_gcp.sh
+        run: ./ann_benchmark_quantization_gcp.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
