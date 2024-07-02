@@ -21,7 +21,7 @@ def search_grpc(collection: weaviate.collections.Collection, dataset, i, input_v
     before = time.time()
     try:
         objs = collection.query.near_vector(
-            near_vector=input_vec, limit=limit, return_properties=[]
+            near_vector=list(input_vec), limit=limit, return_properties=[]
         ).objects
     except WeaviateQueryException as e:
         logger.error(e.message)
