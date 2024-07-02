@@ -33,7 +33,9 @@ def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance):
     )
 
 
-def load_records(client: weaviate.WeaviateClient, vectors, quantization, dim_to_seg_ratio, override):
+def load_records(
+    client: weaviate.WeaviateClient, vectors, quantization, dim_to_seg_ratio, override
+):
     collection = client.collections.get(class_name)
     i = 0
     if vectors == None:
