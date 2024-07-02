@@ -25,7 +25,7 @@ function shutdown() {
   echo "Cleaning up ressources..."
   docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
-  docker container rm -f corrupted-tenants &>/dev/null && echo 'Deleted container corrupted-tenants'
+  docker container rm -f corrupt-shards &>/dev/null && echo 'Deleted container corrupt-shards'
 }
 trap 'shutdown; exit 1' SIGINT ERR
 
@@ -36,21 +36,21 @@ wait_weaviate 8081
 wait_weaviate 8082
 
 echo "Building all required containers"
-( cd apps/corrupted-tenants/ && docker build -t corrupted-tenants . )
+( cd apps/corrupt-shards/ && docker build -t corrupt-shards . )
 
-# echo "Run script"
-# docker run --network host --name corrupted-tenants -t corrupted-tenants
+echo "Run setup"
+docker run --rm --network host --name corrupt-shards-setup -t corrupt-shards setup
 
-echo "Press any key to terminate the application..."
+echo "Simulate corrupt shard"
+docker compose -f apps/weaviate/docker-compose-replication.yml down
+truncate -s 0 apps/weaviate/data-node-1/pizza/*/lsm/objects/segment-*.db
+docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+wait_weaviate 8080
+wait_weaviate 8081
+wait_weaviate 8082
 
-# Loop until a key is pressed
-while true; do
-read -rsn1 key  # Read a single character silently
-if [[ -n "$key" ]]; then
-echo "One key detected. Program terminated."
-break  # Exit the loop if a key is pressed
-fi
-done
+echo "Run queries"
+docker run --rm --network host --name corrupt-shards-query -t corrupt-shards query
 
 echo "Success"
 shutdown

@@ -8,6 +8,6 @@ RUN go mod download
 
 COPY food.go run.go assert.go ./
 
-RUN go build -o corrupt_tens .
+RUN go build -o corrupt_shards .
 
-CMD ["/app/corrupt_tens"]
+ENTRYPOINT ["/app/corrupt_shards"]
