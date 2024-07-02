@@ -37,58 +37,12 @@ simple bash scripts. You can find the scripts in the root folder, such as
 `./import_while_crashing.sh` and `./compare_recall_after_restart.sh`. Or simply
 check the Github actions YAML files for examples.
 
-Here's an example of how to run the corrupted tenants test:
+Here's an example of how to run the corrupt shards test locally:
 
 ```sh
-# TODO can i remove lsm strat?
-WEAVIATE_VERSION=1.26.0-rc.0 DISABLE_RECOVERY_ON_PANIC=true PERSISTENCE_LSM_ACCESS_STRATEGY=mmap ./corrupted_tenants.sh
+WEAVIATE_VERSION=1.26.0-rc.0 DISABLE_RECOVERY_ON_PANIC=true ./corrupt_shards.sh
 ```
-
-TODO organize
-```sh
-#t1
-WEAVIATE_VERSION=1.26.0-rc.0 DISABLE_RECOVERY_ON_PANIC=true PERSISTENCE_LSM_ACCESS_STRATEGY=mmap ./corrupted_tenants.sh
-
-#t5
-docker run --rm --network host --name corrupted-tenants -t corrupted-tenants /app/corrupt_tens createschema localhost:8081
-docker run --rm --network host --name corrupted-tenants -t corrupted-tenants /app/corrupt_tens createdata localhost:8081
-
-#t2
-ls apps/weaviate/data-node-1/pizza/
-mv apps/weaviate/data-node-1/pizza/8saMYIiuGbkK/lsm/objects/segment-1719950203818308382.db apps/weaviate/data-node-1/pizza/8saMYIiuGbkK/lsm/objects/old.bak
-touch apps/weaviate/data-node-1/pizza/8saMYIiuGbkK/lsm/objects/segment-1719950203818308382.db
-
-#t3
-docker compose -f apps/weaviate/docker-compose-replication.yml down
-WEAVIATE_VERSION=1.26.0-rc.0 DISABLE_RECOVERY_ON_PANIC=true PERSISTENCE_LSM_ACCESS_STRATEGY=mmap docker compose -f apps/weaviate/docker-compose-replication.yml up
-
-#t5
-docker run --rm --network host --name corrupted-tenants -t corrupted-tenants /app/corrupt_tens getdataquorum localhost:8081
-docker run --rm --network host --name corrupted-tenants -t corrupted-tenants /app/corrupt_tens getdataall localhost:8081
-
-
-#t4
-docker compose -f apps/weaviate/docker-compose-replication.yml down
-
-docker run --rm --network host --name corrupted-tenants -t corrupted-tenants /app/corrupt_tens createschema
-
-docker compose -f apps/weaviate/docker-compose-replication.yml down
-
-WEAVIATE_VERSION=1.26.0-rc.0 DISABLE_RECOVERY_ON_PANIC=true PERSISTENCE_LSM_ACCESS_STRATEGY=mmap docker compose -f apps/weaviate/docker-compose-replication.yml up
-
-
-
-# how to get shell into weaviate node running
-docker compose -f apps/weaviate/docker-compose-replication.yml exec weaviate-node-1 sh
-
-cd /var/lib/weaviate/pizza/*/lsm/objects
-ls
-mv segment-*.db segment-old.db.bak
-touch segment-TODO.db
-
-nate@Nathans-MacBook-Pro weaviate % mv data-node-1/pizza/fgLTfLjckepq/lsm/objects/segment-1719949209419682963.db data-node-1/pizza/fgLTfLjckepq/lsm/objects/old.bak
-```
-
+Note, the `WEAVIATE_VERSION` is the tag of the docker image, you can find the tag in the summary of the github actions run for a given commit (for example, https://github.com/weaviate/weaviate/actions/runs/9762254173).
 
 ## Links 
 

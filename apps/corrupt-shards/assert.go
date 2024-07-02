@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 func requireNil(object interface{}) {
@@ -21,12 +20,6 @@ func requireNotNil(object interface{}) {
 func requireTrue(val bool, msg ...string) {
 	if !val {
 		panic(fmt.Sprintf("Expected true: %v", msg))
-	}
-}
-
-func requireContains(str, substr string) {
-	if !strings.Contains(str, substr) {
-		panic(fmt.Sprintf("Expected to contain: %s in %s", substr, str))
 	}
 }
 
