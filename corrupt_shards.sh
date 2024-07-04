@@ -47,8 +47,8 @@ docker compose -f apps/weaviate/docker-compose-replication.yml down
 
 if [ "$GITHUB_ACTIONS" = "true" ]; then
   # hack: 777 so i can "corrupt" docker volume files when running on github actions
-  echo 'chown on node1 volume'
-  sudo chown -R 777 apps/weaviate/data-node-1
+  echo 'chmod on node1 volume'
+  sudo chmod -R 777 apps/weaviate/data-node-1
 fi
 
 find apps/weaviate/data-node-1/pizza/*\
