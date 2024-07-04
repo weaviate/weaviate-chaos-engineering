@@ -47,7 +47,7 @@ docker compose -f apps/weaviate/docker-compose-replication.yml down
 
 
 echo 'NATEE chmod'
-chmod -R 7777 apps/weaviate/data-node-1
+sudo chmod -R 777 apps/weaviate/data-node-1
 
 echo 'NATEE whoami'
 whoami
