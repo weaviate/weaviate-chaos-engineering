@@ -35,6 +35,19 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
+whoami
+pwd
+ls -al .
+ls -al apps/
+ls -al apps/weaviate/
+ls -al apps/weaviate/data-node-1/
+ls -al apps/weaviate/data-node-1/pizza/
+touch apps/weaviate/data-node-1/pizza/natee
+
+echo DONEEE
+
+exit 0
+
 echo "Building all required containers"
 ( cd apps/corrupt-shards/ && docker build -t corrupt-shards . )
 
@@ -47,6 +60,16 @@ find apps/weaviate/data-node-1/pizza/*\
     -name 'segment-*.db' \
     -exec echo "truncating {}" \; \
     -exec truncate -s 0 "{}" \;
+find apps/weaviate/data-node-1/pizza/*/main.hnsw.commitlog.d \
+    -type f \
+    -exec echo "moving {}" \; \
+    -exec mv "{}" "{}.bak" \;
+# "|| true" because using mv in find returns non-zero exit code
+# find apps/weaviate/data-node-1/pizza \
+#     -type d \
+#     -d 1 \
+#     -exec echo "moving {}" \; \
+#     -exec mv "{}" "{}.bak" \; || true
 docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081

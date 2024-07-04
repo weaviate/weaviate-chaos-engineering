@@ -17,6 +17,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 	"github.com/weaviate/weaviate/entities/schema"
 )
@@ -53,11 +54,10 @@ func createSchema(client *weaviate.Client, class *models.Class) {
 
 func classPizza() *models.Class {
 	return &models.Class{
-		Class:       "Pizza",
-		Description: "A delicious religion like food and arguably the best export of Italy.",
-		// TODO hnsw config so i can corrupt that too
-		InvertedIndexConfig: &models.InvertedIndexConfig{IndexTimestamps: true},
-		Properties:          classPropertiesFood(),
+		Class:           "Pizza",
+		Description:     "A delicious religion like food and arguably the best export of Italy.",
+		VectorIndexType: "hnsw",
+		Properties:      classPropertiesFood(),
 		// one shard on all three nodes
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": 1,
@@ -126,6 +126,25 @@ func GetOnePizza(client *weaviate.Client, objectID, consistencyLevel string) *mo
 	requireNotNil(pizza)
 	requireTrue(pizza.ID == strfmt.UUID(objectID), fmt.Sprintf("ID expected: %s, actual: %s", objectID, pizza.ID))
 	return pizza
+}
+
+func NearVectorPizza(client *weaviate.Client, objectID, consistencyLevel string) {
+	resultSet, gqlErr := client.GraphQL().Get().
+		WithClassName("Pizza").
+		WithFields(graphql.Field{Name: "name"}).
+		WithConsistencyLevel(consistencyLevel).
+		Do(context.Background())
+	requireNil(gqlErr)
+	if len(resultSet.Errors) > 0 {
+		for i, e := range resultSet.Errors {
+			fmt.Println("near vector error: ", i, e)
+		}
+	}
+	requireNil(resultSet.Errors)
+
+	get := resultSet.Data["Get"].(map[string]interface{})
+	pizzas := get["Pizza"].([]interface{})
+	requireTrue(len(pizzas) == 1, "len pizzas", fmt.Sprint(len(pizzas)))
 }
 
 func createData(client *weaviate.Client, objects []*models.Object) {

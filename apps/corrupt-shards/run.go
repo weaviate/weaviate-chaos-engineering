@@ -41,6 +41,7 @@ func queryPizzas() {
 		client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: fmt.Sprintf("localhost:%d", portNum)})
 		requireNil(err)
 		GetOnePizza(client, PIZZA_QUATTRO_FORMAGGI_ID, "QUORUM")
+		NearVectorPizza(client, PIZZA_QUATTRO_FORMAGGI_ID, "QUORUM")
 	}
 	log.Println("queryPizzas finished. OK")
 }
