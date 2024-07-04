@@ -49,26 +49,26 @@ docker compose -f apps/weaviate/docker-compose-replication.yml down
 echo 'NATEE chmod'
 sudo chmod -R 777 apps/weaviate/data-node-1
 
-echo 'NATEE whoami'
-whoami
-echo 'NATEE pwd'
-pwd
-echo 'NATEE dot'
-ls -al .
-echo 'NATEE apps'
-ls -al apps/
-echo 'NATEE weaviate'
-ls -al apps/weaviate/
-echo 'NATEE data-node-1'
-ls -al apps/weaviate/data-node-1/
-echo 'NATEE pizza'
-ls -al apps/weaviate/data-node-1/pizza/
-echo 'NATEE touch natee'
-touch apps/weaviate/data-node-1/pizza/natee
+# echo 'NATEE whoami'
+# whoami
+# echo 'NATEE pwd'
+# pwd
+# echo 'NATEE dot'
+# ls -al .
+# echo 'NATEE apps'
+# ls -al apps/
+# echo 'NATEE weaviate'
+# ls -al apps/weaviate/
+# echo 'NATEE data-node-1'
+# ls -al apps/weaviate/data-node-1/
+# echo 'NATEE pizza'
+# ls -al apps/weaviate/data-node-1/pizza/
+# echo 'NATEE touch natee'
+# touch apps/weaviate/data-node-1/pizza/natee
 
-echo DONEEE
+# echo DONEEE
 
-exit 0
+# exit 0
 
 find apps/weaviate/data-node-1/pizza/*\
     -name 'segment-*.db' \
