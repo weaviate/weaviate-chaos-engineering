@@ -35,13 +35,21 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
+echo 'NATEE whoami'
 whoami
+echo 'NATEE pwd'
 pwd
+echo 'NATEE dot'
 ls -al .
+echo 'NATEE apps'
 ls -al apps/
+echo 'NATEE weaviate'
 ls -al apps/weaviate/
+echo 'NATEE data-node-1'
 ls -al apps/weaviate/data-node-1/
+echo 'NATEE pizza'
 ls -al apps/weaviate/data-node-1/pizza/
+echo 'NATEE touch natee'
 touch apps/weaviate/data-node-1/pizza/natee
 
 echo DONEEE
