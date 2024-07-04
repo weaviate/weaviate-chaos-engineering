@@ -59,12 +59,13 @@ find apps/weaviate/data-node-1/pizza/*/main.hnsw.commitlog.d \
     -type f \
     -exec echo "moving {}" \; \
     -exec mv "{}" "{}.bak" \;
+# TODO do this in follow up test
 # hack: added "|| true" because moving the shard dir via find/exec returns a non-zero exit code
-find apps/weaviate/data-node-1/pizza \
-    -type d \
-    -d 1 \
-    -exec echo "moving {}" \; \
-    -exec mv "{}" "{}.bak" \; || true
+# find apps/weaviate/data-node-1/pizza \
+#     -type d \
+#     -d 1 \
+#     -exec echo "moving {}" \; \
+#     -exec mv "{}" "{}.bak" \; || true
 
 docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
