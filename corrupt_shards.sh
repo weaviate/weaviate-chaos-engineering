@@ -45,30 +45,10 @@ docker run --rm --network host --name corrupt-shards-setup -t corrupt-shards set
 echo "Simulate corrupt shard"
 docker compose -f apps/weaviate/docker-compose-replication.yml down
 
-
-echo 'NATEE chmod'
-sudo chmod -R 777 apps/weaviate/data-node-1
-
-# echo 'NATEE whoami'
-# whoami
-# echo 'NATEE pwd'
-# pwd
-# echo 'NATEE dot'
-# ls -al .
-# echo 'NATEE apps'
-# ls -al apps/
-# echo 'NATEE weaviate'
-# ls -al apps/weaviate/
-# echo 'NATEE data-node-1'
-# ls -al apps/weaviate/data-node-1/
-# echo 'NATEE pizza'
-# ls -al apps/weaviate/data-node-1/pizza/
-# echo 'NATEE touch natee'
-# touch apps/weaviate/data-node-1/pizza/natee
-
-# echo DONEEE
-
-# exit 0
+if [ "$GITHUB_ACTIONS" = "true" ]; then
+  # hack: 777 so i can "corrupt" docker volume files when running on github actions
+  sudo chown -R 777 apps/weaviate/data-node-1
+fi
 
 find apps/weaviate/data-node-1/pizza/*\
     -name 'segment-*.db' \
@@ -78,12 +58,13 @@ find apps/weaviate/data-node-1/pizza/*/main.hnsw.commitlog.d \
     -type f \
     -exec echo "moving {}" \; \
     -exec mv "{}" "{}.bak" \;
-# "|| true" because using mv in find returns non-zero exit code
-# find apps/weaviate/data-node-1/pizza \
-#     -type d \
-#     -d 1 \
-#     -exec echo "moving {}" \; \
-#     -exec mv "{}" "{}.bak" \; || true
+# hack: added "|| true" because moving the shard dir via find/exec returns a non-zero exit code
+find apps/weaviate/data-node-1/pizza \
+    -type d \
+    -d 1 \
+    -exec echo "moving {}" \; \
+    -exec mv "{}" "{}.bak" \; || true
+
 docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081
