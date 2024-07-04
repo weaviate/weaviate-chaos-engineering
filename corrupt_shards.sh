@@ -35,6 +35,17 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
+
+echo "Building all required containers"
+( cd apps/corrupt-shards/ && docker build -t corrupt-shards . )
+
+echo "Run setup"
+docker run --rm --network host --name corrupt-shards-setup -t corrupt-shards setup
+
+echo "Simulate corrupt shard"
+docker compose -f apps/weaviate/docker-compose-replication.yml down
+
+
 echo 'NATEE whoami'
 whoami
 echo 'NATEE pwd'
@@ -56,14 +67,6 @@ echo DONEEE
 
 exit 0
 
-echo "Building all required containers"
-( cd apps/corrupt-shards/ && docker build -t corrupt-shards . )
-
-echo "Run setup"
-docker run --rm --network host --name corrupt-shards-setup -t corrupt-shards setup
-
-echo "Simulate corrupt shard"
-docker compose -f apps/weaviate/docker-compose-replication.yml down
 find apps/weaviate/data-node-1/pizza/*\
     -name 'segment-*.db' \
     -exec echo "truncating {}" \; \
