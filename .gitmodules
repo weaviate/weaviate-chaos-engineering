@@ -1,0 +1,3 @@
+[submodule "apps/multi-tenancy-concurrent-imports/multi-tenancy-load-test"]
+	path = apps/multi-tenancy-concurrent-imports/multi-tenancy-load-test
+	url = https://github.com/weaviate/multi-tenancy-load-test

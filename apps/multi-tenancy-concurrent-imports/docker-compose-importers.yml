@@ -1,0 +1,76 @@
+version: '3.4'
+services:
+  schema-resetter:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'reset_schema.py']
+    environment:
+      HOST: localhost
+      HOST_PORT: 8080
+      HOST_GRPC: localhost
+      GRPC_PORT: 50051
+    network_mode: 'host'
+    stdin_open: true 
+    tty: true
+  corruption-checker:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'schema_corruption_checker.py']
+    environment:
+      HOST: localhost:8081
+      TENANTS_GOAL: '4000'
+    network_mode: 'host'
+  importer-01:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost
+      HOST_GRPC: localhost
+      HOST_PORT: 8080
+      GRPC_PORT: 50051
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8000
+    network_mode: 'host'
+  importer-02:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost
+      HOST_GRPC: localhost
+      HOST_PORT: 8081
+      GRPC_PORT: 50052
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8001
+    network_mode: 'host'
+  importer-03:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost
+      HOST_GRPC: localhost
+      HOST_PORT: 8080
+      GRPC_PORT: 50051
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8003
+    network_mode: 'host'
+  importer-04:
+    build: ./multi-tenancy-load-test/importer/
+    command: ['python3', 'tenants_and_data.py']
+    environment:
+      HOST: localhost
+      HOST_GRPC: localhost
+      HOST_PORT: 8082
+      GRPC_PORT: 50053
+      TOTAL_TENANTS: 1000
+      OBJECTS_PER_TENANT: 1000
+      TENANTS_PER_CYCLE: 50
+      IMPLICIT_TENANT_RATIO: 0
+      PROMETHEUS_PORT: 8004
+    network_mode: 'host'

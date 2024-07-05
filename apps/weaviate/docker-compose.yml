@@ -10,10 +10,13 @@ services:
     - '8080'
     - --scheme
     - http
+    - --write-timeout
+    - 600s
     image: semitechnologies/weaviate:$WEAVIATE_VERSION
     ports:
     - 8080:8080
     - 6060:6060
+    - 50051:50051
     restart: on-failure:0
     volumes:
       - ./data:/var/lib/weaviate
@@ -24,5 +27,7 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-filesystem'
       BACKUP_FILESYSTEM_PATH: '/var/lib/snapshots'
-      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_HOSTNAME: 'node1'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
 ...

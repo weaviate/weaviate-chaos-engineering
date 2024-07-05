@@ -1,0 +1,434 @@
+[
+  {
+    "uuid": "00000000-0000-0000-0000-000000000001",
+    "author": "J.R.R. Tolkien",
+    "title": "The Lord of the rings",
+    "description": "\"The Lord of the Rings\" is a timeless epic fantasy tale penned by J.R.R. Tolkien. Set in the fictional world of Middle-earth, the story follows the quest of Frodo Baggins, a humble hobbit, who is tasked with destroying a powerful and corrupting artifact, the One Ring. Accompanied by a diverse fellowship of companions, including humans, elves, dwarves, and other hobbits, Frodo embarks on a perilous journey across Middle-earth to Mount Doom, the only place where the Ring can be unmade. Along the way, they encounter ancient evils, forge unbreakable bonds of friendship, and face monumental challenges that will test their courage and resolve. As the fate of Middle-earth hangs in the balance, Frodo and his companions must confront the forces of darkness in an epic struggle for the survival of their world. Rich with themes of friendship, sacrifice, and the eternal battle between good and evil, \"The Lord of the Rings\" remains one of the most beloved and influential works of fantasy literature ever written.",
+    "genre": "fantasy",
+    "page_count": 1024
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000002",
+    "author": "Douglas Adams",
+    "title": "The Hitchhiker's Guide to the Galaxy",
+    "description": "The Hitchhiker's Guide to the Galaxy\" is a comedic science fiction novel written by Douglas Adams. It follows the misadventures of Arthur Dent, an ordinary human who is unexpectedly whisked away from Earth just before its demolition to make way for a hyperspace bypass. Arthur's friend, Ford Prefect, turns out to be an alien researcher for the titular guidebook, a humorous compendium of knowledge for intergalactic travelers. Together, they embark on a journey through space, encountering a quirky cast of characters including the two-headed, three-armed ex-President of the Galaxy, Zaphod Beeblebrox, and the depressed robot Marvin. Filled with absurdity, wit, and biting satire, \"The Hitchhiker's Guide to the Galaxy\" is a delightful romp through the cosmos that pokes fun at the human condition and the universe at large.",
+    "genre": "science-fiction",
+    "page_count": 320
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000003",
+    "author": "Frank Herbert",
+    "title": "Dune",
+    "description": "\"Dune\" is a science fiction masterpiece written by Frank Herbert. Set in a distant future where noble houses vie for control of the desert planet Arrakis, known for its valuable spice melange, the story follows young Paul Atreides as his family assumes stewardship of Arrakis. Paul's journey intertwines with political intrigue, betrayal, and a prophesied destiny that could change the fate of the universe. As Paul navigates the harsh desert landscape and confronts the enigmatic Fremen people, he undergoes a transformation that will shape the course of history. \"Dune\" is a sweeping epic filled with intricate world-building, complex characters, and philosophical themes that have captivated readers for generations.",
+    "genre": "science-fiction",
+    "page_count": 777
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000004",
+    "author": "Isaac Asimov",
+    "title": "Foundation",
+    "description": "\"Foundation\" by Isaac Asimov is a groundbreaking science fiction novel that explores the concept of psychohistory—a mathematical science capable of predicting the future of large populations. Set in a distant future where the Galactic Empire is in decline, the story follows mathematician Hari Seldon, who predicts the imminent fall of civilization. To preserve knowledge and shorten the dark ages that will follow, Seldon establishes the Foundation—a secretive organization tasked with guiding humanity's destiny. Spanning centuries, \"Foundation\" chronicles the Foundation's efforts to navigate political intrigue, technological advancement, and the rise and fall of empires. Asimov's masterful storytelling and thought-provoking exploration of sociopolitical themes make \"Foundation\" a timeless classic of science fiction literature.",
+    "genre": "science-fiction",
+    "page_count": 204
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000005",
+    "author": "Liu Cixin",
+    "title": "The Three-Body Problem",
+    "description": "\"The Three-Body Problem\" by Liu Cixin is a groundbreaking science fiction novel that melds complex scientific concepts with compelling storytelling. Set against the backdrop of China's Cultural Revolution and its aftermath, the story follows physicist Ye Wenjie as she becomes embroiled in a secretive government project to make contact with extraterrestrial life. Meanwhile, present-day scientist Wang Miao finds himself drawn into a mysterious online game that holds the key to understanding an impending alien invasion. As humanity grapples with the implications of contact with an advanced alien civilization and the existential threats it poses, \"The Three-Body Problem\" explores themes of scientific discovery, cultural revolution, and the nature of humanity itself. Liu Cixin's visionary narrative and intricate exploration of physics and philosophy make \"The Three-Body Problem\" a thought-provoking and immersive journey into the unknown.",
+    "genre": "science-fiction",
+    "page_count": 452
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000006",
+    "author": "Richard K. Morgan",
+    "title": "Altered Carbon",
+    "description": "\"Altered Carbon\" by Richard K. Morgan is a gripping science fiction novel set in a future where consciousness can be transferred between bodies, known as \"sleeves,\" and death has become nearly obsolete for the wealthy. The story follows Takeshi Kovacs, a former soldier turned private investigator, who is hired to solve the murder of a wealthy aristocrat, Laurens Bancroft. As Kovacs delves deeper into the seedy underbelly of a society where the rich live for centuries and the poor struggle to survive, he uncovers a conspiracy that threatens to unravel the fabric of society itself. Blending hard-boiled detective noir with cyberpunk elements and thought-provoking explorations of identity, morality, and the commodification of life, \"Altered Carbon\" is a thrilling and immersive exploration of a dystopian future where the line between humanity and technology has blurred beyond recognition.",
+    "genre": "science-fiction",
+    "page_count": 544
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000007",
+    "author": "Jeff VanderMeer",
+    "title": "Borne",
+    "description": "\"Borne\" by Jeff VanderMeer is a captivating and surreal science fiction novel set in a post-apocalyptic world devastated by biotech experiments gone awry. The story unfolds in a city overrun by strange and dangerous creatures, where scavenger Rachel discovers a mysterious organism she names Borne. As Rachel nurtures Borne, he rapidly grows and evolves, exhibiting intelligence and abilities beyond comprehension. However, their bond is tested when Borne's origins and true nature are revealed, sparking a journey of discovery and survival in a world where nothing is as it seems. VanderMeer's vivid imagination, lyrical prose, and thought-provoking exploration of humanity, nature, and the ethics of scientific experimentation make \"Borne\" a mesmerizing and unforgettable reading experience.",
+    "genre": "science-fiction",
+    "page_count": 364
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000008",
+    "author": "Greg Egan",
+    "title": "Diaspora",
+    "description": "\"Diaspora\" by Greg Egan is a mind-bending science fiction novel that explores themes of identity, consciousness, and the nature of existence in a universe where humanity has transcended physical limitations. Set in the distant future, the story follows a group of post-human beings known as \"polises\" who exist as digital entities in vast virtual environments. When a catastrophic event threatens their existence, a diverse cast of characters embarks on a journey of exploration and discovery across the cosmos, encountering enigmatic aliens and grappling with existential questions about the nature of reality. Egan's meticulous attention to scientific detail and thought-provoking speculation on the future evolution of humanity make \"Diaspora\" a challenging yet rewarding exploration of the boundaries of human potential in an infinitely expanding universe.",
+    "genre": "science-fiction",
+    "page_count": 304
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000009",
+    "author": "Janusz A. Zajdel",
+    "title": "Limes inferior",
+    "description": "\"Limes Inferior\" is a renowned novel written by Janusz A. Zajdel, a prominent Polish science fiction writer. Set in a dystopian future, the story takes place in a post-apocalyptic world where humanity's survival is threatened by ecological devastation and totalitarian regimes. The narrative follows the protagonist, Peter Cogito, as he navigates the oppressive society ruled by a powerful government and struggles to find his place in a world filled with corruption, surveillance, and social unrest. As Peter delves deeper into the secrets of his society, he uncovers dark truths about the nature of power and the consequences of unchecked authority. \"Limes Inferior\" is celebrated for its thought-provoking exploration of political themes, moral dilemmas, and the resilience of the human spirit in the face of adversity.",
+    "genre": "science-fiction",
+    "page_count": 226
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000010",
+    "author": "Walter Tevis",
+    "title": "The Man Who Fell to Earth",
+    "description": "\"The Man Who Fell to Earth\" is a thought-provoking science fiction novel written by Walter Tevis. The story revolves around Thomas Jerome Newton, an extraterrestrial being from a drought-stricken planet called Anthea. Disguised as a human, Newton arrives on Earth with advanced technology to save his dying world. He becomes a wealthy industrialist, using his knowledge to revolutionize various industries. However, as he becomes increasingly entangled in Earth's society, Newton grapples with the complexities of human emotions, desires, and vices. The novel explores themes of alienation, loneliness, and the struggle to maintain one's identity in a world vastly different from one's own. \"The Man Who Fell to Earth\" is a poignant and introspective tale that delves into the human condition and the universal quest for connection and belonging.",
+    "genre": "science-fiction",
+    "page_count": 192
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000011",
+    "author": "Neal Stephenson",
+    "title": "Seveneves",
+    "description": "\"Seveneves\" by Neal Stephenson is an epic science fiction novel that begins with the sudden destruction of the Moon, setting off a chain reaction of events that threatens all life on Earth. Facing imminent extinction, humanity races against time to ensure its survival by sending a select group of individuals into space to live aboard hastily constructed space habitats known as the \"Cloud Ark.\" As the survivors grapple with the challenges of adaptation and coexistence in their new environment, tensions rise and alliances shift in the struggle to preserve humanity's future. Spanning thousands of years, \"Seveneves\" explores themes of resilience, ingenuity, and the endurance of the human spirit in the face of catastrophic adversity. With meticulous attention to scientific detail and grand scope, Neal Stephenson delivers a riveting tale of survival and evolution that transcends the bounds of time and space.",
+    "genre": "science-fiction",
+    "page_count": 832
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000012",
+    "author": "Andy Weir",
+    "title": "Project Hail Mary",
+    "description": "\"Project Hail Mary\" is a thrilling science fiction novel by Andy Weir, acclaimed author of \"The Martian.\" The story follows Ryland Grace, a brilliant but solitary scientist who wakes up aboard a spacecraft with no memory of who he is or how he got there. As he pieces together his identity and the purpose of his mission, Ryland discovers that he is humanity's last hope to save Earth from an impending catastrophe. With the help of an unlikely ally, an extraterrestrial organism named Rocky, Ryland embarks on a perilous journey across the cosmos to uncover the truth behind the disaster and find a solution to save mankind. Filled with suspense, humor, and ingenious problem-solving, \"Project Hail Mary\" is a gripping tale of survival, discovery, and the indomitable human spirit in the face of unimaginable challenges.",
+    "genre": "science-fiction",
+    "page_count": 509
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000013",
+    "author": "Dan Simmons",
+    "title": "Hyperion",
+    "description": "\"Hyperion\" by Dan Simmons is a gripping science fiction novel that unfolds as a series of interconnected stories, each told by one of seven pilgrims on a journey to the distant world of Hyperion. Set in a future where humanity has spread across the galaxy, the pilgrims share their tales as they seek answers to the enigmatic Shrike, a legendary creature that resides on Hyperion. As each pilgrim reveals their past, fears, and desires, a larger narrative emerges—one of political intrigue, religious conflict, and existential dread. With rich world-building, complex characters, and a narrative structure reminiscent of Chaucer's \"The Canterbury Tales,\" \"Hyperion\" is a compelling exploration of humanity's place in the universe, the nature of consciousness, and the search for meaning in an ever-expanding cosmos.",
+    "genre": "science-fiction",
+    "page_count": 518
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000014",
+    "author": "Jacek Dukaj",
+    "title": "Black Oceans",
+    "description": "\"Black Oceans\" is a science fiction novel by Polish writer Jacek Dukaj, published in Poland by Supernowa in 2001. The novel fits in the hard science fiction genre, describing the late-21st century Earth facing technological singularity. The novel received the prime Polish award for sci-fi literature, Janusz A. Zajdel Award, for 2001.",
+    "genre": "science-fiction",
+    "page_count": 486
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000015",
+    "author": "George R.R. Martin",
+    "title": "A Game of Thrones",
+    "description": "\"A Game of Thrones\" is the first book in the epic fantasy series \"A Song of Ice and Fire\" by George R.R. Martin. Set in the fictional continents of Westeros and Essos, the story follows the power struggles among noble families as they vie for control of the Iron Throne and the Seven Kingdoms. Filled with political intrigue, complex characters, and unpredictable twists, the novel introduces readers to a sprawling world where alliances are fragile and betrayals are commonplace.",
+    "genre": "fantasy",
+    "page_count": 694
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000016",
+    "author": "Brandon Sanderson",
+    "title": "Mistborn: The Final Empire",
+    "description": "\"Mistborn: The Final Empire\" is the first book in the Mistborn trilogy by Brandon Sanderson. Set in a world where ash falls from the sky and the oppressive Lord Ruler reigns with an iron fist, the story follows Vin, a young street urchin with extraordinary powers, as she joins a crew of thieves planning to overthrow the empire. Filled with intricate magic systems, compelling characters, and stunning plot twists, the novel captivates readers with its unique blend of fantasy and heist elements.",
+    "genre": "fantasy",
+    "page_count": 541
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000017",
+    "author": "Ursula K. Le Guin",
+    "title": "The Left Hand of Darkness",
+    "description": "\"The Left Hand of Darkness\" is a groundbreaking science fiction novel by Ursula K. Le Guin. Set on the icy planet of Gethen, the story follows Genly Ai, a human ambassador sent to forge an alliance with the inhabitants of Gethen, who are ambisexual and only assume a specific gender during mating periods. As Genly navigates the complex politics and cultural nuances of Gethen, he forms a deep bond with Estraven, a Gethenian politician, leading to a profound exploration of gender, identity, and the nature of humanity.",
+    "genre": "science-fiction",
+    "page_count": 304
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000018",
+    "author": "Neil Gaiman",
+    "title": "American Gods",
+    "description": "\"American Gods\" is a contemporary fantasy novel by Neil Gaiman. The story follows Shadow Moon, a recently released convict who becomes embroiled in a conflict between old and new gods who exist in human form. As Shadow travels across America with the enigmatic Mr. Wednesday, he encounters mythical creatures, ancient deities, and manifestations of modern technology. Blending elements of mythology, Americana, and urban fantasy, the novel offers a thought-provoking examination of belief, identity, and the power of stories.",
+    "genre": "fantasy",
+    "page_count": 635
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000019",
+    "author": "Philip K. Dick",
+    "title": "Do Androids Dream of Electric Sheep?",
+    "description": "\"Do Androids Dream of Electric Sheep?\" is a science fiction novel by Philip K. Dick. Set in a post-apocalyptic world where most of Earth's population has emigrated to off-world colonies, the story follows Rick Deckard, a bounty hunter tasked with \"retiring\" rogue androids. As Deckard delves deeper into his mission, he grapples with questions of empathy, identity, and the nature of humanity. The novel served as the inspiration for the cult classic film \"Blade Runner,\" exploring themes of artificial intelligence and existentialism.",
+    "genre": "science-fiction",
+    "page_count": 210
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000020",
+    "author": "Terry Pratchett",
+    "title": "Guards! Guards!",
+    "description": "\"Guards! Guards!\" is a fantasy novel by Terry Pratchett, part of his Discworld series. Set in the city of Ankh-Morpork, the story follows the bumbling members of the City Watch as they uncover a plot to overthrow the city and resurrect a dragon. Filled with Pratchett's trademark wit, satire, and clever wordplay, the novel offers a humorous take on fantasy tropes while also delivering a compelling narrative and memorable characters.",
+    "genre": "fantasy",
+    "page_count": 384
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000021",
+    "author": "William Gibson",
+    "title": "Count Zero",
+    "description": "\"Count Zero\" is a cyberpunk novel by William Gibson, a sequel to his groundbreaking work 'Neuromancer.' Set in a future where information is power and cyberspace is a battlefield, the story follows a diverse cast of characters—including a hacker, a mercenary, and an art curator—as they navigate the dangers of a world controlled by corporate interests and emergent AI. Gibson's novel is a thrilling exploration of technology, culture, and the human condition.",
+    "genre": "cyberpunk",
+    "page_count": 308
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000022",
+    "author": "Neal Stephenson",
+    "title": "Anathem",
+    "description": "\"Anathem\" is a science fiction novel by Neal Stephenson. Set in a world where intellectuals and scientists live in secluded monastic communities, the story follows Fraa Erasmas, a young scholar, as he becomes embroiled in a cosmic conspiracy that threatens the stability of his world. Through Erasmas's journey, Stephenson explores themes of knowledge, faith, and the search for truth.",
+    "genre": "science-fiction",
+    "page_count": 937
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000023",
+    "author": "William Gibson",
+    "title": "Mona Lisa Overdrive",
+    "description": "\"Mona Lisa Overdrive\" is a cyberpunk novel by William Gibson, the final book in his 'Sprawl' trilogy. Set in a future where megacorporations control the global economy and cybernetic enhancements are commonplace, the story follows a diverse cast of characters as they navigate the dangerous intersection of technology and society. Gibson's novel is a thrilling conclusion to his exploration of the cyberpunk genre.",
+    "genre": "cyberpunk",
+    "page_count": 320
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000024",
+    "author": "Octavia E. Butler",
+    "title": "Kindred",
+    "description": "\"Kindred\" is a science fiction novel by Octavia E. Butler. The story follows Dana, a young African-American woman living in Los Angeles in the 1970s, who finds herself repeatedly transported back in time to the antebellum South. There, she encounters her ancestors, including a white slave owner whom she is forced to save to ensure her own existence. Through Dana's experiences, Butler explores themes of race, power, and the legacy of slavery in America.",
+    "genre": "science-fiction",
+    "page_count": 264
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000025",
+    "author": "Arthur C. Clarke",
+    "title": "2001: A Space Odyssey",
+    "description": "\"2001: A Space Odyssey\" is a classic science fiction novel by Arthur C. Clarke, adapted into a film directed by Stanley Kubrick. The story follows a voyage to Jupiter aboard the spaceship Discovery One, accompanied by the sentient computer HAL 9000. As the crew grapples with mysterious monoliths and the increasingly erratic behavior of HAL, they are drawn into a journey that challenges their understanding of humanity's place in the universe. Clarke's novel explores themes of evolution, artificial intelligence, and the search for extraterrestrial life.",
+    "genre": "science-fiction",
+    "page_count": 297
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000026",
+    "author": "Margaret Atwood",
+    "title": "The Handmaid's Tale",
+    "description": "\"The Handmaid's Tale\" is a dystopian novel by Margaret Atwood. Set in the near future in the Republic of Gilead, a totalitarian society where women are subjugated and used for reproductive purposes, the story follows Offred, a handmaid who struggles to survive in this oppressive regime. Through Offred's narrative, Atwood explores themes of power, gender, and the consequences of extremism, offering a chilling warning about the fragility of freedom and human rights.",
+    "genre": "dystopian",
+    "page_count": 311
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000027",
+    "author": "William Gibson",
+    "title": "Neuromancer",
+    "description": "\"Neuromancer\" is a seminal cyberpunk novel by William Gibson. Set in a dystopian future where megacorporations wield immense power and cyberspace is a virtual reality matrix, the story follows Case, a washed-up computer hacker, as he is hired for a high-stakes job that could give him access to cyberspace once again. Filled with gritty imagery, cybernetic enhancements, and a noir-inspired atmosphere, the novel explores themes of identity, technology, and the consequences of a hyperconnected world.",
+    "genre": "cyberpunk",
+    "page_count": 271
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000028",
+    "author": "Orson Scott Card",
+    "title": "Ender's Game",
+    "description": "\"Ender's Game\" is a science fiction novel by Orson Scott Card. Set in a future where humanity is at war with an alien species known as the Formics, the story follows Ender Wiggin, a gifted child recruited into a military training program to prepare for the next invasion. As Ender navigates the challenges of battle school, he grapples with questions of morality, leadership, and the nature of warfare. Card's novel has become a classic of science fiction literature, exploring themes of empathy, identity, and the consequences of one's actions.",
+    "genre": "science-fiction",
+    "page_count": 324
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000029",
+    "author": "Ray Bradbury",
+    "title": "Fahrenheit 451",
+    "description": "\"Fahrenheit 451\" is a dystopian novel by Ray Bradbury. Set in a future society where books are banned and \"firemen\" burn any that are found, the story follows Guy Montag, a fireman who begins to question the government's censorship and control. As Montag rebels against the oppressive regime, he discovers the power of literature and the importance of critical thinking. Bradbury's novel serves as a cautionary tale about the dangers of censorship and the preservation of knowledge.",
+    "genre": "dystopian",
+    "page_count": 227
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000030",
+    "author": "George Orwell",
+    "title": "Nineteen Eighty-Four",
+    "description": "\"Nineteen Eighty-Four\" is a dystopian novel by George Orwell. Set in a totalitarian society ruled by the Party and its leader, Big Brother, the story follows Winston Smith, a low-ranking member of the Party who rebels against its oppressive control and surveillance. Through Winston's experiences, Orwell explores themes of propaganda, surveillance, and the erosion of truth, offering a stark warning about the dangers of authoritarianism and the loss of individual freedom.",
+    "genre": "dystopian",
+    "page_count": 328
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000031",
+    "author": "Mary Shelley",
+    "title": "Frankenstein; or, The Modern Prometheus",
+    "description": "\"Frankenstein; or, The Modern Prometheus\" is a Gothic science fiction novel by Mary Shelley. The story follows Victor Frankenstein, a young scientist who creates a sentient creature through an unorthodox scientific experiment. As Frankenstein's creation struggles to find acceptance in a hostile world, the novel explores themes of ambition, responsibility, and the consequences of playing god. Shelley's novel is considered one of the earliest examples of science fiction literature and has had a profound influence on the genre.",
+    "genre": "science-fiction",
+    "page_count": 280
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000032",
+    "author": "Kurt Vonnegut",
+    "title": "Slaughterhouse-Five",
+    "description": "\"Slaughterhouse-Five\" is a science fiction novel by Kurt Vonnegut. The story follows Billy Pilgrim, an optometrist who becomes \"unstuck in time\" and experiences various moments of his life, including his time as a prisoner of war in World War II and his encounters with extraterrestrial beings known as Tralfamadorians. Through Billy's nonlinear journey, Vonnegut explores themes of war, trauma, and the nature of free will, offering a unique perspective on the human condition.",
+    "genre": "science-fiction",
+    "page_count": 275
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000033",
+    "author": "H.G. Wells",
+    "title": "The War of the Worlds",
+    "description": "\"The War of the Worlds\" is a science fiction novel by H.G. Wells. The story recounts a Martian invasion of Earth, narrated by an unnamed protagonist who witnesses the destruction and chaos wrought by the alien invaders. As humanity struggles to survive against overwhelming odds, Wells explores themes of imperialism, survival, and the limitations of human technology. First serialized in 1897, the novel remains a classic of science fiction literature.",
+    "genre": "science-fiction",
+    "page_count": 192
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000034",
+    "author": "Aldous Huxley",
+    "title": "Brave New World",
+    "description": "\"Brave New World\" is a dystopian novel by Aldous Huxley. Set in a future society where individuals are genetically engineered and conditioned to conform to a rigid social hierarchy, the story follows Bernard Marx, an outsider who challenges the norms of his world. Through Bernard's journey, Huxley explores themes of individuality, freedom, and the consequences of a utopian society built on conformity and control.",
+    "genre": "dystopian",
+    "page_count": 288
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000035",
+    "author": "Philip K. Dick",
+    "title": "The Man in the High Castle",
+    "description": "\"The Man in the High Castle\" is an alternate history novel by Philip K. Dick. Set in a world where the Axis Powers won World War II, the story explores the lives of characters living in a dystopian America occupied by Nazi Germany and Imperial Japan. As the characters navigate political intrigue and moral ambiguity, Dick examines themes of freedom, identity, and the nature of reality.",
+    "genre": "alternate history",
+    "page_count": 259
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000036",
+    "author": "Ray Bradbury",
+    "title": "The Martian Chronicles",
+    "description": "\"The Martian Chronicles\" is a science fiction short story collection by Ray Bradbury. Set in the near future, the stories depict humanity's colonization of Mars and the interactions between humans and native Martians. Through vivid imagery and allegory, Bradbury explores themes of colonialism, identity, and the consequences of human expansion into the unknown.",
+    "genre": "science-fiction",
+    "page_count": 241
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000037",
+    "author": "Arthur C. Clarke",
+    "title": "Childhood's End",
+    "description": "\"Childhood's End\" is a science fiction novel by Arthur C. Clarke. Set in the near future, the story follows humanity's encounter with a benevolent alien species known as the Overlords, who bring about a golden age of peace and prosperity on Earth. However, as humanity enters a new stage of evolution, it must grapple with profound existential questions and the loss of its individuality. Clarke's novel explores themes of transcendence, evolution, and the nature of utopia.",
+    "genre": "science-fiction",
+    "page_count": 237
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000038",
+    "author": "William Gibson",
+    "title": "Virtual Light",
+    "description": "\"Virtual Light\" is a cyberpunk novel by William Gibson. Set in a future America ravaged by economic collapse and social unrest, the story follows a bike courier named Chevette Washington who stumbles upon a pair of high-tech sunglasses containing valuable information. Pursued by corporate mercenaries and government agents, Chevette becomes embroiled in a conspiracy that could change the course of society. Gibson's novel explores themes of technology, inequality, and the urban landscape.",
+    "genre": "cyberpunk",
+    "page_count": 326
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000039",
+    "author": "Margaret Atwood",
+    "title": "Oryx and Crake",
+    "description": "\"Oryx and Crake\" is a dystopian novel by Margaret Atwood. Set in a future world devastated by biotechnological disasters, the story follows Snowman, one of the last surviving humans, as he reflects on his past and the events that led to the downfall of civilization. Through flashbacks, Atwood explores the friendship between Snowman and his brilliant but troubled friend Crake, as well as their involvement with the enigmatic Oryx. Atwood's novel offers a chilling vision of a future shaped by genetic engineering and corporate greed.",
+    "genre": "dystopian",
+    "page_count": 376
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000040",
+    "author": "Neal Stephenson",
+    "title": "Cryptonomicon",
+    "description": "\"Cryptonomicon\" is a historical science fiction novel by Neal Stephenson. Set in two time periods—World War II and the late 1990s—the story follows a group of characters involved in codebreaking, cryptography, and the creation of a data haven in the fictional Southeast Asian country of Kinakuta. As the narrative weaves between past and present, Stephenson explores themes of information security, privacy, and the impact of technology on society.",
+    "genre": "historical science fiction",
+    "page_count": 928
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000041",
+    "author": "Octavia E. Butler",
+    "title": "Parable of the Sower",
+    "description": "\"Parable of the Sower\" is a dystopian novel by Octavia E. Butler. Set in a near-future America plagued by environmental collapse, economic inequality, and societal breakdown, the story follows Lauren Olamina, a young woman with hyperempathy syndrome who embarks on a perilous journey north in search of safety and a community built on her philosophy of Earthseed. Butler's novel offers a searing critique of contemporary issues and a hopeful vision of resilience and survival.",
+    "genre": "dystopian",
+    "page_count": 345
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000042",
+    "author": "Ursula K. Le Guin",
+    "title": "The Dispossessed",
+    "description": "\"The Dispossessed\" is a science fiction novel by Ursula K. Le Guin. Set in the Hainish universe, the story follows Shevek, a physicist from the anarchist society of Anarres, as he travels to the neighboring capitalist world of Urras. Through Shevek's experiences, Le Guin explores themes of utopia, revolution, and the nature of freedom, offering a nuanced examination of political ideologies and societal structures.",
+    "genre": "science-fiction",
+    "page_count": 341
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000043",
+    "author": "Frank Herbert",
+    "title": "Dune Messiah",
+    "description": "\"Dune Messiah\" is a science fiction novel by Frank Herbert, a sequel to his epic novel 'Dune.' Set in a distant future where noble houses vie for control of the desert planet Arrakis, the story follows Paul Atreides, now Emperor of the known universe, as he grapples with the consequences of his actions and the burdens of leadership. Herbert's novel delves into themes of religion, politics, and the consequences of messianic figures.",
+    "genre": "science-fiction",
+    "page_count": 331
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000044",
+    "author": "Stanisław Lem",
+    "title": "Solaris",
+    "description": "\"Solaris\" is a science fiction novel by Stanisław Lem. Set on a space station orbiting the mysterious planet Solaris, the story follows psychologist Kris Kelvin as he arrives to investigate strange phenomena affecting the crew. As Kelvin delves deeper into the mysteries of Solaris, he confronts his own past traumas and the limitations of human understanding. Lem's novel is a philosophical exploration of memory, consciousness, and the nature of reality.",
+    "genre": "science-fiction",
+    "page_count": 204
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000045",
+    "author": "Neal Stephenson",
+    "title": "The Diamond Age",
+    "description": "\"The Diamond Age: Or, A Young Lady's Illustrated Primer\" is a science fiction novel by Neal Stephenson. Set in a future world where nanotechnology has revolutionized society, the story follows Nell, a young girl who comes into possession of an interactive book designed to educate and empower her. As Nell navigates the complexities of her world, she becomes entangled in a web of intrigue involving powerful factions and emergent technologies. Stephenson's novel explores themes of education, technology, and social change.",
+    "genre": "science-fiction",
+    "page_count": 499
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000046",
+    "author": "Margaret Atwood",
+    "title": "The Testaments",
+    "description": "\"The Testaments\" is a dystopian novel by Margaret Atwood, a sequel to her acclaimed work 'The Handmaid's Tale.' Set in the same totalitarian society of Gilead, the story follows three female narrators—Aunt Lydia, Agnes, and Daisy—as they navigate the oppressive regime and seek to undermine its authority. Atwood's novel offers a compelling exploration of resistance, sisterhood, and the pursuit of freedom.",
+    "genre": "dystopian",
+    "page_count": 432
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000047",
+    "author": "Ray Bradbury",
+    "title": "The Illustrated Man",
+    "description": "\"The Illustrated Man\" is a science fiction short story collection by Ray Bradbury. Linked by the frame story of the Illustrated Man—a man whose tattoos come to life and tell stories—the collection features tales of dystopian futures, Martian colonies, and the mysteries of outer space. Through vivid imagery and evocative prose, Bradbury explores themes of technology, humanity, and the unknown.",
+    "genre": "science-fiction",
+    "page_count": 288
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000048",
+    "author": "Philip K. Dick",
+    "title": "Ubik",
+    "description": "\"Ubik\" is a science fiction novel by Philip K. Dick. Set in a future where psychic powers and advanced technology coexist, the story follows Joe Chip, an employee of a psychic security firm, as he becomes embroiled in a bizarre series of events involving time manipulation and reality-altering substances. As Joe's perceptions of reality unravel, Dick explores themes of identity, consumerism, and the nature of existence.",
+    "genre": "science-fiction",
+    "page_count": 224
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000049",
+    "author": "Isaac Asimov",
+    "title": "Foundation's Edge",
+    "description": "\"Foundation's Edge\" is a science fiction novel by Isaac Asimov, a sequel to his 'Foundation' series. Set thousands of years in the future, the story follows Golan Trevize, a councilman of the Foundation, as he embarks on a quest to uncover the true location of humanity's ancestral planet, Earth. Along the way, Trevize encounters political intrigue, ancient mysteries, and the enigmatic Second Foundation. Asimov's novel delves into themes of history, power, and the search for ultimate truth.",
+    "genre": "science-fiction",
+    "page_count": 367
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000050",
+    "author": "Arthur C. Clarke",
+    "title": "Rendezvous with Rama",
+    "description": "\"Rendezvous with Rama\" is a science fiction novel by Arthur C. Clarke. Set in the 22nd century, the story follows a group of astronauts who discover a massive cylindrical spacecraft named Rama entering the solar system. As they explore the enigmatic vessel, they encounter awe-inspiring sights and perplexing mysteries, leading to speculation about its origin and purpose. Clarke's novel is a masterful exploration of cosmic wonder and the potential for discovery in the vastness of space.",
+    "genre": "science-fiction",
+    "page_count": 256
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000051",
+    "author": "Octavia E. Butler",
+    "title": "Parable of the Talents",
+    "description": "\"Parable of the Talents\" is a dystopian novel by Octavia E. Butler, a sequel to her work 'Parable of the Sower.' Set in a near-future America marked by social and environmental collapse, the story follows Lauren Olamina as she continues her quest to establish a community based on her philosophy of Earthseed. Butler's novel explores themes of faith, resilience, and the pursuit of justice in a harsh and unforgiving world.",
+    "genre": "dystopian",
+    "page_count": 448
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000052",
+    "author": "Neal Stephenson",
+    "title": "Snow Crash",
+    "description": "\"Snow Crash\" is a cyberpunk novel by Neal Stephenson. Set in a future America where governments have collapsed and corporations wield immense power, the story follows Hiro Protagonist, a freelance hacker and swordfighter, as he investigates a new drug called Snow Crash that is infecting users in both the virtual and physical worlds. Filled with high-tech action, linguistic theory, and satirical commentary on modern society, Stephenson's novel is a cyberpunk classic.",
+    "genre": "cyberpunk",
+    "page_count": 470
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000053",
+    "author": "George Orwell",
+    "title": "Animal Farm",
+    "description": "\"Animal Farm\" is an allegorical novella by George Orwell. Depicting a group of farm animals who rebel against their human farmer, hoping to create a society where the animals can be equal, free, and happy, the story satirizes the events leading up to the Russian Revolution of 1917 and the subsequent Stalinist era in the Soviet Union. Through the animals' struggles, Orwell explores themes of power, corruption, and the nature of political ideology.",
+    "genre": "political satire",
+    "page_count": 112
+  },
+  {
+    "uuid": "00000000-0000-0000-0000-000000000054",
+    "author": "Isaac Asimov",
+    "title": "I, Robot",
+    "description": "\"I, Robot\" is a collection of science fiction short stories by Isaac Asimov, exploring the relationship between humans and robots. Set in a future where robots are commonplace and governed by the Three Laws of Robotics, the stories delve into ethical and philosophical dilemmas as robots interact with their human creators. Asimov's work in 'I, Robot' laid the foundation for much of modern science fiction and influenced discussions about artificial intelligence and robotics.",
+    "genre": "science-fiction",
+    "page_count": 224
+  }
+]

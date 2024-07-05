@@ -1,0 +1,35 @@
+---
+version: '3.9'
+services:
+  weaviate:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
+    ports:
+    - 8080:8080
+    - 6060:6060
+    - 50051:50051
+    restart: on-failure:0
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_GOSSIP_BIND_PORT: '7100'
+      CLUSTER_DATA_BIND_PORT: '7101'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+    deploy:
+      resources:
+        limits:
+          # used in a chaos pipeline that tries to reproduce degrading
+          # performance because of a goroutine leak
+          cpus: '1'

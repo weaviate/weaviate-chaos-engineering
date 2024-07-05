@@ -23,14 +23,18 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
-      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_HOSTNAME: 'node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
+      RAFT_BOOTSTRAP_EXPECT: 1
+      RAFT_JOIN: "node1"
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
       BACKUP_S3_USE_SSL: 'false'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
 
   # Mutually exclusive with weaviate-node-2
   # Used for single-node BRO version compat
@@ -56,13 +60,14 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
-      CLUSTER_HOSTNAME: 'node1' 
+      CLUSTER_HOSTNAME: 'node1'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
       BACKUP_S3_USE_SSL: 'false'
-
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
 
   # Mutually exclusive with weaviate-backup-node
   # Used for cluster backup scenarios
@@ -88,15 +93,19 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
-      CLUSTER_HOSTNAME: 'node2' 
+      CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'node1'
+      BOOTSTRAP_EXPECT: 1
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
       BACKUP_S3_USE_SSL: 'false'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
 
   backup-s3:
     image: minio/minio
