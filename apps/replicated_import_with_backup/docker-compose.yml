@@ -6,6 +6,7 @@ services:
       service: weaviate-node-1
     container_name: weaviate-node-1
     environment:
+      FORCE_FULL_REPLICAS_SEARCH: "true"
       ENABLE_MODULES: 'backup-s3'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
@@ -21,6 +22,7 @@ services:
       service: weaviate-node-2
     container_name: weaviate-node-2
     environment:
+      FORCE_FULL_REPLICAS_SEARCH: "true"
       ENABLE_MODULES: 'backup-s3'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
@@ -36,6 +38,7 @@ services:
       service: weaviate-node-3
     container_name: weaviate-node-3
     environment:
+      FORCE_FULL_REPLICAS_SEARCH: "true"
       ENABLE_MODULES: 'backup-s3'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'

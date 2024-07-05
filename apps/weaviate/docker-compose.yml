@@ -22,6 +22,7 @@ services:
       - ./data:/var/lib/weaviate
     environment:
       QUERY_DEFAULTS_LIMIT: 25
+      FORCE_FULL_REPLICAS_SEARCH: "true"
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'

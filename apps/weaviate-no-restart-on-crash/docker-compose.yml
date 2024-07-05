@@ -18,6 +18,7 @@ services:
     volumes:
     - "$PWD/weaviate-data:/var/lib/weaviate"
     environment:
+      - FORCE_FULL_REPLICAS_SEARCH=true
       - PERSISTENCE_DATA_PATH
       - PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS
       - QUERY_DEFAULTS_LIMIT
