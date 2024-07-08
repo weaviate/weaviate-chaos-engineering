@@ -36,7 +36,7 @@ pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
 
 
 parser = argparse.ArgumentParser()
-client = weaviate.connect_to_local(skip_init_checks=True)
+client = weaviate.connect_to_local()
 
 stub = None
 
