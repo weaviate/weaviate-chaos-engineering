@@ -1,7 +1,5 @@
 name: Chaos tests
 
-env:
-  WEAVIATE_VERSION: preview-filter-memory-leak-in-inverted-searcher-row-cacher-5d5df56
 on:
   workflow_call:
     inputs:
@@ -42,8 +40,6 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
         run: ./filter_memory_leak.sh
-  replicated-imports-with-choas-killing:
-    name: Replicated imports with chaos killing
   lint:
     runs-on: ubuntu-latest
     steps:
