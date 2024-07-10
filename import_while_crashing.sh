@@ -23,7 +23,7 @@ echo "Building all required containers"
 ( cd apps/importer/ && docker build -t importer . )
 ( cd apps/chaotic-killer/ && docker build -t killer . )
 
-echo "Starting Weaviate..."
+echo "Starting Weaviate version $WEAVIATE_VERSION ..."
 docker-compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
