@@ -14,8 +14,9 @@ import_error_count = 0
 def reset_schema(client: weaviate.Client, repl_factor: int):
     client.schema.delete_all()
     class_obj = {
-        "vectorizer": "none",
+        "vectorizer": "text2vec-bigram",
         "vectorIndexConfig": {
+            "sq": {"enabled": True, "trainingLimit": 10000, "rescoreLimit": 20},
             "efConstruction": 64,
             "maxConnections": 8,
         },

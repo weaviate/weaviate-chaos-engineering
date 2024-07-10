@@ -24,7 +24,7 @@ while true; do
   echo "waiting ${sleepsec}s for a kill of $container_name"
   sleep "$sleepsec"
 
-  echo killing now
+  echo killing $container_name now
     docker-compose -f apps/weaviate/docker-compose-replication.yml kill $container_name \
       && docker-compose -f apps/weaviate/docker-compose-replication.yml up -d $container_name
 
