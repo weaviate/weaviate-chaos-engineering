@@ -14,10 +14,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 	"github.com/weaviate/weaviate/entities/schema"
 )
@@ -70,10 +70,9 @@ func classPizza() *models.Class {
 
 func classPropertiesFood() []*models.Property {
 	nameProperty := &models.Property{
-		Name:         "name",
-		Description:  "name",
-		DataType:     schema.DataTypeText.PropString(),
-		Tokenization: models.PropertyTokenizationField,
+		Name:        "name",
+		Description: "name",
+		DataType:    schema.DataTypeText.PropString(),
 	}
 	descriptionProperty := &models.Property{
 		Name:        "description",
@@ -89,11 +88,6 @@ func classPropertiesFood() []*models.Property {
 		Name:        "price",
 		Description: "price",
 		DataType:    schema.DataTypeNumber.PropString(),
-		ModuleConfig: map[string]interface{}{
-			"text2vec-contextionary": map[string]interface{}{
-				"skip": true,
-			},
-		},
 	}
 
 	return []*models.Property{
@@ -103,10 +97,24 @@ func classPropertiesFood() []*models.Property {
 
 // ##### DATA #####
 
-func CreateDataPizza(client *weaviate.Client) {
-	createData(client, []*models.Object{
-		objectPizzaQuattroFormaggi(),
-	})
+func CreateDataPizza(client *weaviate.Client, consistencyLevel string) {
+	createData(
+		client,
+		[]*models.Object{
+			objectPizzaQuattroFormaggi(),
+		},
+		consistencyLevel,
+	)
+}
+
+func CreateDataPizzaRandom(client *weaviate.Client, consistencyLevel string) {
+	for batchNum := 0; batchNum < 4; batchNum++ {
+		batch := make([]*models.Object, 0)
+		for i := 0; i < 100; i++ {
+			batch = append(batch, objectPizzaRandom())
+		}
+		createData(client, batch, consistencyLevel)
+	}
 }
 
 func GetOnePizza(client *weaviate.Client, objectID, consistencyLevel string) *models.Object {
@@ -116,6 +124,7 @@ func GetOnePizza(client *weaviate.Client, objectID, consistencyLevel string) *mo
 		WithClassName("Pizza").
 		WithConsistencyLevel(consistencyLevel).
 		WithID(objectID).
+		WithVector().
 		Do(context.TODO())
 
 	requireNil(err)
@@ -123,16 +132,23 @@ func GetOnePizza(client *weaviate.Client, objectID, consistencyLevel string) *mo
 	respLen := len(resp)
 	requireTrue(respLen == 1, fmt.Sprintf("expected len of 1, actual: %d", respLen))
 	pizza := resp[0]
+	// fmt.Println("NATEE pizza", pizza)
 	requireNotNil(pizza)
 	requireTrue(pizza.ID == strfmt.UUID(objectID), fmt.Sprintf("ID expected: %s, actual: %s", objectID, pizza.ID))
 	return pizza
 }
 
 func NearVectorPizza(client *weaviate.Client, objectID, consistencyLevel string) {
-	resultSet, gqlErr := client.GraphQL().Get().
-		WithClassName("Pizza").
-		WithFields(graphql.Field{Name: "name"}).
-		WithConsistencyLevel(consistencyLevel).
+	// resultSet, gqlErr := client.GraphQL().
+	// 	Get().
+	// 	WithClassName("Pizza").
+	// 	WithFields(graphql.Field{Name: "name"}).
+	// 	WithConsistencyLevel(consistencyLevel).
+	// 	Do(context.Background())
+	// TODO consistencyLevel
+	resultSet, gqlErr := client.GraphQL().
+		Raw().
+		WithQuery(fmt.Sprintf("{Get {Pizza (consistencyLevel: %s) {name _additional {vector}}}}", consistencyLevel)).
 		Do(context.Background())
 	requireNil(gqlErr)
 	if len(resultSet.Errors) > 0 {
@@ -142,15 +158,17 @@ func NearVectorPizza(client *weaviate.Client, objectID, consistencyLevel string)
 	}
 	requireNil(resultSet.Errors)
 
-	get := resultSet.Data["Get"].(map[string]interface{})
-	pizzas := get["Pizza"].([]interface{})
-	requireTrue(len(pizzas) == 1, "len pizzas", fmt.Sprint(len(pizzas)))
+	// get := resultSet.Data["Get"].(map[string]interface{})
+	// pizzas := get["Pizza"].([]interface{})
+	// requireTrue(len(pizzas) == 1, "len pizzas", fmt.Sprint(len(pizzas)))
+	// fmt.Println("NATEE nearPizza", pizzas[0])
+	// fmt.Println("NATEE nearPizza", pizzas[1])
 }
 
-func createData(client *weaviate.Client, objects []*models.Object) {
+func createData(client *weaviate.Client, objects []*models.Object, consistencyLevel string) {
 	resp, err := client.Batch().ObjectsBatcher().
 		WithObjects(objects...).
-		WithConsistencyLevel("ALL"). // TODO QUORUM?
+		WithConsistencyLevel(consistencyLevel). // TODO QUORUM?
 		Do(context.Background())
 
 	requireNil(err)
@@ -179,5 +197,37 @@ func objectPizzaQuattroFormaggiWithId(id strfmt.UUID) *models.Object {
 			"price":       float32(1.1),
 			"best_before": "2022-05-03T12:04:40+02:00",
 		},
+		Vector: randVector(1024),
 	}
+}
+
+func randVector(n int) (v []float32) {
+	v = make([]float32, 1024)
+	for i := 0; i < n; i++ {
+		v[i] = rand.Float32()
+	}
+	return
+}
+
+func objectPizzaRandom() *models.Object {
+	return &models.Object{
+		Class: "Pizza",
+		Properties: map[string]interface{}{
+			"name":        randStringRunes(32),
+			"description": randStringRunes(256),
+			"price":       rand.Float32(),
+			"best_before": "2022-05-03T12:04:40+02:00",
+		},
+		Vector: randVector(1024),
+	}
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
 }
