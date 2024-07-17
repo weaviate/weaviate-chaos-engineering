@@ -1027,3 +1027,23 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
+  corrupt-shards:
+    name: Test operations on shards with corrupted files
+    runs-on: ubuntu-latest-8-cores
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./corrupt_shards.sh

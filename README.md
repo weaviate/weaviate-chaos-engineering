@@ -37,6 +37,13 @@ simple bash scripts. You can find the scripts in the root folder, such as
 `./import_while_crashing.sh` and `./compare_recall_after_restart.sh`. Or simply
 check the Github actions YAML files for examples.
 
+Here's an example of how to run the corrupt shards test locally:
+
+```sh
+WEAVIATE_VERSION=1.26.0-rc.0 DISABLE_RECOVERY_ON_PANIC=true ./corrupt_shards.sh
+```
+Note, the `WEAVIATE_VERSION` is the tag of the docker image, you can find the tag in the summary of the github actions run for a given commit (for example, https://github.com/weaviate/weaviate/actions/runs/9762254173).
+
 ## Links 
 
 - [Weaviate Main Repo](https://github.com/semi-technologies/weaviate).
