@@ -29,7 +29,7 @@ function shutdown() {
 trap 'shutdown; exit 1' SIGINT ERR
 
 echo "Building all required containers"
-( cd apps/replicated-import/ && docker build -t importer . )
+( cd apps/replicated-import-sq/ && docker build -t importer . )
 ( cd apps/chaotic-cluster-killer/ && docker build -t killer . )
 
 echo "Starting Weaviate version $WEAVIATE_VERSION ..."
