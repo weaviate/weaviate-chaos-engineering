@@ -7,7 +7,6 @@ import argparse
 import uuid
 import sys
 import os
-import time
 
 import_error_count = 0
 
@@ -17,6 +16,7 @@ def reset_schema(client: weaviate.Client, repl_factor: int):
     class_obj = {
         "vectorizer": "text2vec-bigram",
         "vectorIndexConfig": {
+            "sq": {"enabled": True, "trainingLimit": 10000, "rescoreLimit": 20},
             "efConstruction": 64,
             "maxConnections": 8,
         },
@@ -87,15 +87,6 @@ def load_objects(client: weaviate.Client, size: int, batch_size: int, uuid_offse
 # write request could either be written to at least two nodes successfully – or
 # if it could not be written – has been repeated client-side
 def validate_objects(client: weaviate.Client, object_count: int, uuid_offset: int):
-    collection = client.schema.get_class("Document")
-    collection.config.update(
-            vector_index_config=client.Reconfigure.VectorIndex.hnsw(
-                quantizer=client.Reconfigure.VectorIndex.Quantizer.sq()
-            )
-        )
-
-    wait_for_all_shards_ready(collection)
-
     missing_objects = 0
     errors = 0
 
@@ -211,23 +202,3 @@ if __name__ == "__main__":
         logger.info("schema reset")
     else:
         logger.error("unknown --action option")
-
-
-
-def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
-    status = [s.status for s in collection.config.get_shards()]
-    if not all(s == "READONLY" for s in status):
-        raise Exception(f"shards are not READONLY at beginning: {status}")
-
-    max_wait = 300
-    before = time.time()
-
-    while True:
-        time.sleep(3)
-        status = [s.status for s in collection.config.get_shards()]
-        if all(s == "READY" for s in status):
-            logger.info(f"finished in {time.time()-before}s")
-            return
-
-        if time.time() - before > max_wait:
-            raise Exception(f"after {max_wait}s not all shards READY: {status}")
