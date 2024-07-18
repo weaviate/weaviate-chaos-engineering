@@ -4,6 +4,7 @@ set -e
 
 dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
+quantization=${QUANTIZATION:-"none"}
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
@@ -41,7 +42,7 @@ mkdir -p datasets
   fi
 
 )
-docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 16 --compression --dim-to-segment-ratio 4 --labels "pq=true,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 16 --quantization $quantization --dim-to-segment-ratio 4 --labels "quantization=$quantization,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
 echo "Initial run complete, now restart Weaviate"
 
@@ -56,7 +57,7 @@ echo "Second run (query only)"
 echo "try sleeping to reduce flakiness"
 sleep 30
 echo "done sleep"
-docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 16 --compression --query-only --labels "pq=true,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 16 --quantization $quantization --query-only --labels "quantization=$quantization,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
 docker run --network host -t -v "$PWD/datasets:/datasets" \
   -v "$PWD/results:/workdir/results" \

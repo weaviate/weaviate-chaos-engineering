@@ -56,7 +56,7 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(collection, dataset, i, list(vec))
+                    res = search_grpc(collection, dataset, i, vec.tolist())
                 elif api == "grpc_clientless":
                     res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":

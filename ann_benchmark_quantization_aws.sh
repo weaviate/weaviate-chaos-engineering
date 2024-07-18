@@ -73,8 +73,8 @@ ssh -i "${key_id}.pem" $ssh_addr -- 'sudo sudo groupadd docker; sudo usermod -aG
 ssh -i "${key_id}.pem" $ssh_addr -- "mkdir -p ~/apps/"
 scp -i "${key_id}.pem" -r apps/ann-benchmarks "$ssh_addr:~/apps/"
 scp -i "${key_id}.pem" -r apps/weaviate-no-restart-on-crash/ "$ssh_addr:~/apps/"
-scp -i "${key_id}.pem" -r ann_benchmark_compression.sh "$ssh_addr:~"
-ssh -i "${key_id}.pem" $ssh_addr -- "DATASET=$dataset DISTANCE=$distance REQUIRED_RECALL=$REQUIRED_RECALL WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark_compression.sh"
+scp -i "${key_id}.pem" -r ann_benchmark_quantization.sh "$ssh_addr:~"
+ssh -i "${key_id}.pem" $ssh_addr -- "DATASET=$dataset DISTANCE=$distance REQUIRED_RECALL=$REQUIRED_RECALL QUANTIZATION=$QUANTIZATION WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark_quantization.sh"
 mkdir -p results
 scp -i "${key_id}.pem" -r "$ssh_addr:~/results/*.json" results/
 
