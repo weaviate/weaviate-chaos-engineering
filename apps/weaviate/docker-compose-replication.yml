@@ -26,6 +26,7 @@ services:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: "text2vec-bigram"
       BIGRAM: "trigram"
+      ASYNC_INDEXING: 'true'
       CLUSTER_HOSTNAME: 'node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
@@ -59,6 +60,7 @@ services:
       ENABLE_MODULES: "text2vec-bigram"
       DEFAULT_VECTORIZER_MODULE: "text2vec-bigram"
       BIGRAM: "trigram"
+      ASYNC_INDEXING: 'true'
       CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
@@ -93,6 +95,7 @@ services:
       ENABLE_MODULES: "text2vec-bigram"
       DEFAULT_VECTORIZER_MODULE: "text2vec-bigram"
       BIGRAM: "trigram"
+      ASYNC_INDEXING: 'true'
       CLUSTER_HOSTNAME: 'node3'
       CLUSTER_GOSSIP_BIND_PORT: '7104'
       CLUSTER_DATA_BIND_PORT: '7105'

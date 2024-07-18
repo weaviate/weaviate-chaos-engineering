@@ -68,7 +68,8 @@ echo "Run import script in foreground..."
 if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   -e "ENABLE_MODULES=\"text2vec-bigram,$ENABLE_MODULES\"" \
-  -e "BIGRAM=trigram" \
+  -e "BIGRAM=\"trigram\"" \
+  -e "ASYNC_INDEXING=\"true\"" \
   --network host \
   -t importer python3 run.py --action import; then
   echo "Importer failed, printing latest Weaviate logs..."
