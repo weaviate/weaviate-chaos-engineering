@@ -16,7 +16,6 @@ def reset_schema(client: weaviate.Client, repl_factor: int):
     class_obj = {
         "vectorizer": "none",
         "vectorIndexConfig": {
-            "sq": {"enabled": True, "trainingLimit": 10000, "rescoreLimit": 20},
             "efConstruction": 64,
             "maxConnections": 8,
         },
