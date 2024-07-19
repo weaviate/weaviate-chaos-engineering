@@ -21,7 +21,7 @@ function wait_weaviate() {
 
 function shutdown() {
   echo "Cleaning up resources..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
+  docker-compose -f apps/weaviate/docker-compose-replication-bigram-async.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
   docker container rm -f importer &>/dev/null && echo 'Deleted container importer'
   docker container rm -f killer  &>/dev/null && echo 'Deleted container killer'
@@ -34,7 +34,7 @@ echo "Building all required containers"
 
 echo "Starting Weaviate version $WEAVIATE_VERSION ..."
 
-docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+docker-compose -f apps/weaviate/docker-compose-replication-bigram-async.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
@@ -49,7 +49,7 @@ if ! docker run \
   --name importer \
   -t importer python3 run.py --action schema; then
   echo "Could not apply schema"
-  docker-compose -f apps/weaviate/docker-compose.yml logs
+  docker-compose -f apps/weaviate/docker-compose-bigram-async.yml logs
   exit 1
 fi
 
@@ -73,7 +73,7 @@ if ! docker run \
   --network host \
   -t importer python3 run.py --action import; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker-compose -f apps/weaviate/docker-compose-replication-bigram-async.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
