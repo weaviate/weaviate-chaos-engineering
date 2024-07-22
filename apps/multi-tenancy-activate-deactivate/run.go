@@ -517,9 +517,9 @@ func test2() {
 		requireNil(err)
 
 		gotBatchTenantsPizza := Tenants(gotTenantsPizza).ByNames(batchTenants.Names()...)
-		requireTrue(len(gotBatchTenantsPizza) == 30, "len(gotBatchTenantsPizza) == 30")
-		requireTrue(gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT),
-			"gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT)")
+		Assert( numTenantsInBlock*3,len(gotBatchTenantsPizza), "len(gotBatchTenantsPizza)")
+		Assert( true,gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT), "gotBatchTenantsPizza.IsStatus(models.TenantActivityStatusHOT)")
+
 
 		gotTenantsSoup, err := client.Schema().TenantsGetter().
 			WithClassName(classPizza).
@@ -527,9 +527,8 @@ func test2() {
 		requireNil(err)
 
 		gotBatchTenantsSoup := Tenants(gotTenantsSoup).ByNames(batchTenants.Names()...)
-		requireTrue(len(gotBatchTenantsSoup) == 30, "len(gotBatchTenantsSoup) == 30")
-		requireTrue(gotBatchTenantsSoup.IsStatus(models.TenantActivityStatusHOT),
-			"gotBatchTenantsSoup.IsStatus(models.TenantActivityStatusHOT)")
+		Assert( numTenantsInBlock*3,len(gotBatchTenantsSoup), "len(gotBatchTenantsSoup)")
+		Assert( true,gotBatchTenantsSoup.IsStatus(models.TenantActivityStatusHOT), "gotBatchTenantsSoup.IsStatus(models.TenantActivityStatusHOT)")
 
 		gotTenantsRisotto, err := client.Schema().TenantsGetter().
 			WithClassName(classRisotto).
@@ -537,9 +536,8 @@ func test2() {
 		requireNil(err)
 
 		gotBatchTenantsRisotto := Tenants(gotTenantsRisotto).ByNames(batchTenants.Names()...)
-		requireTrue(len(gotBatchTenantsRisotto) == 30, "len(gotBatchTenantsRisotto) == 30")
-		requireTrue(gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT),
-			"gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT)")
+		Assert( numTenantsInBlock*3,len(gotBatchTenantsRisotto), "len(gotBatchTenantsRisotto)")
+		Assert( true,gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT), "gotBatchTenantsRisotto.IsStatus(models.TenantActivityStatusHOT)")
 
 		half := len(allTenants) / 2
 		r.Shuffle(len(allTenants), func(i, j int) {
