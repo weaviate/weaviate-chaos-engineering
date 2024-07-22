@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+func Assert[T comparable](expected, actual T, testName string) {
+    if expected != actual {
+        panic(fmt.Sprintf("%s: expected %v, but got %v", testName, expected, actual))
+    }
+}
+
 func requireNil(object interface{}) {
 	if !isNil(object) {
 		panic(fmt.Sprintf("Expected nil, but got: %#v", object))
