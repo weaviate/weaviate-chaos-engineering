@@ -408,7 +408,7 @@ func test2() {
 	for l := 1; l <= loops; l++ {
 		log.Printf("loop [%d/%d] started\n", l, loops)
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 5; i++ {
 			coldBuf[i] = models.Tenant{
 				Name:           name(nextTenantId),
 				ActivityStatus: models.TenantActivityStatusCOLD,
