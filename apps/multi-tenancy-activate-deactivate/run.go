@@ -13,6 +13,8 @@ import (
 	"github.com/weaviate/weaviate/entities/models"
 )
 
+var numTenantsInBlock = 10
+
 func main() {
 	test1()
 	test2()
@@ -400,15 +402,15 @@ func test2() {
 	CreateSchemaSoupForTenants(client)
 	CreateSchemaRisottoForTenants(client)
 
-	coldBuf := make(Tenants, 10)
-	hotBuf := make(Tenants, 10)
-	hotWithDataBuf := make(Tenants, 10)
+	coldBuf := make(Tenants, numTenantsInBlock)
+	hotBuf := make(Tenants, numTenantsInBlock)
+	hotWithDataBuf := make(Tenants, numTenantsInBlock)
 	var allTenants Tenants
 
 	for l := 1; l <= loops; l++ {
 		log.Printf("loop [%d/%d] started\n", l, loops)
 
-		for i := 0; i < 5; i++ {
+		for i := 0; i < numTenantsInBlock; i++ {
 			coldBuf[i] = models.Tenant{
 				Name:           name(nextTenantId),
 				ActivityStatus: models.TenantActivityStatusCOLD,
