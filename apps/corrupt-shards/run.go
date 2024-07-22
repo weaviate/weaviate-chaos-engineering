@@ -48,7 +48,7 @@ func queryPizzas(portNum int, consistencyLevel string) {
 		fmt.Println("querying with on port number:", portNum, "with consistency level:", cl)
 		client, err := wvt.NewClient(wvt.Config{Scheme: "http", Host: fmt.Sprintf("localhost:%d", portNum)})
 		requireNil(err)
-		GetOnePizza(client, PIZZA_QUATTRO_FORMAGGI_ID, cl)
+		// GetOnePizza(client, PIZZA_QUATTRO_FORMAGGI_ID, cl)
 		NearVectorPizza(client, PIZZA_QUATTRO_FORMAGGI_ID, cl)
 	}
 	log.Println("queryPizzas finished. OK")

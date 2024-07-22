@@ -11,13 +11,13 @@ weaviate_versions = [
     # # "preview--c543408",
     # "preview--1c310dc",
     # TODO main...
-    # 'local-nate-c181a94a6-v2',
+    'local-nate-c181a94a6-v18',
 ]
 disable_recovery_on_panics = [True] #, False]
 port_to_querys = [
-    # 8089,
-    8088,
-] #, 8087]
+    # 8080,
+    8081,
+] #, 8082]
 node_ids_to_corrupts = [1] #, 2, 3]
 corruptions = [
     # 'NULL', 
