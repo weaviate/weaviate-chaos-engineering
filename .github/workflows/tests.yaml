@@ -1125,9 +1125,10 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
-  read-repair:
+  async-repair:
+    # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
-    name: Chaos pipeline to ensure read-repair logic works as expected
+    name: Chaos pipeline to ensure asynchronous replication repairs what read-repair can't yet
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -1145,7 +1146,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
-        run: ./read_repair.sh
+        run: ./async_repair.sh
   update-stability:
     name: Recall Stability on object updates
     runs-on: ubuntu-latest
