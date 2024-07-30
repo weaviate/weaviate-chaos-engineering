@@ -14,8 +14,15 @@ def create_class(client: weaviate.Client, class_name):
         "vectorizer": "none",
         "invertedIndexConfig": {"bm25": {"b": 0.75, "k1": 1.2}},
         "replicationConfig": {"factor": 1},
+        "vectorIndexType": "flat",
         "shardingConfig": {
             "desiredCount": 1,
+        },
+        "vectorIndexConfig": {
+            "bq": {
+                "enabled": True,
+                "cache": True,
+            },
         },
         "properties": [
             {

@@ -152,8 +152,12 @@ func getClass(shards int) *models.Class {
 	return &models.Class{
 		Class:      "NoVector",
 		Vectorizer: "none",
+		VectorIndexType: "flat",
 		VectorIndexConfig: map[string]interface{}{
-			"skip": true,
+			"bq": map[string]interface{}{
+				"enabled": true,
+				"cache": true,
+			},
 		},
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": shards,

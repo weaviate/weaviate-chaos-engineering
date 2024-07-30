@@ -48,7 +48,8 @@ class TestConsecutiveCreateAndUpdate:
                 {
                     "class": cls_name,
                     "vectorizer": "none",
-                    "vectorIndexConfig": {"skip": False},
+                    "vectorIndexType": "flat",
+                    "vectorIndexConfig": {"bq": {"enabled": True, "cache": True}},
                     "properties": [
                         {
                             "dataType": ["blob"],

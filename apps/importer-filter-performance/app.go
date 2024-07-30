@@ -232,7 +232,13 @@ func getClass(shards int) *models.Class {
 	return &models.Class{
 		Class:           "DemoClass",
 		Vectorizer:      "none",
-		VectorIndexType: "hnsw",
+		VectorIndexType: "flat",
+		VectorIndexConfig: map[string]interface{}{
+			"bq": map[string]interface{}{
+				"enabled": true,
+				"cache":   true,
+			},
+		},
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": shards,
 		},

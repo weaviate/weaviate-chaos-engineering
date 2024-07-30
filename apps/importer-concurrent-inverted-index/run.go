@@ -169,8 +169,12 @@ func getClass(shards int) *models.Class {
 		Class:      "InvertedIndexOnly",
 		Vectorizer: "none",
 		VectorIndexConfig: map[string]interface{}{
-			"skip": true,
+			"bq": map[string]interface{}{
+				"enabled": true,
+				"cache":   true,
+			},
 		},
+		VectorIndexType: "flat",
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": shards,
 		},

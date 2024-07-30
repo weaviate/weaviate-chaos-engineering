@@ -412,6 +412,13 @@ func filteredVectorSearch(ctx context.Context, client *weaviate.Client,
 func createSchema(ctx context.Context, client *weaviate.Client) error {
 	refTarget := &models.Class{
 		Class: "RefTarget",
+		VectorIndexType: "flat",
+		VectorIndexConfig: map[string]interface{}{
+			"bq": map[string]interface{}{
+				"enabled": true,
+				"cache":   true,
+			},
+		},
 		Properties: []*models.Property{
 			{
 				DataType: []string{"string"},

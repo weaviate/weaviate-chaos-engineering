@@ -21,10 +21,14 @@ schema = {
         {
             "class": "SemanticUnit",
             "description": "A written text, for example a news article or blog post",
-            "vectorIndexType": "hnsw",
+            "vectorIndexType": "flat",
             "vectorIndexConfig": {
                 "efConstruction": 128,
                 "maxConnections": 64,
+                "bq": {
+                    "enabled": True,
+                    "cache": True,
+                },
             },
             # "shardingConfig": {
             #     "desiredCount":4,

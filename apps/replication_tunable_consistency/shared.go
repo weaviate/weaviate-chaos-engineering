@@ -34,6 +34,13 @@ var (
 		ReplicationConfig: &models.ReplicationConfig{
 			Factor: 3,
 		},
+		VectorIndexType: "flat",
+		VectorIndexConfig: map[string]interface{}{
+			"bq": map[string]interface{}{
+				"enabled": true,
+				"cache":   true,
+			},
+		},
 	}
 )
 

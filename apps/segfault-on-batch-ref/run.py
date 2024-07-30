@@ -45,8 +45,12 @@ def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
+        "vectorIndexType": "flat",
         "vectorIndexConfig": {
-            "skip": True,
+            "bq": {
+                "enabled": True,
+                "cache": True,
+            }
         },
         "class": "Example1",
         "invertedIndexConfig": {

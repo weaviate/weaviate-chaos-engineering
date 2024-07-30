@@ -10,12 +10,17 @@ def reset_schema(client: weaviate.Client):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
+        "vectorIndexType": "flat",
         "vectorIndexConfig": {
             # super weak params, hnsw accuracy doesn't matter, prefer import
             # speed in this scenario
             "efConstruction": 32,
             "maxConnections": 4,
             "ef": 32,
+            "bq": {
+                "enabled": True,
+                "cache": True,
+            },
         },
         "class": "OneLeakyBoy",
         "invertedIndexConfig": {

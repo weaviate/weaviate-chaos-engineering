@@ -15,9 +15,14 @@ def reset_schema(client: weaviate.Client, repl_factor: int):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
+        "vectorIndexType": "flat",
         "vectorIndexConfig": {
             "efConstruction": 64,
             "maxConnections": 8,
+            "bq": {
+                "enabled": True,
+                "cache": True,
+            },
         },
         "class": "Document",
         "invertedIndexConfig": {

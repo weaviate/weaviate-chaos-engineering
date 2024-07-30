@@ -39,6 +39,9 @@ def reset_schema(cycle: int) -> weaviate.collections.Collection:
             "Book",
             replication_config=wvc.config.Configure.replication(factor=int(cfg.replication_factor)),
             sharding_config=wvc.config.Configure.sharding(desired_count=1),
+            vector_index_config=wvc.config.Configure.VectorIndex.flat(
+                quantizer=wvc.config.Configure.VectorIndex.Quantizer.bq(cache=True)
+            ),
             properties=[
                 wvc.config.Property(name="random_number", data_type=wvc.config.DataType.INT)
             ],

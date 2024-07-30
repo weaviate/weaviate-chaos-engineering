@@ -77,11 +77,16 @@ def load_targets(client: weaviate.Client, start, end):
 def create_target_class(client: weaviate.Client):
     class_obj = {
         "vectorizer": "none",
+        "vectorIndexType": "flat",
         "vectorIndexConfig": {
             "efConstruction": 128,
             "maxConnections": 16,
             "ef": 256,
             "cleanupIntervalSeconds": 10,
+            "bq": {
+                "enabled": True,
+                "cache": True,
+            },
         },
         "class": "Target",
         "invertedIndexConfig": {

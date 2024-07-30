@@ -344,9 +344,10 @@ func getClass() *models.Class {
 	return &models.Class{
 		Class:           "ClassNoVectorIndex",
 		Vectorizer:      "none",
-		VectorIndexType: "hnsw",
+		VectorIndexType: "flat",
 		VectorIndexConfig: map[string]interface{}{
-			"skip": true,
+			"bq": true,
+			"cache": true,
 		},
 		Properties: []*models.Property{
 			{

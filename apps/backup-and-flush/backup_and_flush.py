@@ -20,11 +20,16 @@ def reset_schema(client: weaviate.Client, class_names):
     for class_name in class_names:
         class_obj = {
             "vectorizer": "none",
+            "vectorIndexType": "flat",
             "vectorIndexConfig": {
                 "efConstruction": 128,
                 "maxConnections": 16,
                 "ef": 256,
                 "cleanupIntervalSeconds": 10,
+                "bq": {
+                    "enabled": True,
+                    "cache": True,
+                },
             },
             "class": class_name,
             "invertedIndexConfig": {
