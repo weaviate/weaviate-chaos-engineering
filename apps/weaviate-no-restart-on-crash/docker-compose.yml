@@ -15,6 +15,7 @@ services:
     - 8080:8080
     - 6060:6060
     - 50051:50051
+    - 2112:2112
     volumes:
     - "$PWD/weaviate-data:/var/lib/weaviate"
     environment:
@@ -27,4 +28,5 @@ services:
       - DISK_USE_READONLY_PERCENTAGE
       - PERSISTENCE_LSM_ACCESS_STRATEGY
       - DISABLE_TELEMETRY
+      - PROMETHEUS_MONITORING_ENABLED
 ...
