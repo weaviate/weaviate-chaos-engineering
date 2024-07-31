@@ -21,7 +21,7 @@ echo "Building all required containers"
 function shutdown() {
   echo "Cleaning up ressources..."
   docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml down --remove-orphans
-  sudo rm -rf apps/weaviate/data* || true  
+  rm -rf apps/weaviate/data* || true  
 }
 trap 'shutdown; exit 1' SIGINT ERR
 
