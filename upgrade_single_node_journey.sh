@@ -21,7 +21,7 @@ echo "Building all required containers"
 function shutdown() {
   echo "Cleaning up ressources..."
   docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true  
+  sudo rm -rf apps/weaviate/data* || true  
 }
 trap 'shutdown; exit 1' SIGINT ERR
 
@@ -30,13 +30,13 @@ export WEAVIATE_NODE_VERSION=1.25.0
 
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d weaviate-node-1
+docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d weaviate-node-1
 wait_weaviate 8080
 
 export WEAVIATE_NODE_VERSION=$WEAVIATE_VERSION
 
 echo "Upgrade Weaviate..."
-docker-compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d --force-recreate  weaviate-node-1
+docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d --force-recreate  weaviate-node-1
 wait_weaviate 8080
 
 echo "Success!"
