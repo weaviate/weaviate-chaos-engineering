@@ -6,7 +6,6 @@ import (
 	"log"
 	"math/rand/v2"
 	"net/http"
-	"sort"
 	"testing"
 	"time"
 
@@ -21,6 +20,9 @@ import (
 const (
 	dims      = 128
 	batchSize = 10_000
+	k         = 100
+	className = "TestClass"
+	nbQueries = 5
 )
 
 func TestReindexing_Test1(t *testing.T) {
@@ -42,48 +44,71 @@ func TestReindexing_Test1(t *testing.T) {
 	require.NoError(t, err)
 
 	// create objects
-	err = createObjects(ctx, client, 100_000)
+	vectors, err := createObjects(ctx, client, 100_000)
 	require.NoError(t, err)
 
 	// wait till all objects are indexed and compressed
-	err = waitForIndexing(ctx, client, "TestClass", 0)
+	err = waitForIndexing(ctx, client, className)
 	require.NoError(t, err)
 
+	time.Sleep(5 * time.Second)
+
 	// generate a list of random vectors for querying
-	queries := make([][]float32, 10)
+	queries := make([][]float32, nbQueries)
 	for i := range queries {
 		queries[i] = randomVector(dims)
 	}
 
+	// run a brute force query for each query vector
+	// and store the ground truth
+	log.Println("Running brute force search locally")
+	gt := make([][]distanceIndex, len(queries))
+	for i := range queries {
+		gt[i] = bruteForceSearch(vectors, queries[i], k)
+	}
+
 	// query
-	want, err := query(ctx, client, "TestClass", queries)
+	before, err := query(ctx, client, className, queries)
 	require.NoError(t, err)
 
 	// reindex
-	err = reindex(ctx, client, "TestClass")
+	err = reindex(ctx, client, className)
 	require.NoError(t, err)
 
+	log.Println("Waiting 5s to let the node switch to INDEXING state")
+	time.Sleep(5 * time.Second)
+
 	// wait till all objects are indexed and compressed
-	err = waitForIndexing(ctx, client, "TestClass", 0)
+	err = waitForIndexing(ctx, client, className)
 	require.NoError(t, err)
 
 	// query again
-	got, err := query(ctx, client, "TestClass", queries)
+	after, err := query(ctx, client, className, queries)
 	require.NoError(t, err)
-
-	// compare results. TODO: this doesn't work, perhaps we just need to measure the recall.
-	for i := range want {
-		for j := range want[i] {
-			fmt.Printf("want: %s/%f, got: %s/%f\n", want[i][j].ID, want[i][j].Dist, got[i][j].ID, got[i][j].Dist)
+	for i := range queries {
+		fmt.Println("--- Query", i)
+		for j := range after[i] {
+			fmt.Printf("Index   : %d %d %d\n", gt[i][j].index, after[i][j].index, before[i][j].index)
+			fmt.Printf("Distance: %f %f %f\n", gt[i][j].distance, after[i][j].distance, before[i][j].distance)
 		}
-
-		require.Equal(t, want[i], got[i])
 	}
+
+	fmt.Printf("\n\n ---- Recall results\n")
+	for i := range queries {
+		recallBefore := calculateRecall(gt[i], before[i])
+		recallAfter := calculateRecall(gt[i], after[i])
+		fmt.Println("Query", i)
+		fmt.Println("Before:", recallBefore)
+		fmt.Println("After :", recallAfter)
+		fmt.Println("---")
+	}
+
+	require.Equal(t, true, false)
 }
 
 func getClass() *models.Class {
 	return &models.Class{
-		Class:           "TestClass",
+		Class:           className,
 		Vectorizer:      "none",
 		VectorIndexType: "hnsw",
 		ShardingConfig: map[string]interface{}{
@@ -91,14 +116,15 @@ func getClass() *models.Class {
 		},
 		Properties: []*models.Property{
 			{
-				Name:     "item_id",
+				Name:     "index",
 				DataType: []string{"int"},
 			},
 		},
 		VectorIndexConfig: hnsw.UserConfig{
 			MaxConnections: 16,
 			EFConstruction: 64,
-			EF:             32,
+			EF:             128,
+			Distance:       "l2-squared",
 			PQ: hnsw.PQConfig{
 				Enabled:       true,
 				TrainingLimit: 10_000,
@@ -120,10 +146,15 @@ func randomVector(dim int) []float32 {
 	return out
 }
 
-func createObjects(ctx context.Context, client *wvt.Client, size int) error {
+func createObjects(ctx context.Context, client *wvt.Client, size int) ([][]float32, error) {
 	total := size
+	vectors := make([][]float32, size)
+	for i := range vectors {
+		vectors[i] = randomVector(dims)
+	}
 
 	var batch int
+	var count int
 	for size > 0 {
 		if size > batchSize {
 			batch = batchSize
@@ -136,26 +167,27 @@ func createObjects(ctx context.Context, client *wvt.Client, size int) error {
 		objs := make([]*models.Object, batch)
 		for i := 0; i < batch; i++ {
 			objs[i] = &models.Object{
-				Class: "TestClass",
+				Class: className,
 				Properties: map[string]interface{}{
-					"item_id": i,
+					"index": count,
 				},
-				Vector: randomVector(dims),
+				Vector: vectors[count],
 			}
+			count++
 		}
 
 		_, err := client.Batch().ObjectsBatcher().WithObjects(objs...).Do(ctx)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		log.Printf("Created %d/%d objects\n", total-size, total)
 	}
 
-	return nil
+	return vectors, nil
 }
 
-func waitForIndexing(ctx context.Context, client *wvt.Client, className string, minimum int) error {
+func waitForIndexing(ctx context.Context, client *wvt.Client, className string) error {
 	log.Println("Waiting for indexing to finish")
 
 	for {
@@ -167,9 +199,8 @@ func waitForIndexing(ctx context.Context, client *wvt.Client, className string, 
 		}
 
 	LOOP:
-
 		for _, shard := range resp {
-			if int(shard.VectorQueueSize) > minimum {
+			if shard.Status != "READY" {
 				allDone = false
 				break LOOP
 			}
@@ -205,24 +236,13 @@ func getShardNames(ctx context.Context, client *wvt.Client, className string) ([
 	return names, nil
 }
 
-type result struct {
-	ID   string
-	Dist float64
-}
-
-type results []result
-
-func (a results) Len() int           { return len(a) }
-func (a results) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a results) Less(i, j int) bool { return a[i].Dist < a[j].Dist }
-
-func query(ctx context.Context, client *wvt.Client, className string, queries [][]float32) ([]results, error) {
-	var r []results
+func query(ctx context.Context, client *wvt.Client, className string, queries [][]float32) ([][]distanceIndex, error) {
+	var r [][]distanceIndex
 
 	log.Printf("Running %d queries and collecting results\n", len(queries))
 
 	fields := []graphql.Field{
-		{Name: "_additional { id, distance }"},
+		{Name: "_additional { id, distance }, index"},
 	}
 
 	for i, query := range queries {
@@ -233,24 +253,27 @@ func query(ctx context.Context, client *wvt.Client, className string, queries []
 			WithClassName(className).
 			WithFields(fields...).
 			WithNearVector(nearVector).WithClassName(className).
-			WithLimit(100).
+			WithLimit(k).
 			Do(ctx)
 		if err != nil {
 			return nil, err
 		}
 		if resp.Errors != nil {
-			return nil, fmt.Errorf("query %d failed: %v", i, resp.Errors)
+			for j, e := range resp.Errors {
+				return nil, fmt.Errorf("query %d failed: [%d] %v", i, j, e.Message)
+			}
 		}
 
 		list := resp.Data["Get"].(map[string]any)[className].([]any)
-		var rr results
+		var rr []distanceIndex
 		for _, elem := range list {
-			id := elem.(map[string]any)["_additional"].(map[string]any)["id"].(string)
-			dist := elem.(map[string]any)["_additional"].(map[string]any)["distance"].(float64)
-			rr = append(rr, result{ID: id, Dist: dist})
+			index := elem.(map[string]any)["index"].(float64)
+			distance := elem.(map[string]any)["_additional"].(map[string]any)["distance"].(float64)
+			rr = append(rr, distanceIndex{
+				index:    int(index),
+				distance: float32(distance),
+			})
 		}
-
-		sort.Sort(rr)
 
 		r = append(r, rr)
 	}
@@ -265,7 +288,7 @@ func reindex(ctx context.Context, client *wvt.Client, className string) error {
 	}
 
 	httpClient := http.Client{
-		Timeout: 10 * time.Second,
+		Timeout: 120 * time.Second,
 	}
 
 	for _, shardName := range shardNames {
@@ -283,4 +306,19 @@ func reindex(ctx context.Context, client *wvt.Client, className string) error {
 	}
 
 	return nil
+}
+
+func calculateRecall(groundTruth, annResults []distanceIndex) float64 {
+	// TODO: assert the length of the two slices is the same
+	correct := 0
+	groundTruthSet := make(map[int]bool)
+	for _, v := range groundTruth {
+		groundTruthSet[v.index] = true
+	}
+	for _, v := range annResults {
+		if groundTruthSet[v.index] {
+			correct++
+		}
+	}
+	return float64(correct) / float64(len(groundTruth))
 }
