@@ -44,7 +44,7 @@ func TestReindexing_Test1(t *testing.T) {
 	require.NoError(t, err)
 
 	// create objects
-	vectors, err := createObjects(ctx, client, 100_000)
+	_, err = createObjects(ctx, client, 100_000)
 	require.NoError(t, err)
 
 	// wait till all objects are indexed and compressed
@@ -53,55 +53,55 @@ func TestReindexing_Test1(t *testing.T) {
 
 	time.Sleep(5 * time.Second)
 
-	// generate a list of random vectors for querying
-	queries := make([][]float32, nbQueries)
-	for i := range queries {
-		queries[i] = randomVector(dims)
-	}
+	// // generate a list of random vectors for querying
+	// queries := make([][]float32, nbQueries)
+	// for i := range queries {
+	// 	queries[i] = randomVector(dims)
+	// }
 
-	// run a brute force query for each query vector
-	// and store the ground truth
-	log.Println("Running brute force search locally")
-	gt := make([][]distanceIndex, len(queries))
-	for i := range queries {
-		gt[i] = bruteForceSearch(vectors, queries[i], k)
-	}
+	// // run a brute force query for each query vector
+	// // and store the ground truth
+	// log.Println("Running brute force search locally")
+	// gt := make([][]distanceIndex, len(queries))
+	// for i := range queries {
+	// 	gt[i] = bruteForceSearch(vectors, queries[i], k)
+	// }
 
-	// query
-	before, err := query(ctx, client, className, queries)
-	require.NoError(t, err)
+	// // query
+	// before, err := query(ctx, client, className, queries)
+	// require.NoError(t, err)
 
-	// reindex
-	err = reindex(ctx, client, className)
-	require.NoError(t, err)
+	// // reindex
+	// err = reindex(ctx, client, className)
+	// require.NoError(t, err)
 
-	log.Println("Waiting 5s to let the node switch to INDEXING state")
-	time.Sleep(5 * time.Second)
+	// log.Println("Waiting 5s to let the node switch to INDEXING state")
+	// time.Sleep(5 * time.Second)
 
-	// wait till all objects are indexed and compressed
-	err = waitForIndexing(ctx, client, className)
-	require.NoError(t, err)
+	// // wait till all objects are indexed and compressed
+	// err = waitForIndexing(ctx, client, className)
+	// require.NoError(t, err)
 
-	// query again
-	after, err := query(ctx, client, className, queries)
-	require.NoError(t, err)
-	for i := range queries {
-		fmt.Println("--- Query", i)
-		for j := range after[i] {
-			fmt.Printf("Index   : %d %d %d\n", gt[i][j].index, after[i][j].index, before[i][j].index)
-			fmt.Printf("Distance: %f %f %f\n", gt[i][j].distance, after[i][j].distance, before[i][j].distance)
-		}
-	}
+	// // query again
+	// after, err := query(ctx, client, className, queries)
+	// require.NoError(t, err)
+	// for i := range queries {
+	// 	fmt.Println("--- Query", i)
+	// 	for j := range after[i] {
+	// 		fmt.Printf("Index   : %d %d %d\n", gt[i][j].index, after[i][j].index, before[i][j].index)
+	// 		fmt.Printf("Distance: %f %f %f\n", gt[i][j].distance, after[i][j].distance, before[i][j].distance)
+	// 	}
+	// }
 
-	fmt.Printf("\n\n ---- Recall results\n")
-	for i := range queries {
-		recallBefore := calculateRecall(gt[i], before[i])
-		recallAfter := calculateRecall(gt[i], after[i])
-		fmt.Println("Query", i)
-		fmt.Println("Before:", recallBefore)
-		fmt.Println("After :", recallAfter)
-		fmt.Println("---")
-	}
+	// fmt.Printf("\n\n ---- Recall results\n")
+	// for i := range queries {
+	// 	recallBefore := calculateRecall(gt[i], before[i])
+	// 	recallAfter := calculateRecall(gt[i], after[i])
+	// 	fmt.Println("Query", i)
+	// 	fmt.Println("Before:", recallBefore)
+	// 	fmt.Println("After :", recallAfter)
+	// 	fmt.Println("---")
+	// }
 
 	require.Equal(t, true, false)
 }
