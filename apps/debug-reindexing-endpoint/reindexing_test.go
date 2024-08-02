@@ -332,12 +332,14 @@ func reindex(ctx context.Context, client *wvt.Client, className string) error {
 		for _, port := range ports {
 			resp, err = httpClient.Post(fmt.Sprintf("http://localhost:%d/debug/reindex/collection/%s/shards/%s", port, className, shardName), "application/json", nil)
 			if err != nil {
-				log.Printf("Failed to reindex shard %s on port %d: %v. Trying a different port...", shardName, port, err)
+				log.Printf("Shard %s not found on port %d. err: %v. Trying a different port...", shardName, err, port)
 				continue
 			}
 			if resp.StatusCode != http.StatusNotFound {
 				break
 			}
+
+			log.Printf("Shard %s not found on port %d. Trying a different port...", shardName, port)
 		}
 		if resp == nil {
 			return fmt.Errorf("failed to reindex shard %s on all ports", shardName)
