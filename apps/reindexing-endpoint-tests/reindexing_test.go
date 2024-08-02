@@ -44,69 +44,66 @@ func TestReindexing_Test1(t *testing.T) {
 	require.NoError(t, err)
 
 	// create objects
-	_, err = createObjects(ctx, client, 100_000)
+	vectors, err := createObjects(ctx, client, 100_000)
 	require.NoError(t, err)
 
 	// wait till all objects are indexed and compressed
 	err = waitForIndexing(ctx, client, className)
 	require.NoError(t, err)
 
+	// generate a list of random vectors for querying
+	queries := make([][]float32, nbQueries)
+	for i := range queries {
+		queries[i] = randomVector(dims)
+	}
+
+	// run a brute force query for each query vector
+	// and store the ground truth
+	log.Println("Running brute force search locally")
+	gt := make([][]distanceIndex, len(queries))
+	for i := range queries {
+		gt[i] = bruteForceSearch(vectors, queries[i], k)
+	}
+
+	// query
+	before, err := query(ctx, client, className, queries)
+	require.NoError(t, err)
+
+	// reindex
+	err = reindex(ctx, client, className)
+	require.NoError(t, err)
+
+	log.Println("Waiting 5s to let the node switch to INDEXING state")
 	time.Sleep(5 * time.Second)
 
-	// // generate a list of random vectors for querying
-	// queries := make([][]float32, nbQueries)
-	// for i := range queries {
-	// 	queries[i] = randomVector(dims)
-	// }
+	// wait till all objects are indexed and compressed
+	err = waitForIndexing(ctx, client, className)
+	require.NoError(t, err)
 
-	// // run a brute force query for each query vector
-	// // and store the ground truth
-	// log.Println("Running brute force search locally")
-	// gt := make([][]distanceIndex, len(queries))
-	// for i := range queries {
-	// 	gt[i] = bruteForceSearch(vectors, queries[i], k)
-	// }
+	// query again
+	after, err := query(ctx, client, className, queries)
+	require.NoError(t, err)
 
-	// // query
-	// before, err := query(ctx, client, className, queries)
-	// require.NoError(t, err)
-
-	// // reindex
-	// err = reindex(ctx, client, className)
-	// require.NoError(t, err)
-
-	// log.Println("Waiting 5s to let the node switch to INDEXING state")
-	// time.Sleep(5 * time.Second)
-
-	// // wait till all objects are indexed and compressed
-	// err = waitForIndexing(ctx, client, className)
-	// require.NoError(t, err)
-
-	// // query again
-	// after, err := query(ctx, client, className, queries)
-	// require.NoError(t, err)
-	// for i := range queries {
-	// 	fmt.Println("--- Query", i)
-	// 	for j := range after[i] {
-	// 		fmt.Printf("Index   : %d %d %d\n", gt[i][j].index, after[i][j].index, before[i][j].index)
-	// 		fmt.Printf("Distance: %f %f %f\n", gt[i][j].distance, after[i][j].distance, before[i][j].distance)
-	// 	}
-	// }
-
-	// fmt.Printf("\n\n ---- Recall results\n")
-	// for i := range queries {
-	// 	recallBefore := calculateRecall(gt[i], before[i])
-	// 	recallAfter := calculateRecall(gt[i], after[i])
-	// 	fmt.Println("Query", i)
-	// 	fmt.Println("Before:", recallBefore)
-	// 	fmt.Println("After :", recallAfter)
-	// 	fmt.Println("---")
-	// }
+	fmt.Printf("\n\n ---- Recall results\n")
+	for i := range queries {
+		recallBefore := calculateRecall(gt[i], before[i])
+		recallAfter := calculateRecall(gt[i], after[i])
+		fmt.Println("Query", i)
+		fmt.Println("Before:", recallBefore)
+		fmt.Println("After :", recallAfter)
+		fmt.Println("---")
+	}
 
 	require.Equal(t, true, false)
 }
 
 func getClass() *models.Class {
+	hnswConfig := hnsw.UserConfig{}
+	hnswConfig.SetDefaults()
+	hnswConfig.PQ.Enabled = true
+	hnswConfig.PQ.TrainingLimit = 10_000
+	hnswConfig.Distance = "l2-squared"
+
 	return &models.Class{
 		Class:           className,
 		Vectorizer:      "none",
@@ -120,21 +117,7 @@ func getClass() *models.Class {
 				DataType: []string{"int"},
 			},
 		},
-		VectorIndexConfig: hnsw.UserConfig{
-			MaxConnections: 16,
-			EFConstruction: 64,
-			EF:             128,
-			Distance:       "l2-squared",
-			PQ: hnsw.PQConfig{
-				Enabled:       true,
-				TrainingLimit: 10_000,
-				Encoder: hnsw.PQEncoder{
-					Type:         hnsw.PQEncoderTypeKMeans,
-					Distribution: hnsw.PQEncoderDistributionLogNormal,
-				},
-				Centroids: 256,
-			},
-		},
+		VectorIndexConfig: hnswConfig,
 	}
 }
 
@@ -309,7 +292,6 @@ func reindex(ctx context.Context, client *wvt.Client, className string) error {
 }
 
 func calculateRecall(groundTruth, annResults []distanceIndex) float64 {
-	// TODO: assert the length of the two slices is the same
 	correct := 0
 	groundTruthSet := make(map[int]bool)
 	for _, v := range groundTruth {
