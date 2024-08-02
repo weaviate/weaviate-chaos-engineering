@@ -1,11 +1,11 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -e
 
 ZONE=${ZONE:-"us-central1-a"}
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-standard-8"}
 export CLOUD_PROVIDER="gcp"
-export OS="ubuntu-2310-amd64"
+export OS="ubuntu-2204-lts"
 
 instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
 
