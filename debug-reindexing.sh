@@ -33,7 +33,7 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
-go test -v ./apps/debug-reindexing-endpoint/...
+cd ./apps/debug-reindexing-endpoint/ && go test -v .
 
 echo "Passed!"
 shutdown
