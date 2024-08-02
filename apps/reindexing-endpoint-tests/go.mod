@@ -4,6 +4,7 @@ go 1.22
 
 require (
 	github.com/stretchr/testify v1.9.0
+	github.com/weaviate/weaviate v1.26.0-rc.1
 	github.com/weaviate/weaviate-go-client/v4 v4.15.0
 )
 
@@ -28,7 +29,6 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/weaviate/weaviate v1.26.0-rc.1 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect

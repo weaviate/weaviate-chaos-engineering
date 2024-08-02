@@ -14,6 +14,8 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/grpc"
 	"github.com/weaviate/weaviate/entities/models"
+	"github.com/weaviate/weaviate/entities/vectorindex/dynamic"
+	"github.com/weaviate/weaviate/entities/vectorindex/flat"
 	"github.com/weaviate/weaviate/entities/vectorindex/hnsw"
 )
 
@@ -25,90 +27,109 @@ const (
 	nbQueries = 5
 )
 
-func TestReindexing_Test1(t *testing.T) {
-	ctx := context.Background()
-	config := wvt.Config{
-		Scheme: "http", Host: "localhost:8080",
-		GrpcConfig: &grpc.Config{Host: "localhost:50051", Secured: false},
-	}
-	client, err := wvt.NewClient(config)
-	require.NoError(t, err)
-	require.NotNil(t, client)
-
-	// clean DB
-	err = client.Schema().AllDeleter().Do(ctx)
-	require.NoError(t, err)
-
-	// create schema
-	err = client.Schema().ClassCreator().WithClass(getClass()).Do(ctx)
-	require.NoError(t, err)
-
-	// create objects
-	vectors, err := createObjects(ctx, client, 100_000)
-	require.NoError(t, err)
-
-	// wait till all objects are indexed and compressed
-	err = waitForIndexing(ctx, client, className)
-	require.NoError(t, err)
-
-	// generate a list of random vectors for querying
-	queries := make([][]float32, nbQueries)
-	for i := range queries {
-		queries[i] = randomVector(dims)
-	}
-
-	// run a brute force query for each query vector
-	// and store the ground truth
-	log.Println("Running brute force search locally")
-	gt := make([][]distanceIndex, len(queries))
-	for i := range queries {
-		gt[i] = bruteForceSearch(vectors, queries[i], k)
-	}
-
-	// query
-	before, err := query(ctx, client, className, queries)
-	require.NoError(t, err)
-
-	// reindex
-	err = reindex(ctx, client, className)
-	require.NoError(t, err)
-
-	log.Println("Waiting 5s to let the node switch to INDEXING state")
-	time.Sleep(5 * time.Second)
-
-	// wait till all objects are indexed and compressed
-	err = waitForIndexing(ctx, client, className)
-	require.NoError(t, err)
-
-	// query again
-	after, err := query(ctx, client, className, queries)
-	require.NoError(t, err)
-
-	fmt.Printf("\n\n ---- Recall results\n")
-	for i := range queries {
-		recallBefore := calculateRecall(gt[i], before[i])
-		recallAfter := calculateRecall(gt[i], after[i])
-		fmt.Println("Query", i)
-		fmt.Println("Before:", recallBefore)
-		fmt.Println("After :", recallAfter)
-		fmt.Println("---")
-	}
-
-	require.Equal(t, true, false)
+type testConfig struct {
+	name     string
+	pq       bool
+	index    string
+	mustFail bool
 }
 
-func getClass() *models.Class {
-	hnswConfig := hnsw.UserConfig{}
-	hnswConfig.SetDefaults()
-	hnswConfig.PQ.Enabled = true
-	hnswConfig.PQ.TrainingLimit = 10_000
-	hnswConfig.Distance = "l2-squared"
+func TestDebugReindexing(t *testing.T) {
+	tests := []testConfig{
+		{name: "flat", index: "flat", mustFail: true},
+		{name: "hnsw:no-compression", index: "hnsw"},
+		{name: "hnsw:pq", index: "hnsw", pq: true},
+		// {name: "dynamic", index: "dynamic"},
+		// {name: "dynamic:pq", index: "dynamic", pq: true},
+	}
 
-	return &models.Class{
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			config := wvt.Config{
+				Scheme: "http", Host: "localhost:8080",
+				GrpcConfig: &grpc.Config{Host: "localhost:50051", Secured: false},
+			}
+			client, err := wvt.NewClient(config)
+			require.NoError(t, err)
+			require.NotNil(t, client)
+
+			// clean DB
+			err = client.Schema().AllDeleter().Do(ctx)
+			require.NoError(t, err)
+
+			// create schema
+			err = client.Schema().ClassCreator().WithClass(getClass(test)).Do(ctx)
+			require.NoError(t, err)
+
+			// create objects
+			vectors, err := createObjects(ctx, client, 100_000)
+			require.NoError(t, err)
+
+			// wait till all objects are indexed and compressed
+			err = waitForIndexing(ctx, client, className)
+			require.NoError(t, err)
+
+			// generate a list of random vectors for querying
+			queries := make([][]float32, nbQueries)
+			for i := range queries {
+				queries[i] = randomVector(dims)
+			}
+
+			// run a brute force query for each query vector
+			// and store the ground truth
+			log.Println("Running brute force search locally")
+			gt := make([][]distanceIndex, len(queries))
+			for i := range queries {
+				gt[i] = bruteForceSearch(vectors, queries[i], k)
+			}
+
+			// query
+			before, err := query(ctx, client, className, queries)
+			require.NoError(t, err)
+
+			// reindex
+			err = reindex(ctx, client, className)
+			if test.mustFail {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			log.Println("Waiting 5s to let the node switch to INDEXING state")
+			time.Sleep(5 * time.Second)
+
+			// wait till all objects are indexed and compressed
+			err = waitForIndexing(ctx, client, className)
+			require.NoError(t, err)
+
+			// query again
+			after, err := query(ctx, client, className, queries)
+			require.NoError(t, err)
+
+			fmt.Printf("\n ---- Recall results\n")
+			for i := range queries {
+				recallBefore := calculateRecall(gt[i], before[i])
+				recallAfter := calculateRecall(gt[i], after[i])
+				fmt.Println("Query", i)
+				fmt.Println("Before:", recallBefore)
+				fmt.Println("After :", recallAfter)
+				fmt.Println("---")
+
+				if recallAfter < recallBefore {
+					require.InDelta(t, recallBefore, recallAfter, 0.1)
+				}
+			}
+		})
+	}
+}
+
+func getClass(cfg testConfig) *models.Class {
+	class := models.Class{
 		Class:           className,
 		Vectorizer:      "none",
 		VectorIndexType: "hnsw",
-		ShardingConfig: map[string]interface{}{
+		ShardingConfig: map[string]any{
 			"desiredCount": 5,
 		},
 		Properties: []*models.Property{
@@ -117,8 +138,36 @@ func getClass() *models.Class {
 				DataType: []string{"int"},
 			},
 		},
-		VectorIndexConfig: hnswConfig,
 	}
+
+	switch cfg.index {
+	case "hnsw":
+		var hnswConfig hnsw.UserConfig
+		hnswConfig.SetDefaults()
+		hnswConfig.Distance = "l2-squared"
+		if cfg.pq {
+			hnswConfig.PQ.Enabled = true
+			hnswConfig.PQ.TrainingLimit = 10_000
+		}
+		class.VectorIndexConfig = hnswConfig
+	case "dynamic":
+		var dynamicConfig dynamic.UserConfig
+		dynamicConfig.SetDefaults()
+		dynamicConfig.Distance = "l2-squared"
+		dynamicConfig.Threshold = 20_000
+		if cfg.pq {
+			dynamicConfig.HnswUC.PQ.Enabled = true
+			dynamicConfig.HnswUC.PQ.TrainingLimit = 10_000
+		}
+		class.VectorIndexConfig = dynamicConfig
+	case "flat":
+		class.VectorIndexType = "flat"
+		class.VectorIndexConfig = flat.UserConfig{}
+	default:
+		panic(fmt.Sprintf("unknown index type: %s", cfg.index))
+	}
+
+	return &class
 }
 
 func randomVector(dim int) []float32 {
@@ -151,7 +200,7 @@ func createObjects(ctx context.Context, client *wvt.Client, size int) ([][]float
 		for i := 0; i < batch; i++ {
 			objs[i] = &models.Object{
 				Class: className,
-				Properties: map[string]interface{}{
+				Properties: map[string]any{
 					"index": count,
 				},
 				Vector: vectors[count],
