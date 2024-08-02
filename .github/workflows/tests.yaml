@@ -1011,8 +1011,8 @@ jobs:
   #       run: |
   #         cd apps/upgrade-journey-raft
   #         ./scripts/metadata_only_voters_check.sh
-  reindexing-endpoint-journey-tests:
-    name: Reindexing endpoint journey tests
+  debug-reindexing-endpoint-journey-tests:
+    name: Debug reindexing endpoint journey tests
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -1039,6 +1039,4 @@ jobs:
           values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Run reindexing chaos tests
         run: |
-          cd apps/reindexing-endpoint-tests
-          go mod vendor
-          go test -v .
+          ./debug-reindexing.sh
