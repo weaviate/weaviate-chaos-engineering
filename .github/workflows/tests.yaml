@@ -22,10 +22,16 @@ on:
         required: true
       POLARSIGNALS_TOKEN:
         required: true
+      SENTRY_DSN:
+        required: true
 
 env:
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
-  DISABLE_RECOVERY_ON_PANIC: true
+  DISABLE_RECOVERY_ON_PANIC: false
+  SENTRY_ENABLED: true
+  SENTRY_TRACES_SAMPLE_RATE: 0.001
+  SENTRY_ENVIRONMENT: 'chaos-pipeline'
+
 
 jobs:
   filter-memory-leak:
