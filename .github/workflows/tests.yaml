@@ -1028,15 +1028,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: '1.22'
-      - name: Setup Weaviate 5-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'setup'
-          workers: '1'
-          replicas: '5'
-          weaviate-version: ${{env.WEAVIATE_VERSION}}
-          modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Run reindexing chaos tests
         run: |
           ./debug-reindexing.sh

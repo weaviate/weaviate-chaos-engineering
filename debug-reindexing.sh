@@ -23,10 +23,6 @@ function shutdown() {
 }
 trap 'shutdown; exit 1' SIGINT ERR
 
-function compose_exit_code() {
-  echo $(docker inspect $1 --format='{{.State.ExitCode}}')
-}
-
 echo "Starting Weaviate..."
 docker compose -f apps/debug-reindexing-endpoint/docker-compose.yml up -d \
   weaviate-node-1 \
