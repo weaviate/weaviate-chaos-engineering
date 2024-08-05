@@ -33,7 +33,7 @@ trap 'shutdown; exit 1' SIGINT ERR
 
 function restart() {
   echo "Restarting node ..."
-  docker-compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml kill weaviate-node-1
+  docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml kill weaviate-node-1
   docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d --force-recreate  weaviate-node-1
   wait_weaviate 8080
 }
@@ -45,7 +45,7 @@ function validateObjects() {
   if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_healthy -t cluster_healthy; then
     echo "All objects read with consistency level ONE".
   else
-    docker-compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml logs weaviate-node-1 
+    docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml logs weaviate-node-1 
     exit 1
   fi
 }
@@ -91,7 +91,7 @@ echo "Import additional objects"
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer_additional -t importer_additional; then
   echo "All objects added with consistency level QUORUM with one node down".
 else
-  docker-compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml logs weaviate-node-1
+  docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml logs weaviate-node-1
   exit 1
 fi
 
