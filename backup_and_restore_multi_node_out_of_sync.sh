@@ -36,12 +36,12 @@ export WEAVIATE_NODE_1_VERSION=$WEAVIATE_VERSION
 export WEAVIATE_NODE_2_VERSION=$WEAVIATE_VERSION
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose-backup.yml up -d weaviate-node-1 weaviate-node-2 backup-s3
+docker compose -f apps/weaviate/docker-compose-backup.yml up -d weaviate-node-1 weaviate-node-2 backup-s3
 
 wait_weaviate_cluster
 
 echo "Creating S3 bucket..."
-docker-compose -f apps/weaviate/docker-compose-backup.yml up create-s3-bucket
+docker compose -f apps/weaviate/docker-compose-backup.yml up create-s3-bucket
 
 echo "Run multi-node backup and restore which affects schema"
 docker run --network host -t backup_and_restore_out_of_sync python3 backup_and_restore_out_of_sync.py

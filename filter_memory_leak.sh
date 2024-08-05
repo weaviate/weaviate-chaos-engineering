@@ -19,7 +19,7 @@ echo "Building all required containers"
 ( cd apps/filter-memory-leak// && docker build -t leaker . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose-with-memlimit.yml up -d
+docker compose -f apps/weaviate-no-restart-on-crash/docker-compose-with-memlimit.yml up -d
 
 wait_weaviate
 
