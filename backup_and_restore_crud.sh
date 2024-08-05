@@ -21,7 +21,7 @@ echo "Building all required containers"
 ( cd apps/backup_and_restore_crud/ && docker build -t backup_and_restore_crud . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
 

@@ -21,7 +21,7 @@ echo "Building all required containers"
 ( cd apps/batch-import-many-classes/ && docker build -t batch_import_many_classes . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
 
