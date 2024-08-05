@@ -1,4 +1,4 @@
-version: '3.9'
+---
 services:
   weaviate-node-1: # same as extended service to avoid reconfiguring cluster comm
     extends:

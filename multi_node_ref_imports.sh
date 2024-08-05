@@ -19,7 +19,7 @@ function wait_weaviate() {
 
 function shutdown() {
   echo "Cleaning up ressources..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
+  docker compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
   docker container rm -f ref-importer &>/dev/null && echo 'Deleted container ref-importer'
 }
@@ -42,7 +42,7 @@ if ! docker run \
   --network host \
   -t ref-importer python3 run.py; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml logs --tail 100
+  docker compose -f apps/weaviate/docker-compose-replication.yml logs --tail 100
   shutdown
   exit 1
 fi
