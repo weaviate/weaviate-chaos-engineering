@@ -8,6 +8,9 @@ on:
         type: string
         required: true
   push:
+    branches-ignore:
+      - main
+      - pipeline/**
   schedule:
     - cron: '0 0 */2 * *'
 
