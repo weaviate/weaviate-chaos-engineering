@@ -24,7 +24,7 @@ echo "Building all required containers"
 ( cd apps/chaotic-killer/ && docker build -t killer . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
 
@@ -47,7 +47,7 @@ if ! docker run \
   --network host \
   -t importer-no-vector; then
   echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
+  docker compose -f apps/weaviate/docker-compose.yml logs weaviate
   exit 1
 fi
 

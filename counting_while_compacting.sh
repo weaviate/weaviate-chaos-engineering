@@ -21,12 +21,12 @@ echo "Building all required containers"
 ( cd apps/counting-while-compacting/ && docker build -t counting-while-compacting . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
 
 wait_weaviate
 
 function dump_logs() {
-  docker-compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml logs
+  docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml logs
   docker ps -a
 }
 

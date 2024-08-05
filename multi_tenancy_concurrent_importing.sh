@@ -22,9 +22,9 @@ function wait_weaviate() {
 function shutdown() {
   echo "Cleaning up ressources..."
   rm -rf apps/weaviate/data-node-* || true
-  docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
+  docker compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
-  docker-compose -f apps/multi-tenancy-concurrent-imports/docker-compose-importers.yml down --remove-orphans
+  docker compose -f apps/multi-tenancy-concurrent-imports/docker-compose-importers.yml down --remove-orphans
 }
 trap 'shutdown; exit 1' SIGINT ERR
 

@@ -50,7 +50,7 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 echo "Done generating."
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
@@ -62,52 +62,54 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_healthy -t cluster_healthy; then
   echo "All objects read with consistency level ONE".
 else
-  docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
 # PATCH objects with one node down, consistency level QUORUM
 echo "Killing node 3"
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+sleep 10
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name patcher -t patcher; then
   echo "All objects patched with consistency level QUORUM with one node down".
 else
-  docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
 # Restart dead node, read objects with consistency level QUORUM
 echo "Restart node 3"
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-3
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-3
 wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_down -t cluster_one_node_down; then
   echo "All objects read with consistency level QUORUM after weaviate-node-3 restarted".
 else
-  docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
 # PUT objects with only one node remaining, consistency level ONE
 echo "Killing node 2"
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-2
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-2
 echo "Killing node 3"
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+sleep 10
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name updater -t updater; then
   echo "All objects updated with consistency level ONE with only weaviate-node-1 up".
 else
-  docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
 # Restart dead nodes, read objects with consistency level ALL
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-2
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-2
 wait_weaviate 8081
-docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-3
+docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-3
 wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_remaining -t cluster_one_node_remaining; then
   echo "All objects read with consistency level ALL after weaviate-node-2 and weaviate-node-3 restarted".
 else
-  docker-compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 

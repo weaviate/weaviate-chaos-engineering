@@ -21,7 +21,7 @@ echo "Building all required containers"
 ( cd apps/batch-insert-mismatch/ && docker build -t batch-insert-mismatch . )
 
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose-c11y.yml up -d
+docker compose -f apps/weaviate/docker-compose-c11y.yml up -d
 
 wait_weaviate
 
