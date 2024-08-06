@@ -7,8 +7,8 @@ on:
         description: "The weaviate docker image to version to run tests against"
         type: string
         required: true
-      weaviate_min_major_version_test_set:
-        description: "The weaviate min major version run tests against 1.24, 1.25, 1.26, by default all will run"
+      weaviate_max_major_version_test_set:
+        description: "The weaviate max major version run tests against 1.24, 1.25, 1.26 etc. by default all will run"
         type: number
         default: 0
         required: false
