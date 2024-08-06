@@ -7,10 +7,11 @@ on:
         description: "The weaviate docker image to version to run tests against"
         type: string
         required: true
-      weaviate_major_version_test_set:
-        description: "The weaviate major version run tests against 1.24, 1.25, 1.26"
-        type: string
-        required: true
+      weaviate_min_major_version_test_set:
+        description: "The weaviate min major version run tests against 1.24, 1.25, 1.26, by default all will run"
+        type: number
+        default: 0
+        required: false
   push:
     branches-ignore:
       - main
@@ -37,7 +38,11 @@ jobs:
       - id: set-output
         run: |
           echo "Running chaos pipelines against Weaviate version: $weaviate_version" >> $GITHUB_STEP_SUMMARY
-          echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT
+          echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT     
+      - id: version_check
+        run: |
+          VERSION_OK=$(echo "${{ inputs.weaviate_major_version_test_set }} >= 1.25" | bc -l)
+          echo "VERSION_OK=$VERSION_OK" >> $GITHUB_ENV
   run-with-sync-indexing:
     strategy:
       fail-fast: false
