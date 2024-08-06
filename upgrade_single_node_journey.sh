@@ -69,7 +69,7 @@ export WEAVIATE_NODE_VERSION=1.25.0
 docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d weaviate-node-1
 wait_weaviate 8080
 
-# POST objects with consistency level ALL
+# POST objects with consistency level ONE
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer -t importer
 
 # Read objects with consistency level ONE
@@ -86,10 +86,9 @@ validateObjects
 
 restart
 
-
 echo "Import additional objects"
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer_additional -t importer_additional; then
-  echo "All objects added with consistency level QUORUM with one node down".
+  echo "All objects added with consistency level ONE".
 else
   docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml logs weaviate-node-1
   exit 1
@@ -98,8 +97,8 @@ fi
 validateObjects
 
 restart
-validateObjects
 
+validateObjects
 
 echo "Success!"
 shutdown
