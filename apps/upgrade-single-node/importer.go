@@ -29,7 +29,7 @@ func main() {
 	}
 
 	{
-		log.Println("Importing objects batch with consistency level ALL...")
+		log.Println("Importing objects batch with consistency level ONE...")
 
 		objects := readObjectsFile("data.json")
 
@@ -38,7 +38,7 @@ func main() {
 			for j := i; j < batchSize+i && j < len(objects); j++ {
 				batcher.WithObjects(objects[j])
 			}
-			resp, err := batcher.WithConsistencyLevel(replication.ConsistencyLevel.ALL).Do(ctx)
+			resp, err := batcher.WithConsistencyLevel(replication.ConsistencyLevel.ONE).Do(ctx)
 			checkBatchInsertResult(resp, err)
 		}
 	}
