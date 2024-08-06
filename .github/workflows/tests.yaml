@@ -968,7 +968,7 @@ jobs:
   #     - name: Run chaos test
   #       run: ./compare_rest_graphql_while_crashing.sh
   upgrade-journey-raft:
-    if: ${{ inputs.weaviate_min_major_version_test_set == '' || (fromJSON(inputs.weaviate_min_major_version_test_set) >= 1.25) }}
+    if: ${{ github.event.inputs.weaviate_min_major_version_test_set == 0 || github.event.inputs.weaviate_min_major_version_test_set >= 1.25 }}
     name: Upgrade to Raft journey e2e test
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1073,7 +1073,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
   upgrade-journey-raft-metadata-only-voters:
-    if: ${{ inputs.weaviate_min_major_version_test_set == '' || (fromJSON(inputs.weaviate_min_major_version_test_set) >= 1.25) }}
+    if: ${{ github.event.inputs.weaviate_min_major_version_test_set == 0 || github.event.inputs.weaviate_min_major_version_test_set >= 1.25 }}
     name: Upgrade to Raft journey e2e test with metadata only voters
     runs-on: ubuntu-latest
     timeout-minutes: 60
