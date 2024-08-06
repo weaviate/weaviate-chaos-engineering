@@ -2,6 +2,8 @@
 
 set -e
 
+source common.sh
+
 ZONE=${ZONE:-"us-central1-a"}
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-standard-8"}
 CLOUD_PROVIDER="gcp"
@@ -31,9 +33,3 @@ gcloud compute scp --zone $ZONE --recurse ann_benchmark.sh "$instance:~"
 gcloud compute ssh --zone $ZONE $instance -- "DATASET=$DATASET DISTANCE=$DISTANCE REQUIRED_RECALL=$REQUIRED_RECALL WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark.sh"
 mkdir -p results
 gcloud compute scp --zone $ZONE --recurse "$instance:~/results/*.json" results/
-
-
-
-
-
-

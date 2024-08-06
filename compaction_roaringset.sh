@@ -2,20 +2,7 @@
 
 set -e
 
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready after 120s"
-  exit 1
-}
+source common.sh
 
 echo "Building all required containers"
 ( cd apps/compaction-roaringset/ && docker build -t compaction-roaringset . )
@@ -35,3 +22,4 @@ echo "Run create/delete objects script designed to panic on compacting roaringse
 docker run --network host -t compaction-roaringset python3 run.py
 
 echo "Passed!"
+shutdown

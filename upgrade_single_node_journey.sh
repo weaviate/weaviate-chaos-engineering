@@ -2,34 +2,7 @@
 
 set -e
 
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:$1/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready on $1, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready in port ${1} after 120s"
-  exit 1
-}
-
-function shutdown() {  
-  echo "Cleaning up ressources..."
-  docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true  
-  docker container rm -f generator &>/dev/null && echo 'Deleted container generator'
-  docker container rm -f importer &>/dev/null && echo 'Deleted container importer'
-  docker container rm -f importer_additional &>/dev/null && echo 'Deleted container importer_additional'
-  docker container rm -f cluster_read_repair &>/dev/null && echo 'Deleted container cluster_read_repair'
-  docker container rm -f cluster_healthy &>/dev/null && echo 'Deleted container cluster_healthy'
-  rm -rf workdir
-}
-trap 'shutdown; exit 1' SIGINT ERR
-
+source common.sh
 
 function restart() {
   echo "Restarting node ..."

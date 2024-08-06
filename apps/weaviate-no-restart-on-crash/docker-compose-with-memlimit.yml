@@ -14,7 +14,7 @@ services:
     - 8080:8080
     - 6060:6060
     volumes:
-    - "$PWD/weaviate-data:/var/lib/weaviate"
+    - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       PERSISTENCE_FLUSH_IDLE_MEMTABLES_AFTER: 2

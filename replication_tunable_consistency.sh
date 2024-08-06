@@ -2,20 +2,7 @@
 
 set -e
 
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:$1/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready on $1, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready in port ${1} after 120s"
-  exit 1
-}
+source common.sh
 
 echo "Building all required containers"
 ( cd apps/replication_tunable_consistency/ && docker build --build-arg APP_NAME=generator -t generator . )
@@ -25,21 +12,6 @@ echo "Building all required containers"
 ( cd apps/replication_tunable_consistency/ && docker build --build-arg APP_NAME=cluster_healthy -t cluster_healthy . )
 ( cd apps/replication_tunable_consistency/ && docker build --build-arg APP_NAME=cluster_one_node_down -t cluster_one_node_down . )
 ( cd apps/replication_tunable_consistency/ && docker build --build-arg APP_NAME=cluster_one_node_remaining -t cluster_one_node_remaining . )
-
-function shutdown() {
-  echo "Cleaning up ressources..."
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true
-  docker container rm -f generator &>/dev/null && echo 'Deleted container generator'
-  docker container rm -f importer &>/dev/null && echo 'Deleted container importer'
-  docker container rm -f patcher &>/dev/null && echo 'Deleted container patcher'
-  docker container rm -f cluster_one_node_down &>/dev/null && echo 'Deleted container cluster_one_node_down'
-  docker container rm -f updater &>/dev/null && echo 'Deleted container updater'
-  docker container rm -f cluster_one_node_remaining &>/dev/null && echo 'Deleted container cluster_one_node_remaining'
-  docker container rm -f cluster_healthy &>/dev/null && echo 'Deleted container cluster_healthy'
-  rm -rf workdir
-}
-trap 'shutdown; exit 1' SIGINT ERR
 
 rm -rf workdir
 mkdir workdir
@@ -114,3 +86,4 @@ else
 fi
 
 echo "Success!"
+shutdown

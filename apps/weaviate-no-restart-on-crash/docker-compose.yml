@@ -16,7 +16,7 @@ services:
     - 50051:50051
     - 2112:2112
     volumes:
-    - "$PWD/weaviate-data:/var/lib/weaviate"
+    - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
       - PERSISTENCE_DATA_PATH
       - PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS

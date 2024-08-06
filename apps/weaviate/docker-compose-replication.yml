@@ -16,7 +16,7 @@ services:
     - 50051:50051
     restart: on-failure:0
     volumes:
-      - ./data-node-1:/var/lib/weaviate
+      - "$PWD/apps/weaviate/data-node-1:/var/lib/weaviate"
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -47,7 +47,7 @@ services:
     - 50052:50051
     restart: on-failure:0
     volumes:
-      - ./data-node-2:/var/lib/weaviate
+      - "$PWD/apps/weaviate/data-node-2:/var/lib/weaviate"
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -78,8 +78,8 @@ services:
     - 6062:6060
     - 50053:50051
     restart: on-failure:0
-    volumes:
-      - ./data-node-3:/var/lib/weaviate
+    volumes:      
+    - "$PWD/apps/weaviate/data-node-3:/var/lib/weaviate"
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25

@@ -13,7 +13,7 @@ services:
     - 8080:8080
     restart: on-failure:0
     volumes:
-      - ./data:/var/lib/weaviate
+      - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
       CONTEXTIONARY_URL: contextionary:9999
       QUERY_DEFAULTS_LIMIT: 25
