@@ -38,11 +38,7 @@ jobs:
       - id: set-output
         run: |
           echo "Running chaos pipelines against Weaviate version: $weaviate_version" >> $GITHUB_STEP_SUMMARY
-          echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT     
-      - id: version_check
-        run: |
-          VERSION_OK=$(echo "${{ inputs.weaviate_major_version_test_set }} >= 1.25" | bc -l)
-          echo "VERSION_OK=$VERSION_OK" >> $GITHUB_ENV
+          echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT
   run-with-sync-indexing:
     strategy:
       fail-fast: false
