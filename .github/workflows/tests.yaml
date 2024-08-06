@@ -1142,7 +1142,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
-        run: ./read_repair.sh    
+        run: ./read_repair.sh
   update-stability:
     name: Recall Stability on object updates
     runs-on: ubuntu-latest
@@ -1170,4 +1170,4 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
-        run: ./update_stability.sh    
+        run: ./update_stability.sh
