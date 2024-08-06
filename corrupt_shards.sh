@@ -43,14 +43,14 @@ function log_result() {
 
 function cleanup() {
   echo "Cleaning up ressources..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
+  docker compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
   docker container rm -f corrupt-shards &>/dev/null && echo 'Deleted container corrupt-shards'
 }
 
 function shutdown() {
   # echo "Showing logs..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  docker compose -f apps/weaviate/docker-compose-replication.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   cleanup
   log_result
 }
