@@ -316,28 +316,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
-        run: ./upgrade_journey.sh
-  upgrade-journey-single-node-cluster:
-    name: Upgrade journey for RAFT single node cluster
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      NUM_NODES: 1
-      MINIMUM_WEAVIATE_VERSION: 1.25.0
-    steps:
-      - uses: actions/checkout@v3      
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.20'
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{secrets.DOCKER_USERNAME}}
-          password: ${{secrets.DOCKER_PASSWORD}}
-      - name: Run chaos test
-        run: ./upgrade_single_node_journey.sh
+        run: ./upgrade_journey.sh  
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
     runs-on: ubuntu-latest-8-cores
@@ -1050,3 +1029,25 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
+  upgrade-journey-single-node-cluster:
+    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.25 }}
+    name: Upgrade journey for RAFT single node cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      NUM_NODES: 1
+      MINIMUM_WEAVIATE_VERSION: 1.25.0
+    steps:
+      - uses: actions/checkout@v3      
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.20'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./upgrade_single_node_journey.sh
