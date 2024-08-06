@@ -895,156 +895,156 @@ jobs:
   #         password: ${{secrets.DOCKER_PASSWORD}}
   #     - name: Run chaos test
   #       run: ./compare_rest_graphql_while_crashing.sh
-  # upgrade-journey-raft:
-  #   name: Upgrade to Raft journey e2e test
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     WEAVIATE_NON_RAFT_VERSION: 1.24.15
-  #     WEAVIATE_RAFT_VERSION_1: 1.25.0
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Install python dependencies
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         pip3 install -r requirements.txt
-  #     - name: Weaviate v1.24.x - setup K8s 3-node cluster
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'setup'
-  #         workers: '1'
-  #         replicas: '3'
-  #         weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #     - name: Weaviate v1.24.x - import data
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 run.py
-  #     - name: Weaviate v1.24.x - check data after import
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 checks.py
-  #     - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'upgrade'
-  #         workers: '1'
-  #         replicas: '3'
-  #         weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #         delete-sts: 'true'
-  #     - name: Weaviate v1.25.0 - check data after upgrade to Raft version
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 checks.py
-  #     - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'upgrade'
-  #         workers: '1'
-  #         replicas: '3'
-  #         weaviate-version: ${{env.WEAVIATE_VERSION}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #     - name: Weaviate preview image - check old data
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 checks.py
-  #     - name: Weaviate preview image - add additional data and check all (old and new) data
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 additional_run.py
-  #         python3 additional_checks.py
-  #     - name: Weaviate preview image - sync with schema V1
-  #       run: |
-  #         if [ "$(curl -X POST -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
-  #           echo "Synchronization of schema V1 failed"
-  #           exit 1
-  #         else
-  #           echo "Schema V1 succesfully synchronized"
-  #         fi
-  #     - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'upgrade'
-  #         workers: '1'
-  #         replicas: '3'
-  #         weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set podManagementPolicy=OrderedReady  --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #         delete-sts: 'true'
-  #     - name: Weaviate v1.24.x - check additional and old data
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 additional_checks.py
-  #     - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'upgrade'
-  #         workers: '1'
-  #         replicas: '3'
-  #         weaviate-version: ${{env.WEAVIATE_VERSION}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #         delete-sts: 'true'
-  #     - name: Weaviate preview image - check additional and old data
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 additional_checks.py
-  # upgrade-journey-raft-metadata-only-voters:
-  #   name: Upgrade to Raft journey e2e test with metadata only voters
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   env:
-  #     WEAVIATE_RAFT_VERSION_1: 1.25.0
-  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{secrets.DOCKER_USERNAME}}
-  #         password: ${{secrets.DOCKER_PASSWORD}}
-  #     - name: Install python dependencies
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         pip3 install -r requirements.txt
-  #     - name: Weaviate v1.25 with metadata only voters setting - setup K8s 6-node cluster
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'setup'
-  #         workers: '1'
-  #         replicas: '5'
-  #         weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #     - name: Weaviate v1.25 with metadata only voters setting - import data and additional data
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         python3 run.py
-  #         python3 additional_run.py
-  #     - name: Weaviate v1.25 with metadata only voters setting - check if data has been saved only in non-voter nodes
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         ./scripts/metadata_only_voters_check.sh
-  #     - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-  #       uses: weaviate/weaviate-local-k8s@v2
-  #       with:
-  #         operation: 'upgrade'
-  #         workers: '1'
-  #         replicas: '5'
-  #         weaviate-version: ${{env.WEAVIATE_VERSION}}
-  #         modules: 'text2vec-contextionary'
-  #         values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-  #     - name: Weaviate preview image with metadata only voters setting - check if data has been saved only in non-voter nodes
-  #       run: |
-  #         cd apps/upgrade-journey-raft
-  #         ./scripts/metadata_only_voters_check.sh
+  upgrade-journey-raft:
+    name: Upgrade to Raft journey e2e test
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      WEAVIATE_NON_RAFT_VERSION: 1.24.15
+      WEAVIATE_RAFT_VERSION_1: 1.25.0
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Install python dependencies
+        run: |
+          cd apps/upgrade-journey-raft
+          pip3 install -r requirements.txt
+      - name: Weaviate v1.24.x - setup K8s 3-node cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Weaviate v1.24.x - import data
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 run.py
+      - name: Weaviate v1.24.x - check data after import
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 checks.py
+      - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'upgrade'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          delete-sts: 'true'
+      - name: Weaviate v1.25.0 - check data after upgrade to Raft version
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 checks.py
+      - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'upgrade'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Weaviate preview image - check old data
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 checks.py
+      - name: Weaviate preview image - add additional data and check all (old and new) data
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 additional_run.py
+          python3 additional_checks.py
+      - name: Weaviate preview image - sync with schema V1
+        run: |
+          if [ "$(curl -X POST -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
+            echo "Synchronization of schema V1 failed"
+            exit 1
+          else
+            echo "Schema V1 succesfully synchronized"
+          fi
+      - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'upgrade'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set podManagementPolicy=OrderedReady  --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          delete-sts: 'true'
+      - name: Weaviate v1.24.x - check additional and old data
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 additional_checks.py
+      - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'upgrade'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          delete-sts: 'true'
+      - name: Weaviate preview image - check additional and old data
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 additional_checks.py
+  upgrade-journey-raft-metadata-only-voters:
+    name: Upgrade to Raft journey e2e test with metadata only voters
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      WEAVIATE_RAFT_VERSION_1: 1.25.0
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Install python dependencies
+        run: |
+          cd apps/upgrade-journey-raft
+          pip3 install -r requirements.txt
+      - name: Weaviate v1.25 with metadata only voters setting - setup K8s 6-node cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '5'
+          weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Weaviate v1.25 with metadata only voters setting - import data and additional data
+        run: |
+          cd apps/upgrade-journey-raft
+          python3 run.py
+          python3 additional_run.py
+      - name: Weaviate v1.25 with metadata only voters setting - check if data has been saved only in non-voter nodes
+        run: |
+          cd apps/upgrade-journey-raft
+          ./scripts/metadata_only_voters_check.sh
+      - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'upgrade'
+          workers: '1'
+          replicas: '5'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          modules: 'text2vec-contextionary'
+          values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Weaviate preview image with metadata only voters setting - check if data has been saved only in non-voter nodes
+        run: |
+          cd apps/upgrade-journey-raft
+          ./scripts/metadata_only_voters_check.sh
