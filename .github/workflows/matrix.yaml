@@ -7,6 +7,10 @@ on:
         description: "The weaviate docker image to version to run tests against"
         type: string
         required: true
+      weaviate_major_version_test_set:
+        description: "The weaviate major version run tests against 1.24, 1.25, 1.26"
+        type: string
+        required: true
   push:
     branches-ignore:
       - main
