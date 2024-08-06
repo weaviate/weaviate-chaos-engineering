@@ -1,9 +1,6 @@
 #!/bin/bash
 
-
 set -e
-
-source common.sh
 
 dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
