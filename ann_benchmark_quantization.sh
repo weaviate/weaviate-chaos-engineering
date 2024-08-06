@@ -52,4 +52,3 @@ docker run --network host -t -v "$PWD/datasets:/datasets" \
   ann_benchmarks python3 analyze.py
 
 echo "Passed!"
-shutdown

@@ -50,4 +50,3 @@ docker run --network host -t -v "$PWD/datasets:/datasets" \
 
 
 echo "Passed!"
-shutdown
