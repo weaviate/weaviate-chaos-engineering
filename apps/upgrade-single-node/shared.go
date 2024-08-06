@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"log"
-	"math/rand"
 	"os"
 
 	client "github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -18,7 +17,7 @@ var (
 	node1Client = client.New(client.Config{Scheme: "http", Host: "localhost:8080"})
 
 	class = models.Class{
-		Class: "TunableConsistency",
+		Class: "SingleNodeClass",
 		Properties: []*models.Property{
 			{
 				Name:     "name",
@@ -30,8 +29,7 @@ var (
 			},
 		},
 		ReplicationConfig: &models.ReplicationConfig{
-			Factor:       1,
-			AsyncEnabled: true,
+			Factor: 1,
 		},
 	}
 )
@@ -52,11 +50,7 @@ func readObjectsFile(filename string) []*models.Object {
 }
 
 func randClient() *client.Client {
-	clients := []*client.Client{
-		node1Client,
-	}
-
-	return clients[rand.Intn(len(clients))]
+	return node1Client
 }
 
 func allClients() []*client.Client {
