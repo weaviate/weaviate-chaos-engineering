@@ -2,8 +2,6 @@
 
 set -e
 
-source common.sh
-
 MACHINE_TYPE="${MACHINE_TYPE:-"m6i.2xlarge"}"
 CLOUD_PROVIDER="aws"
 OS="ubuntu-2204"

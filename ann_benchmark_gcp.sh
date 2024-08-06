@@ -2,8 +2,6 @@
 
 set -e
 
-source common.sh
-
 ZONE=${ZONE:-"us-central1-a"}
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-standard-8"}
 CLOUD_PROVIDER="gcp"
