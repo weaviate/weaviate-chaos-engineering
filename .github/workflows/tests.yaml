@@ -149,6 +149,7 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-sq-sift-aws:
+    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
     name: "[bench AWS] SIFT1M sq=true"
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -219,6 +220,7 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-sq-glove-aws:
+    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
     name: "[bench AWS] Glove100 sq=true"
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1124,6 +1126,7 @@ jobs:
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
   read-repair:
+    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
     name: Chaos pipeline to ensure read-repair logic works as expected
     runs-on: ubuntu-latest
     timeout-minutes: 60
