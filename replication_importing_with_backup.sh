@@ -29,8 +29,7 @@ docker compose -f apps/replicated_import_with_backup/docker-compose.yml up \
 
 if [ $(compose_exit_code importer-schema-node-1) -ne 0 ]; then
   echo "Could not apply schema"
-  # shutdown
-  # exit 1
+  exit 1
 fi
 
 echo "Batch import to 2 nodes + parallel backup..."
@@ -53,9 +52,8 @@ if [[ $exit_code_imp_1 != 0 && $exit_code_imp_1 != 137 ]] || \
     [[ $exit_code_imp_2 != 0 && $exit_code_imp_2 != 137 ]] || \
     [[ $exit_code_bck != 0 && $exit_code_bck != 137 ]]; then
   echo "Could not import/backup"
-  # shutdown
-  # exit 1
+  exit 1
 fi
 
 echo "Passed!"
-# shutdown
+shutdown

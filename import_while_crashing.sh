@@ -34,8 +34,7 @@ if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
   -t importer; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker compose -f apps/weaviate/docker-compose.yml logs weaviate
+  echo "Importer failed, printing latest Weaviate logs..."  
   exit 1
 fi
 

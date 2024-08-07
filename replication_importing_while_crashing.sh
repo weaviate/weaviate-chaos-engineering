@@ -24,8 +24,7 @@ if ! docker run \
   --rm \
   --name importer \
   -t importer python3 run.py --action schema; then
-  echo "Could not apply schema"
-  docker compose -f apps/weaviate/docker-compose.yml logs
+  echo "Could not apply schema"  
   exit 1
 fi
 
@@ -45,8 +44,7 @@ if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
   -t importer python3 run.py --action import; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker compose -f apps/weaviate/docker-compose-replication.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  echo "Importer failed, printing latest Weaviate logs..."  
   exit 1
 fi
 

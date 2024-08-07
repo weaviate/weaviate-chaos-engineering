@@ -33,9 +33,8 @@ if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
   -t importer-no-vector; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker compose -f apps/weaviate/docker-compose.yml logs weaviate
-  exit 1
+  echo "Importer failed, printing latest Weaviate logs..."  
+    exit 1
 fi
 
 echo "Import completed successfully, stop killer"
@@ -66,7 +65,7 @@ done
 
 if [ $attempt -gt $retries ]; then
   echo "Failed to validate object count after $retries attempts"
-  exit 1
+    exit 1
 fi
 
 echo "Passed!"

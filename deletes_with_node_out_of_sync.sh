@@ -37,7 +37,6 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_healthy -t cluster_healthy; then
   echo "All objects read with consistency level ONE".
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
@@ -58,22 +57,19 @@ wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name check_objects_in_nodes -t check_objects_in_nodes; then
   echo "tenant2 objects are present in Node 1 but not in Node 3, as it was down."
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
-  exit 1
+    exit 1
 fi
 
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name deleter -t deleter; then
   echo "All tenant2 objects deleted with consistency level ONE."
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
-  exit 1
+    exit 1
 fi
 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name check_objects_deleted -t check_objects_deleted; then
   echo "tenant2 objects were deleted from all nodes."
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
-  exit 1
+    exit 1
 fi
 
 echo "Success!"

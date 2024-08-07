@@ -25,4 +25,3 @@ docker run --network host -e ORIGIN=http://localhost:8080 -t counting-while-comp
 
 echo "Passed!"
 shutdown
-

@@ -20,9 +20,7 @@ if ! docker run \
   --name ref-importer \
   --network host \
   -t ref-importer python3 run.py; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker compose -f apps/weaviate/docker-compose-replication.yml logs --tail 100
-  shutdown
+  echo "Importer failed, printing latest Weaviate logs..."  
   exit 1
 fi
 
@@ -31,7 +29,6 @@ errors="$(docker compose -f apps/weaviate/docker-compose-replication.yml logs 2>
 if (( $warnings > 0 )); then
   docker compose -f apps/weaviate/docker-compose-replication.yml logs 2>&1 | grep memberlist | grep error
   echo "too many errors ($errors)"
-  shutdown
   exit 1
 fi
 
