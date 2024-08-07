@@ -77,9 +77,3 @@ scp -i "${key_id}.pem" -r ann_benchmark.sh "$ssh_addr:~"
 ssh -i "${key_id}.pem" $ssh_addr -- "DATASET=$dataset DISTANCE=$distance REQUIRED_RECALL=$REQUIRED_RECALL WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark.sh"
 mkdir -p results
 scp -i "${key_id}.pem" -r "$ssh_addr:~/results/*.json" results/
-
-
-
-
-
-

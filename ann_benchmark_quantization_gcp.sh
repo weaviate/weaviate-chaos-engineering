@@ -31,9 +31,3 @@ gcloud compute scp --zone $ZONE --recurse ann_benchmark_quantization.sh "$instan
 gcloud compute ssh --zone $ZONE $instance -- "DATASET=$DATASET DISTANCE=$DISTANCE REQUIRED_RECALL=$REQUIRED_RECALL QUANTIZATION=$QUANTIZATION WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark_quantization.sh"
 mkdir -p results
 gcloud compute scp --zone $ZONE --recurse "$instance:~/results/*.json" results/
-
-
-
-
-
-

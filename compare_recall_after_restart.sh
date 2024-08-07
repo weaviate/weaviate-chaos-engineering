@@ -2,20 +2,7 @@
 
 set -e
 
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready after 120s"
-  exit 1
-}
+source common.sh
 
 echo "Building all required containers"
 ( cd apps/recall/ && docker build -t recall . )
@@ -49,3 +36,6 @@ wait_weaviate
 
 echo "Check Recall again"
 docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker
+
+echo "Passed!"
+shutdown

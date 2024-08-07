@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 set -e
 
 dataset=${DATASET:-"sift-128-euclidean"}

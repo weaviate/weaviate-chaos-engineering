@@ -6,6 +6,7 @@ dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
 quantization=${QUANTIZATION:-"none"}
 
+
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do

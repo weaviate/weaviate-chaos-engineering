@@ -2,20 +2,7 @@
 
 set -e
 
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:$1/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready on $1, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready in port ${1} after 120s"
-  exit 1
-}
+source common.sh
 
 echo "Building all required containers"
 ( cd apps/deletes_with_node_out_of_sync/ && docker build --build-arg APP_NAME=generator -t generator . )
@@ -26,22 +13,6 @@ echo "Building all required containers"
 ( cd apps/deletes_with_node_out_of_sync/ && docker build --build-arg APP_NAME=cluster_healthy -t cluster_healthy . )
 ( cd apps/deletes_with_node_out_of_sync/ && docker build --build-arg APP_NAME=check_objects_in_nodes -t check_objects_in_nodes . )
 ( cd apps/deletes_with_node_out_of_sync/ && docker build --build-arg APP_NAME=check_objects_deleted -t check_objects_deleted . )
-
-function shutdown() {
-  echo "Cleaning up ressources..."
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true
-  docker container rm -f generator &>/dev/null && echo 'Deleted container generator'
-  docker container rm -f regenerator &>/dev/null && echo 'Deleted container regenerator'
-  docker container rm -f importer &>/dev/null && echo 'Deleted container importer'
-  docker container rm -f reimporter &>/dev/null && echo 'Deleted container reimporter'
-  docker container rm -f deleter &>/dev/null && echo 'Deleted container deleter'
-  docker container rm -f check_objects_in_nodes &>/dev/null && echo 'Deleted container check_objects_in_nodes'
-  docker container rm -f check_objects_deleted &>/dev/null && echo 'Deleted container check_objects_deleted'
-  docker container rm -f cluster_healthy &>/dev/null && echo 'Deleted container cluster_healthy'
-  rm -rf workdir
-}
-trap 'shutdown; exit 1' SIGINT ERR
 
 rm -rf workdir
 mkdir workdir
@@ -66,7 +37,6 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_healthy -t cluster_healthy; then
   echo "All objects read with consistency level ONE".
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
   exit 1
 fi
 
@@ -87,20 +57,20 @@ wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name check_objects_in_nodes -t check_objects_in_nodes; then
   echo "tenant2 objects are present in Node 1 but not in Node 3, as it was down."
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
-  exit 1
+    exit 1
 fi
 
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name deleter -t deleter; then
   echo "All tenant2 objects deleted with consistency level ONE."
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
-  exit 1
+    exit 1
 fi
 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name check_objects_deleted -t check_objects_deleted; then
   echo "tenant2 objects were deleted from all nodes."
 else
-  docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
-  exit 1
+    exit 1
 fi
+
+echo "Success!"
+shutdown

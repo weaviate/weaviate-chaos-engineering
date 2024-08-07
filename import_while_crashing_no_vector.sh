@@ -2,22 +2,9 @@
 
 set -e
 
+source common.sh
+
 SIZE=100000
-
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready after 120s"
-  exit 1
-}
 
 echo "Building all required containers"
 ( cd apps/importer-no-vector-index/ && docker build -t importer-no-vector . )
@@ -46,9 +33,8 @@ if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
   -t importer-no-vector; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker compose -f apps/weaviate/docker-compose.yml logs weaviate
-  exit 1
+  echo "Importer failed, printing latest Weaviate logs..."  
+    exit 1
 fi
 
 echo "Import completed successfully, stop killer"
@@ -79,7 +65,8 @@ done
 
 if [ $attempt -gt $retries ]; then
   echo "Failed to validate object count after $retries attempts"
-  exit 1
+    exit 1
 fi
 
 echo "Passed!"
+shutdown
