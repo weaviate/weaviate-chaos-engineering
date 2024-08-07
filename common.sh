@@ -51,4 +51,7 @@ function shutdown() {
   rm -rf apps/weaviate/data* || true    
   rm -rf workdir
 }
+
 trap 'logs; shutdown; exit 1' SIGINT ERR
+
+trap '[[ $? -eq 1 ]] && logs; shutdown' EXIT
