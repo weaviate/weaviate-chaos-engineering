@@ -57,3 +57,4 @@ else
 fi
 
 echo "Success!"
+shutdown
