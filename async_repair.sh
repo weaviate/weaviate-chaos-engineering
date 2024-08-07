@@ -5,11 +5,11 @@ set -e
 source common.sh
 
 echo "Building all required containers"
-( cd apps/read_repair/ && docker build --build-arg APP_NAME=generator -t generator . )
-( cd apps/read_repair/ && docker build --build-arg APP_NAME=importer -t importer . )
-( cd apps/read_repair/ && docker build --build-arg APP_NAME=importer_additional -t importer_additional . )
-( cd apps/read_repair/ && docker build --build-arg APP_NAME=cluster_healthy -t cluster_healthy . )
-( cd apps/read_repair/ && docker build --build-arg APP_NAME=cluster_read_repair -t cluster_read_repair . )
+( cd apps/async_repair/ && docker build --build-arg APP_NAME=generator -t generator . )
+( cd apps/async_repair/ && docker build --build-arg APP_NAME=importer -t importer . )
+( cd apps/async_repair/ && docker build --build-arg APP_NAME=importer_additional -t importer_additional . )
+( cd apps/async_repair/ && docker build --build-arg APP_NAME=cluster_healthy -t cluster_healthy . )
+( cd apps/async_repair/ && docker build --build-arg APP_NAME=cluster_async_repair -t cluster_async_repair . )
 
 
 rm -rf workdir
@@ -50,7 +50,7 @@ fi
 echo "Restart node 3"
 docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-3
 wait_weaviate 8082
-if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_read_repair -t cluster_read_repair; then
+if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_async_repair -t cluster_async_repair; then
   echo "All objects read with consistency level ALL after weaviate-node-3 restarted".
 else
   exit 1
