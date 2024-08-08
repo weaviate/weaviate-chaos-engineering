@@ -1011,3 +1011,23 @@ jobs:
   #       run: |
   #         cd apps/upgrade-journey-raft
   #         ./scripts/metadata_only_voters_check.sh
+  debug-reindexing-endpoint-journey-tests:
+    name: Debug reindexing endpoint journey tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.22'
+      - name: Run reindexing chaos tests
+        run: |
+          ./debug-reindexing.sh

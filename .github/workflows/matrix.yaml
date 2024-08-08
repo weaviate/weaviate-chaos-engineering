@@ -26,7 +26,7 @@ jobs:
   weaviate-version-information:
     runs-on: ubuntu-latest
     env:
-      weaviate_version: "${{inputs.weaviate_version || '1.25.2'}}"
+      weaviate_version: "${{inputs.weaviate_version || '1.24.21'}}"
     outputs:
       weaviate_version: ${{ steps.set-output.outputs.weaviate_version }}
     steps:
@@ -42,7 +42,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
-      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.25.2' }}
+      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.24.21' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
