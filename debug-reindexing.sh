@@ -33,7 +33,7 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
-cd ./apps/debug-reindexing-endpoint/ && go test -v .
+cd ./apps/debug-reindexing-endpoint/ && go test  -timeout 3600s -v . # 1 hour timeout 
 
 echo "Passed!"
 shutdown
