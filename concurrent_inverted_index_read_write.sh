@@ -14,6 +14,7 @@ docker compose -f apps/weaviate/docker-compose.yml up -d
 
 wait_weaviate
 
+
 echo "Run import script in foreground..."
 if ! docker run \
   -e 'DIMENSIONS=48' \
