@@ -1,7 +1,7 @@
 services:
   weaviate-node-1: # same as extended service to avoid reconfiguring cluster comm
     extends:
-      file: ./../weaviate/docker-compose-replication.yml
+      file: $PWD/apps/weaviate/docker-compose-replication.yml
       service: weaviate-node-1
     container_name: weaviate-node-1
     environment:
@@ -9,7 +9,7 @@ services:
 
   weaviate-node-2: # same as extended service to avoid reconfiguring cluster comm
     extends:
-      file: ./../weaviate/docker-compose-replication.yml
+      file: $PWD/apps/weaviate/docker-compose-replication.yml
       service: weaviate-node-2
     container_name: weaviate-node-2
     environment:
@@ -17,7 +17,7 @@ services:
 
   weaviate-node-3: # same as extended service to avoid reconfiguring cluster comm
     extends:
-      file: ./../weaviate/docker-compose-replication.yml
+      file: $PWD/apps/weaviate/docker-compose-replication.yml
       service: weaviate-node-3
     container_name: weaviate-node-3
     environment:
