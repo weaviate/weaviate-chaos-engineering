@@ -1,0 +1,41 @@
+name: RestartClusterTests
+description: Test that Weaviate cluster is able to recover from different type of restarts
+tests:
+  - name: TestRestartFullCluster
+    description: Test that weaviate is able to survive a situation of all nodes being down
+    pre:
+      - name: Create collection
+        weaviatest: create collection --multitenant  --collection TestCollection1 --vectorizer transformers  --vector_index "flat"
+      - name: Create tenant
+        weaviatest: create tenants --number_tenants 10 --collection TestCollection1
+      - name: Add data for each tenant
+        weaviatest: create data --limit 10 --collection TestCollection1
+    steps:
+      - name: Throw all nodes down
+        command: kubectl delete pod -l app=weaviate -n weaviate
+      - name: Wait for all pods to be "Running
+        command: kubectl wait --for=condition=Ready pod -l app=weaviate --timeout=300s -n weaviate
+      - name: Wait for all nodes to be serving
+        wait: |
+          replicas=$(kubectl get statefulset weaviate -n weaviate -o jsonpath='{.status.replicas}')
+          curl -s http://localhost:8080/v1/nodes | jq ".nodes | length == ${replicas}" >/dev/null && exit 0 || exit 1
+        delay: 30
+        retries: 10
+      - name: Create another collection
+        weaviatest: create collection --multitenant  --collection TestCollection2 --auto_tenant_creation --vectorizer contextionary --vector_index "hnsw_bq"
+      - name: Add data for non-existing tenants in the new collection (Auto-tenant creation)
+        weaviatest: create data --limit 10 --collection TestCollection2 --auto_tenants 10
+      - name: Update data for the first collection
+        weaviatest: update data --limit 5 --collection TestCollection1
+    post:
+      - name: Delete collection 1
+        weaviatest: delete collection --collection TestCollection1
+      - name: Delete collection 2
+        weaviatest: delete collection --collection TestCollection2
+common:
+  - name: Wait for all pods to be "Running
+    command: kubectl wait --for=condition=Ready pod -l app=weaviate --timeout=300s -n weaviate
+  - name: Wait for all nodes to be serving
+    wait: |
+      replicas=$(kubectl get statefulset weaviate -n weaviate -o jsonpath='{.status.replicas}')
+      curl -s http://localhost:8080/v1/nodes | jq ".nodes | length == ${replicas}" >/dev/null && exit 0 || exit 1

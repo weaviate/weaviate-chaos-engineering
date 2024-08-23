@@ -1,0 +1,89 @@
+name: Weaviatest Non-Functional/Chaos Tests
+
+on:
+  workflow_call:
+    inputs:
+      number_nodes:
+        required: true
+        type: number
+      weaviate_version:
+        required: true
+        type: string
+
+jobs:
+  get_test_files:
+    runs-on: ubuntu-latest
+    outputs:
+      test_matrix: ${{ steps.get_test_files.outputs.test_matrix }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+  
+      - name: Get list of test files
+        env:
+          TESTS_LOCATION: weaviatest/tests/
+        id: get_test_files
+        run: |
+          # Find all YAML files in the tests/ directory and convert to JSON array
+          test_files=$(find ${{ env.TESTS_LOCATION }} -type f -name "*.yaml" | jq -R . | jq -s .)
+          
+          # Sanitize and set the output (remove any leading/trailing whitespace)
+          test_files_sanitized=$(echo "$test_files" | tr -d '\n' | tr -d ' ')
+          
+          echo "Sanitized test files JSON array: $test_files_sanitized"
+          echo "::set-output name=test_matrix::$test_files_sanitized"
+      - name: Verify Output
+        run: |
+            # Debugging: Verify that the output was set correctly
+            echo "Output from get_test_files step: ${{ steps.get_test_files.outputs.test_matrix }}"
+            
+
+  weaviatest:
+    needs: get_test_files
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        # Dynamically generate the list of test files in the 'tests/' directory
+        test_file: ${{ fromJson(needs.get_test_files.outputs.test_matrix) }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: pip install -r weaviatest/requirements.txt
+    
+      - name: Checkout Weaviatest
+        uses: actions/checkout@v2
+        with:
+          repository: weaviate/weaviatest
+          path: github/weaviatest
+          ref: main
+    
+      - name: Build Weaviatest docker container
+        run: docker build -t weaviatest github/weaviatest
+    
+      - name: Start up Weaviate cluster
+        env:
+          WORKERS: 3
+          REPLICAS: ${{ inputs.number_nodes }}
+          WEAVIATE_VERSION: "${{inputs.weaviate_version }}"
+          MODULES: 'text2vec-contextionary,text2vec-transformers'
+          ENABLE_BACKUP: 'true'
+          VALUES_OVERRIDE: |
+              env:
+                QUERY_MAXIMUM_RESULTS: 10005
+                ASYNC_INDEXING: true
+        uses: weaviate/weaviate-local-k8s@v2
+        id: deploy_cluster
+        with:
+          workers: ${{ env.WORKERS }}
+          replicas: ${{ env.REPLICAS }}
+          enable-backup: ${{ env.ENABLE_BACKUP }}
+          weaviate-version: ${{ env.WEAVIATE_VERSION }}
+          modules: ${{ env.MODULES }}
+          values-override: ${{ env.VALUES_OVERRIDE }}
+      # Run unbuffered to avoid logging issues
+      - name: Parse and Run Test Suites
+        run: python -u weaviatest/weaviatest_parser.py ${{ matrix.test_file }}

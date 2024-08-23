@@ -27,7 +27,7 @@ jobs:
   weaviate-version-information:
     runs-on: ubuntu-latest
     env:
-      weaviate_version: "${{inputs.weaviate_version || '1.26.1'}}"
+      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.26.1' }}
     outputs:
       weaviate_version: ${{ steps.set-output.outputs.weaviate_version }}
     steps:
@@ -36,6 +36,7 @@ jobs:
           echo "Running chaos pipelines against Weaviate version: $weaviate_version" >> $GITHUB_STEP_SUMMARY
           echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT
   run-with-sync-indexing:
+    needs: weaviate-version-information
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +44,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
-      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.26.1' }}
+      weaviate_version: ${{ needs.weaviate-version-information.outputs.weaviate_version }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
@@ -51,8 +52,19 @@ jobs:
       DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
+  # Job that triggers weaviatest.yaml after all tests in run-with-sync-indexing pass
+  trigger-weaviatest:
+    needs: weaviate-version-information
+    strategy:
+      fail-fast: false
+      matrix:
+        number_nodes: [3, 7]
+    uses: ./.github/workflows/weaviatest.yaml
+    with:
+      number_nodes: ${{ matrix.number_nodes }}
+      weaviate_version: ${{ needs.weaviate-version-information.outputs.weaviate_version }}
   send-slack-message-on-failure:
-    needs: [weaviate-version-information, run-with-sync-indexing]
+    needs: [weaviate-version-information, run-with-sync-indexing, trigger-weaviatest]
     if: failure() && github.event_name == 'schedule'
     runs-on: ubuntu-latest
     env:
@@ -64,7 +76,7 @@ jobs:
           # This data has been defined as a Workflow in the slack channel chaos-pipeline
           payload: |
             {
-              "message": "Chaos pipeline failed for Weaviate version: latest.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "message": "Chaos pipeline failed for Weaviate version: ${{ needs.weaviate-version-information.outputs.weaviate_version}}}.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "slack_channel": "${{ env.SLACK_CHANNEL }}"
             }
         env:
