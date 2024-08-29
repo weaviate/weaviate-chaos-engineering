@@ -1,0 +1,72 @@
+name: NodeDownTests
+description: Test the behavior of Weaviate when a node is down
+tests:
+  - name: TestCreateCollectionNodeDown
+    description: Create a collection while a node is down
+    steps:
+      - name: Throw a node down
+        command: kubectl delete pod weaviate-2 -n weaviate
+      - name: Create collection
+        weaviatest: create collection --multitenant  --collection TestCollection
+      - name: Create tenant
+        weaviatest: create tenants --number_tenants 10 --collection TestCollection
+      - name: Add data for each tenant
+        weaviatest: create data --limit 10 --collection TestCollection
+    post:
+      - name: Delete collection
+        weaviatest: delete collection --collection TestCollection
+
+  - name: TestDeleteCollectionNodeDown
+    description: Delete a collection while a node is down
+    pre:
+      - name: Create collection
+        weaviatest: create collection  --collection TestCollection
+    steps:
+      - name: Throw a node down
+        command: kubectl delete pod weaviate-2 -n weaviate
+      - name: Delete collection
+        weaviatest: delete collection --collection TestCollection
+    post:
+      - name: Delete collection in case something went wrong
+        weaviatest: delete collection --collection TestCollection
+
+  - name: TestUpdateCollectionNodeDown
+    description: Update a collection while a node is down
+    pre:
+      - name: Create collection
+        weaviatest: create collection --multitenant  --collection TestCollection
+      - name: Create tenant
+        weaviatest: create tenants --number_tenants 10 --collection TestCollection
+      - name: Add data for each tenant
+        weaviatest: create data --limit 10 --collection TestCollection
+    steps:
+      - name: Throw a node down
+        command: kubectl delete pod weaviate-2 -n weaviate
+      - name: Update collection
+        weaviatest: update collection --collection TestCollection --auto_tenant_creation true --auto_tenant_activation true
+    post:
+      - name: Delete collection
+        weaviatest: delete collection --collection TestCollection
+
+  - name: TestCreateTenantsNodeDown
+    description: Create a set of tenants while a node is down
+    pre:
+      - name: Create collection
+        weaviatest: create collection --multitenant  --collection TestCollection
+    steps:
+      - name: Throw a node down
+        command: kubectl delete pod weaviate-2 -n weaviate
+      - name: Create tenant
+        weaviatest: create tenants --number_tenants 10 --collection TestCollection
+      - name: Add data for each tenant
+        weaviatest: create data --limit 10 --collection TestCollection
+    post:
+      - name: Delete collection
+        weaviatest: delete collection --collection TestCollection
+common:
+  - name: Wait for all pods to be "Running
+    command: kubectl wait --for=condition=Ready pod -l app=weaviate --timeout=300s -n weaviate
+  - name: Wait for all nodes to be serving
+    wait: |
+      replicas=$(kubectl get statefulset weaviate -n weaviate -o jsonpath='{.status.replicas}')
+      curl -s http://localhost:8080/v1/nodes | jq ".nodes | length == ${replicas}" >/dev/null && exit 0 || exit 1
