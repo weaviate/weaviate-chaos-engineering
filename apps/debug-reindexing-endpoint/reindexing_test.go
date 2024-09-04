@@ -330,7 +330,8 @@ func reindex(ctx context.Context, client *wvt.Client, className string) error {
 
 		var resp *http.Response
 		for _, port := range ports {
-			resp, err = httpClient.Post(fmt.Sprintf("http://localhost:%d/debug/reindex/collection/%s/shards/%s", port, className, shardName), "application/json", nil)
+			resp, err = httpClient.Post(fmt.Sprintf("http://localhost:%d/debug/index/rebuild/vector?collection=%s&shard=%s",
+				port, className, shardName), "application/json", nil)
 			if err != nil {
 				log.Printf("Shard %s not found on port %d. err: %v. Trying a different port...", shardName, err, port)
 				continue
