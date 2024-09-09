@@ -1,6 +1,6 @@
-module github.com/semi-technologies/weaviate-chaos-engineering-reindexing
+module reindexing-endpoint
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/stretchr/testify v1.9.0

@@ -7,8 +7,9 @@ source common.sh
 echo "Building all required containers"
 ( cd apps/batch-import-many-classes/ && docker build -t batch_import_many_classes . )
 
+export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 

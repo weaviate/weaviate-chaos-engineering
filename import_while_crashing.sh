@@ -10,8 +10,10 @@ echo "Building all required containers"
 ( cd apps/importer/ && docker build -t importer . )
 ( cd apps/chaotic-killer/ && docker build -t killer . )
 
+export COMPOSE="apps/weaviate/docker-compose.yml"
+
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 

@@ -4,10 +4,12 @@ set -e
 
 source common.sh
 
+export COMPOSE="apps/weaviate/docker-compose-single-voter-without-node-name.yml"
+
 function restart() {
   echo "Restarting node ..."
-  docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml kill weaviate-node-1
-  docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d --force-recreate  weaviate-node-1
+  docker compose -f $COMPOSE kill weaviate-node-1
+  docker compose -f $COMPOSE up -d --force-recreate  weaviate-node-1
   wait_weaviate 8080
 }
 
@@ -18,7 +20,7 @@ function validateObjects() {
   if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_healthy -t cluster_healthy; then
     echo "All objects read with consistency level ONE".
   else
-    docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml logs weaviate-node-1
+    docker compose -f $COMPOSE logs weaviate-node-1
     exit 1
   fi
 }
@@ -39,7 +41,7 @@ echo "Done generating."
 
 echo "Starting Weaviate 1.25..."
 export WEAVIATE_NODE_VERSION=1.25.0
-docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d weaviate-node-1
+docker compose -f $COMPOSE up -d weaviate-node-1
 wait_weaviate 8080
 
 # POST objects with consistency level ONE
@@ -50,7 +52,7 @@ validateObjects
 
 echo "Upgrade Weaviate..."
 export WEAVIATE_NODE_VERSION=$WEAVIATE_VERSION
-docker compose -f apps/weaviate/docker-compose-single-voter-without-node-name.yml up -d --force-recreate  weaviate-node-1
+docker compose -f $COMPOSE up -d --force-recreate  weaviate-node-1
 wait_weaviate 8080
 
 

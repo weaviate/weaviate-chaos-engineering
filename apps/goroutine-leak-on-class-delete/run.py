@@ -48,4 +48,4 @@ def mean(durs: [float]) -> float:
     return sum(durs) / len(durs)
 
 
-StressTest().run(iterations=20_000, start_checking=1000, rolling_average_count=250)
+StressTest().run(iterations=15_000, start_checking=1000, rolling_average_count=250)

@@ -4,17 +4,14 @@ set -e
 
 function logs() {
   echo "Showing logs:"
-  compose_files=$(ls apps/weaviate/docker-compose-*.yml)
-  for file in $compose_files; do
-    services=$(docker compose -f "$file" config --services)
-    # Loop through each service
-    for service in $services; do
-      # Check if the service name starts with "weaviate"
-      if [[ $service == weaviate* ]]; then
-        # Fetch and print logs for the matching service
-        docker compose -f "$file" logs "$service"
-      fi
-    done
+  services=$(docker compose -f "$COMPOSE" config --services)
+  # Loop through each service
+  for service in $services; do
+    # Check if the service name starts with "weaviate"
+    if [[ $service == weaviate* ]]; then
+      # Fetch and print logs for the matching service
+      docker compose -f "$COMPOSE" logs "$service"
+    fi
   done
 }
 
@@ -42,11 +39,8 @@ function shutdown() {
     echo "There are $container_count containers."
     docker container rm -f $(docker container ls -aq)
   fi
-    
-  compose_files=$(ls apps/weaviate/docker-compose-*.yml)
-  for file in $compose_files; do
-    docker compose -f "$file" down --remove-orphans
-  done
+
+  docker compose -f "$COMPOSE" down --remove-orphans
   
   rm -rf apps/weaviate/data* || true    
   rm -rf workdir

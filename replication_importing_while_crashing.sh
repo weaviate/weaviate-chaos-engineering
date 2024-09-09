@@ -10,9 +10,10 @@ echo "Building all required containers"
 ( cd apps/replicated-import/ && docker build -t importer . )
 ( cd apps/chaotic-cluster-killer/ && docker build -t killer . )
 
-echo "Starting Weaviate..."
+export COMPOSE="apps/weaviate/docker-compose-replication.yml"
 
-docker compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+echo "Starting Weaviate..."
+docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
