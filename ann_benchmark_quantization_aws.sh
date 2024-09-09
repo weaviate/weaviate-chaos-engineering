@@ -64,8 +64,23 @@ echo "$ssh_addr"
 
 mkdir -p ~/.ssh
 ssh-keyscan "$dns_name" >> ~/.ssh/known_hosts
-
 echo "Added hosts"
+
+# Busy loop to wait for the instance to be fully booted up with a timeout of 5 minutes
+SECONDS=0
+timeout=300
+while [ $SECONDS -lt $timeout ]; do
+  if ssh -i "${key_id}.pem" $ssh_addr -- 'echo "System is ready"'; then
+    break
+  fi
+  sleep 1
+  SECONDS=$((SECONDS + 1))
+done
+
+if [ $SECONDS -ge $timeout ]; then
+  echo "Timeout: VM is not SSH'able after 300 seconds"
+  exit 1
+fi
 
 scp -i "${key_id}.pem" -r install_docker_ubuntu.sh "$ssh_addr:~"
 ssh -i "${key_id}.pem" $ssh_addr -- 'sh install_docker_ubuntu.sh'
