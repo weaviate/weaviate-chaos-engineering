@@ -435,7 +435,7 @@ jobs:
         run: ./replication_importing_with_backup.sh
   replication-tunable-consistency:
     name: Replication tunable consistency
-    runs-on: ubuntu-latest-4-cores
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
