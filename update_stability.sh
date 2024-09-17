@@ -17,9 +17,10 @@ set -e
 
 dataset=${DATASET:-"dbpedia-100k-openai-ada002-angular"}
 
+export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
 
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 
 echo "Run benchmark script"
@@ -48,6 +49,6 @@ docker run --network host -t -v "$PWD/results:/app/results" -v "$PWD/datasets:/a
   semitechnologies/weaviate-benchmarker:v2.0.0 /app/scripts/shell/update_stability.sh
 
 echo "Stopping Weaviate..."
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml down
+docker compose -f $COMPOSE down
 
 echo "Passed!"

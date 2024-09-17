@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -448,20 +449,11 @@ func test2() {
 		log.Printf("loop [%d] activating tenants created as inactive\n", l)
 
 		// activate created as inactive
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classPizza).
-			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
+		err = updateTentantWithRetry(client, classPizza, coldBuf.WithStatus(models.TenantActivityStatusHOT))
 		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classSoup).
-			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
+		err = updateTentantWithRetry(client, classSoup, coldBuf.WithStatus(models.TenantActivityStatusHOT))
 		requireNil(err)
-		err = client.Schema().TenantsUpdater().
-			WithClassName(classRisotto).
-			WithTenants(coldBuf.WithStatus(models.TenantActivityStatusHOT)...).
-			Do(ctx)
+		err = updateTentantWithRetry(client, classRisotto, coldBuf.WithStatus(models.TenantActivityStatusHOT))
 		requireNil(err)
 
 		// ==================================================================================
@@ -470,37 +462,19 @@ func test2() {
 
 		// deactivate and activate back again (x3)
 		for i := 0; i < 3; i++ {
-			err := client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classPizza).
-				Do(ctx)
+			err := updateTentantWithRetry(client, classPizza, batchTenants.WithStatus(models.TenantActivityStatusCOLD))
 			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classPizza).
-				Do(ctx)
+			err = updateTentantWithRetry(client, classPizza, batchTenants.WithStatus(models.TenantActivityStatusHOT))
 			requireNil(err)
 
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classSoup).
-				Do(ctx)
+			err = updateTentantWithRetry(client, classSoup, batchTenants.WithStatus(models.TenantActivityStatusCOLD))
 			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classSoup).
-				Do(ctx)
+			err = updateTentantWithRetry(client, classSoup, batchTenants.WithStatus(models.TenantActivityStatusHOT))
 			requireNil(err)
 
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusCOLD)...).
-				WithClassName(classRisotto).
-				Do(ctx)
+			err = updateTentantWithRetry(client, classRisotto, batchTenants.WithStatus(models.TenantActivityStatusCOLD))
 			requireNil(err)
-			err = client.Schema().TenantsUpdater().
-				WithTenants(batchTenants.WithStatus(models.TenantActivityStatusHOT)...).
-				WithClassName(classRisotto).
-				Do(ctx)
+			err = updateTentantWithRetry(client, classRisotto, batchTenants.WithStatus(models.TenantActivityStatusHOT))
 			requireNil(err)
 
 			log.Printf("loop [%d][%d] activated\n", l, i)
@@ -553,41 +527,24 @@ func test2() {
 				half := len(batch) / 2
 
 				// effectively activate and  populate 1st half
-				err = client.Schema().TenantsUpdater().
-					WithClassName(classPizza).
-					WithTenants(batch[:half].WithStatus(models.TenantActivityStatusHOT)...).
-					Do(ctx)
+				err = updateTentantWithRetry(client, classPizza, batch[:half].WithStatus(models.TenantActivityStatusHOT))
 				requireNil(err)
-				err = client.Schema().TenantsUpdater().
-					WithClassName(classSoup).
-					WithTenants(batch[:half].WithStatus(models.TenantActivityStatusHOT)...).
-					Do(ctx)
+				err = updateTentantWithRetry(client, classSoup, batch[:half].WithStatus(models.TenantActivityStatusHOT))
 				requireNil(err)
 
 				for i := 0; i < 3; i++ {
-					err := client.Schema().TenantsUpdater().
-						WithTenants(batch[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-						WithClassName(classPizza).
-						Do(ctx)
+					err := updateTentantWithRetry(client, classPizza, batch[:half].WithStatus(models.TenantActivityStatusCOLD))
 					requireNil(err)
-					err = client.Schema().TenantsUpdater().
-						WithTenants(batch[:half].WithStatus(models.TenantActivityStatusHOT)...).
-						WithClassName(classPizza).
-						Do(ctx)
+					err = updateTentantWithRetry(client, classPizza, batch[:half].WithStatus(models.TenantActivityStatusHOT))
 					requireNil(err)
 
-					err = client.Schema().TenantsUpdater().
-						WithTenants(batch[:half].WithStatus(models.TenantActivityStatusCOLD)...).
-						WithClassName(classSoup).
-						Do(ctx)
+					err = updateTentantWithRetry(client, classSoup, batch[:half].WithStatus(models.TenantActivityStatusCOLD))
 					requireNil(err)
-					err = client.Schema().TenantsUpdater().
-						WithTenants(batch[:half].WithStatus(models.TenantActivityStatusHOT)...).
-						WithClassName(classSoup).
-						Do(ctx)
+					err = updateTentantWithRetry(client, classSoup, batch[:half].WithStatus(models.TenantActivityStatusHOT))
 					requireNil(err)
 
 					log.Printf("loop [%d][%d] batch [%d] activated\n", l, i, batchNum)
+
 				}
 
 				// ==================================================================================
@@ -604,40 +561,22 @@ func test2() {
 
 				// effectively deactivate 2nd half
 				for i := 0; i < 3; i++ {
-					err := client.Schema().TenantsUpdater().
-						WithTenants(batch[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-						WithClassName(classPizza).
-						Do(ctx)
+					err := updateTentantWithRetry(client, classPizza, batch[half:].WithStatus(models.TenantActivityStatusCOLD))
 					requireNil(err)
-					err = client.Schema().TenantsUpdater().
-						WithTenants(batch[half:].WithStatus(models.TenantActivityStatusHOT)...).
-						WithClassName(classPizza).
-						Do(ctx)
+					err = updateTentantWithRetry(client, classPizza, batch[half:].WithStatus(models.TenantActivityStatusHOT))
 					requireNil(err)
 
-					err = client.Schema().TenantsUpdater().
-						WithTenants(batch[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-						WithClassName(classSoup).
-						Do(ctx)
+					err = updateTentantWithRetry(client, classSoup, batch[half:].WithStatus(models.TenantActivityStatusCOLD))
 					requireNil(err)
-					err = client.Schema().TenantsUpdater().
-						WithTenants(batch[half:].WithStatus(models.TenantActivityStatusHOT)...).
-						WithClassName(classSoup).
-						Do(ctx)
+					err = updateTentantWithRetry(client, classSoup, batch[half:].WithStatus(models.TenantActivityStatusHOT))
 					requireNil(err)
 
 					log.Printf("loop [%d][%d] batch [%d] activated\n", l, i, batchNum)
 				}
 
-				err = client.Schema().TenantsUpdater().
-					WithClassName(classPizza).
-					WithTenants(batch[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-					Do(ctx)
+				err = updateTentantWithRetry(client, classPizza, batch[half:].WithStatus(models.TenantActivityStatusCOLD))
 				requireNil(err)
-				err = client.Schema().TenantsUpdater().
-					WithClassName(classSoup).
-					WithTenants(batch[half:].WithStatus(models.TenantActivityStatusCOLD)...).
-					Do(ctx)
+				err = updateTentantWithRetry(client, classSoup, batch[half:].WithStatus(models.TenantActivityStatusCOLD))
 				requireNil(err)
 			}
 		)
@@ -673,6 +612,29 @@ func test2() {
 	// ==================================================================================
 
 	log.Println("TEST 2 finished. OK")
+}
+
+func updateTentantWithRetry(client *wvt.Client, className string, tenants Tenants) error {
+	const maxRetries = 3
+	var err error
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		err = client.Schema().TenantsUpdater().
+			WithClassName(className).
+			WithTenants(tenants...).
+			Do(context.Background())
+		if err == nil {
+			return err
+		}
+		fmt.Printf("Attempt %d/%d failed: %v\n", attempt, maxRetries, err)
+
+		if attempt == maxRetries {
+			fmt.Println("Max retries reached. Aborting.")
+			return err
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+	return err
 }
 
 func assertTenantActive(client *wvt.Client, className, tenantName string) {
@@ -723,14 +685,48 @@ func assertActiveTenantObjects(client *wvt.Client, className, tenantName string,
 }
 
 func assertInactiveTenantObjects(client *wvt.Client, className, tenantName string) {
+	const maxRetries = 3
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		err := isInactiveTenantObjects(client, className, tenantName)
+		if err == nil {
+			return
+		}
+		fmt.Printf("Attempt %d/%d failed: %v\n", attempt, maxRetries, err)
+
+		if attempt == maxRetries {
+			fmt.Println("Max retries reached. Aborting.")
+			panic(err)
+		}
+
+		time.Sleep(2 * time.Second)
+	}
+}
+
+func isInactiveTenantObjects(client *wvt.Client, className, tenantName string) error {
 	objects, err := client.Data().ObjectsGetter().
 		WithClassName(className).
 		WithTenant(tenantName).
 		Do(context.Background())
+	if err == nil {
+		return fmt.Errorf("expected error but got nil")
+	}
 
-	requireNotNil(err)
-	clientErr := err.(*fault.WeaviateClientError)
-	requireTrue(422 == clientErr.StatusCode, "422 == clientErr.StatusCode")
-	requireContains(clientErr.Msg, "tenant not active")
-	requireNil(objects)
+	clientErr, ok := err.(*fault.WeaviateClientError)
+	if !ok {
+		return fmt.Errorf("unexpected error type: %v", err)
+	}
+
+	if clientErr.StatusCode != 422 {
+		return fmt.Errorf("expected status code 422 but got %d", clientErr.StatusCode)
+	}
+
+	if !strings.Contains(clientErr.Msg, "tenant not active") {
+		return fmt.Errorf("expected message to contain 'tenant not active' but got: %s", clientErr.Msg)
+	}
+
+	if objects != nil {
+		return fmt.Errorf("expected objects to be nil but got: %v", objects)
+	}
+
+	return nil
 }

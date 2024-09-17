@@ -17,7 +17,8 @@ function wait_weaviate() {
 }
 
 function shutdown() {
-  echo "Cleaning up ressources..."
+  echo "Cleaning up resources..."
+  popd || true
   docker compose -f apps/debug-reindexing-endpoint/docker-compose.yml down --remove-orphans
   rm -rf apps/weaviate/data* || true
 }
@@ -33,7 +34,8 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
-cd ./apps/debug-reindexing-endpoint/ && go test  -timeout 3600s -v . # 1 hour timeout 
+pushd ./apps/debug-reindexing-endpoint
+go test -timeout 3600s -v  # 1 hour timeout
 
 echo "Passed!"
 shutdown

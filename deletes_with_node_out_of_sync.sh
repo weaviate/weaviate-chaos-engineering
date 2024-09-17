@@ -24,8 +24,10 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 
 echo "Done generating."
 
+export COMPOSE="apps/weaviate/docker-compose-replication_single_voter.yml"
+
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
@@ -44,14 +46,14 @@ fi
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name regenerator -t regenerator
 
 echo "Killing node 3"
-docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml kill weaviate-node-3
+docker compose -f $COMPOSE kill weaviate-node-3
 sleep 10
 # Import tenant2 objects with one node down, consistency level QUORUM
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name reimporter -t reimporter
 
 # Restart dead node, read objects from Node 3 with consistency level ONE
 echo "Restart node 3"
-docker compose -f apps/weaviate/docker-compose-replication_single_voter.yml up -d weaviate-node-3
+docker compose -f $COMPOSE up -d weaviate-node-3
 wait_weaviate 8082
 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name check_objects_in_nodes -t check_objects_in_nodes; then

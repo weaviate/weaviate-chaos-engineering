@@ -7,8 +7,10 @@ source common.sh
 echo "Building all required containers"
 ( cd apps/consecutive_create_and_update_operations/ && docker build -t consecutive_create_and_update_operations . )
 
+export COMPOSE="apps/weaviate/docker-compose.yml"
+
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 

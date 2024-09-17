@@ -8,8 +8,10 @@ function compose_exit_code() {
   echo $(docker inspect $1 --format='{{.State.ExitCode}}')
 }
 
+export COMPOSE="apps/replicated_import_with_backup/docker-compose.yml"
+
 echo "Starting Weaviate..."
-docker compose -f apps/replicated_import_with_backup/docker-compose.yml up -d \
+docker compose -f $COMPOSE up -d \
   weaviate-node-1 \
   weaviate-node-2 \
   weaviate-node-3 \
@@ -20,11 +22,11 @@ wait_weaviate 8081
 wait_weaviate 8082
 
 echo "Creating S3 bucket..."
-docker compose -f apps/replicated_import_with_backup/docker-compose.yml up \
+docker compose -f $COMPOSE up \
   create-s3-bucket
 
 echo "Creating schema..."
-docker compose -f apps/replicated_import_with_backup/docker-compose.yml up \
+docker compose -f $COMPOSE up \
   importer-schema-node-1
 
 if [ $(compose_exit_code importer-schema-node-1) -ne 0 ]; then
@@ -33,7 +35,7 @@ if [ $(compose_exit_code importer-schema-node-1) -ne 0 ]; then
 fi
 
 echo "Batch import to 2 nodes + parallel backup..."
-docker compose -f apps/replicated_import_with_backup/docker-compose.yml up \
+docker compose -f $COMPOSE up \
   importer-data-node-1 \
   importer-data-node-2 \
   backup-loop-node-1 \

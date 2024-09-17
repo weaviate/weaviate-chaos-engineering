@@ -7,13 +7,15 @@ source common.sh
 echo "Building all required containers"
 ( cd apps/segfault-on-filtered-vector-search/ && docker build -t segfault_filtered_vector_search . )
 
+export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
+
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 
 function dump_logs() {
-  docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml logs
+  docker compose -f $COMPOSE logs
 }
 
 trap 'dump_logs' ERR

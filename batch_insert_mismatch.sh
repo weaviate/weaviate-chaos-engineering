@@ -7,8 +7,9 @@ source common.sh
 echo "Building all required containers"
 ( cd apps/batch-insert-mismatch/ && docker build -t batch-insert-mismatch . )
 
+export COMPOSE="apps/weaviate/docker-compose-c11y.yml"
 echo "Starting Weaviate..."
-docker compose -f apps/weaviate/docker-compose-c11y.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 

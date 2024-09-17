@@ -1,4 +1,4 @@
-module github.com/semi-technologies/weaviate-chaos-engineering-reindexing
+module reindexing-endpoint
 
 go 1.22
 
