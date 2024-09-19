@@ -142,8 +142,8 @@ func (b *batch) send(client *http.Client, origin string) error {
 		res, err = client.Do(req)
 
 		if err == nil && res != nil && res.StatusCode == 200 {
-			defer res.Body.Close()
 			io.ReadAll(res.Body)
+			res.Body.Close()
 			return nil
 		}
 
@@ -161,9 +161,8 @@ func (b *batch) send(client *http.Client, origin string) error {
 		return fmt.Errorf("request failed after %d retries: %v", maxRetries, err)
 	}
 
-	defer res.Body.Close()
-
 	msg, _ := io.ReadAll(res.Body)
+	res.Body.Close()
 	return errors.Errorf("status %d: %s", res.StatusCode, string(msg))
 
 }
