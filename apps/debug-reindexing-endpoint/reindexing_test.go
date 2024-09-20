@@ -345,7 +345,7 @@ func reindex(ctx context.Context, client *wvt.Client, className string) error {
 		if resp == nil {
 			return fmt.Errorf("failed to reindex shard %s on all ports", shardName)
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
 
 		if resp.StatusCode != http.StatusAccepted {
 			return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
