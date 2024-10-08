@@ -26,6 +26,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create class %s: %v", class.Class, err)
 		}
+		err = randClient().Schema().ClassDeleter().WithClassName(class.Class).Do(ctx)
+		if err != nil {
+			log.Fatalf("failed to create class %s: %v", class.Class, err)
+		}
+		err = randClient().Schema().ClassCreator().WithClass(&class).Do(ctx)
+		if err != nil {
+			log.Fatalf("failed to create class %s: %v", class.Class, err)
+		}
 	}
 
 	{

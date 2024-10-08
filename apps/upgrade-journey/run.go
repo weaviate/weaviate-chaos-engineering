@@ -429,6 +429,16 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 		return err
 	}
 
+	err = client.Schema().ClassDeleter().WithClassName(refTarget.Class).Do(context.Background())
+	if err != nil {
+		return err
+	}
+
+	err = client.Schema().ClassCreator().WithClass(refTarget).Do(context.Background())
+	if err != nil {
+		return err
+	}
+
 	classObj := &models.Class{
 		Class: "Collection",
 		Properties: []*models.Property{
