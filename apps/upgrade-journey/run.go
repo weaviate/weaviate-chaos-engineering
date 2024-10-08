@@ -429,6 +429,8 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 		return err
 	}
 
+	// There existed a bug in relation to snapshot restore on upgrade/restore where if a class was added, deleted and
+	// re-added with might lose data. This is an additional step to trigger that case
 	err = client.Schema().ClassDeleter().WithClassName(refTarget.Class).Do(context.Background())
 	if err != nil {
 		return err
