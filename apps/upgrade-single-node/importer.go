@@ -26,6 +26,9 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to create class %s: %v", class.Class, err)
 		}
+		// There existed a bug in relation to snapshot restore (due to single node recovery mechanism) on
+		// upgrade where if a class was added, deleted and re-added with might lose data. This is an additional
+		// step to trigger that case
 		err = randClient().Schema().ClassDeleter().WithClassName(class.Class).Do(ctx)
 		if err != nil {
 			log.Fatalf("failed to create class %s: %v", class.Class, err)
