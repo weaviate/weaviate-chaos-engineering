@@ -6,6 +6,7 @@ services:
     container_name: weaviate-node-1
     environment:
       ASYNC_INDEXING: 'true'
+      GRPC_MAX_MESSAGE_SIZE: '12000000'
 
   weaviate-node-2: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -14,6 +15,7 @@ services:
     container_name: weaviate-node-2
     environment:
       ASYNC_INDEXING: 'true'
+      GRPC_MAX_MESSAGE_SIZE: '12000000'
 
   weaviate-node-3: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -22,4 +24,5 @@ services:
     container_name: weaviate-node-3
     environment:
       ASYNC_INDEXING: 'true'
+      GRPC_MAX_MESSAGE_SIZE: '12000000'
     
