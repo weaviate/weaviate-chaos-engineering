@@ -7,11 +7,11 @@ on:
         description: "The weaviate docker image to version to run tests against"
         type: string
         required: true
-      weaviate_max_major_version_test_set:
-        description: "The weaviate max major version run tests against 1.24, 1.25, 1.26 etc. by default all will run"
-        type: number
-        default: 0
-        required: false  
+      test_to_run:
+        description: "The name of the chaos test to run. It takes the name of the test from the tests.yaml file as input. Example: 'filter-memory-leak'. If not passed, all tests will run."
+        required: false
+        default: ''
+        type: string
   schedule:
     - cron: '0 0 */2 * *'
 
@@ -27,7 +27,7 @@ jobs:
   weaviate-version-information:
     runs-on: ubuntu-latest
     env:
-      weaviate_version: "${{inputs.weaviate_version || '1.26.1'}}"
+      weaviate_version: "${{inputs.weaviate_version || '1.27.2'}}"
     outputs:
       weaviate_version: ${{ steps.set-output.outputs.weaviate_version }}
     steps:
@@ -43,7 +43,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
-      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.26.1' }}
+      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.27.2' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}

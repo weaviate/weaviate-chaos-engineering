@@ -28,8 +28,78 @@ env:
   DISABLE_RECOVERY_ON_PANIC: true
 
 jobs:
+  real-version-in-tag:
+    name: "Retrieve the real version from the image tag"
+    runs-on: ubuntu-latest
+    env:
+      WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
+    outputs:
+      real_version: ${{ steps.weaviate-version-from-image.outputs.weaviate_version }}
+    steps:
+      - name: Retrieve the weaviate version from the image
+        uses: weaviate/github-common-actions/.github/actions/weaviate-version-in-image@main
+        id: weaviate-version-from-image
+        with:
+          image_tag: ${{ env.WEAVIATE_VERSION }}
+  equal-to-1_24:
+    name: "Check if the version is equal to 1.24"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.24.0"
+          operator: "="
+  newer-or-equal-than-1_24:
+    name: "Check if the version is newer than 1.24"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.24.0"
+          operator: ">="
+  newer-or-equal-than-1_25:
+    name: "Check if the version is newer than 1.25"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.25.0"
+          operator: ">="
+  newer-or-equal-than-1_26:
+    name: "Check if the version is newer than 1.26"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.26.0"
+          operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
+    if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -47,6 +117,7 @@ jobs:
       - uses: psf/black@stable
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
+    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-sift-aws' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -81,6 +152,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-glove-aws:
     name: "[bench AWS] Glove100 pq=false"
+    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-glove-aws' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -115,6 +187,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-aws:
     name: "[bench AWS] SIFT1M pq=true"
+    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-sift-aws' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -149,7 +222,8 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-sq-sift-aws:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
+    needs: [newer-or-equal-than-1_26]
+    if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-sq-sift-aws' || github.event.inputs.test_to_run == '')}}
     name: "[bench AWS] SIFT1M sq=true"
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -186,6 +260,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
+    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-glove-aws' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -220,7 +295,8 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-sq-glove-aws:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
+    needs: [newer-or-equal-than-1_26]
+    if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'ann-benchmarks-sq-glove-aws' || github.event.inputs.test_to_run == '' ) }}
     name: "[bench AWS] Glove100 sq=true"
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -257,6 +333,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
+    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-sift-gcp' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -289,6 +366,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
+    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-sift-gcp' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -320,7 +398,8 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   batch-import-many-classes:
-    name: One class reveices long and expensive batches, user tries to create and delete 100s of classes in parallel
+    name: One class receives long and expensive batches, user tries to create and delete 100s of classes in parallel
+    if: ${{ github.event.inputs.test_to_run == 'batch-import-many-classes' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -341,6 +420,7 @@ jobs:
         run: ./batch_import_many_classes.sh
   upgrade-journey:
     name: Rolling updates in single-node setup from min to target version
+    if: ${{ github.event.inputs.test_to_run == 'upgrade-journey' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -367,6 +447,7 @@ jobs:
         run: ./upgrade_journey.sh
   upgrade-journey-cluster:
     name: Rolling updates in multi-node setup from min to target version
+    if: ${{ github.event.inputs.test_to_run == 'upgrade-journey-cluster' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -390,9 +471,10 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
-        run: ./upgrade_journey.sh  
+        run: ./upgrade_journey.sh
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
+    if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-choas-killing' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
@@ -415,6 +497,7 @@ jobs:
         run: ./replication_importing_while_crashing.sh
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
+    if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-backup' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
@@ -435,6 +518,7 @@ jobs:
         run: ./replication_importing_with_backup.sh
   replication-tunable-consistency:
     name: Replication tunable consistency
+    if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
@@ -455,6 +539,7 @@ jobs:
         run: ./replication_tunable_consistency.sh
   counting-while-compacting:
     name: Counting while compacting
+    if: ${{ github.event.inputs.test_to_run == 'counting-while-compacting' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
@@ -475,6 +560,7 @@ jobs:
         run: ./counting_while_compacting.sh
   segfault-on-batch-ref:
     name: Segfault on batch ref
+    if: ${{ github.event.inputs.test_to_run == 'segfault-on-batch-ref' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -495,6 +581,7 @@ jobs:
         run: ./segfault_batch_ref.sh
   import-with-kills:
     name: Import during constant kills/crashes
+    if: ${{ github.event.inputs.test_to_run == 'import-with-kills' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
@@ -515,6 +602,7 @@ jobs:
         run: ./import_while_crashing.sh
   heavy-imports-crashing:
     name: Heavy object store imports while crashing
+    if: ${{ github.event.inputs.test_to_run == 'heavy-imports-crashing' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
@@ -536,6 +624,7 @@ jobs:
   segfault-filtered-search:
     name: Segfault on filtered vector search (race with hash bucket compaction)
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'segfault-filtered-search' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -556,6 +645,7 @@ jobs:
   backup-restore-crud:
     name: Backup & Restore CRUD
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'backup-restore-crud' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -576,6 +666,7 @@ jobs:
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'backup-restore-crud-multi-node' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -596,6 +687,7 @@ jobs:
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
     runs-on: ubuntu-latest-8-cores
+    if: ${{ github.event.inputs.test_to_run == 'backup-restore-version-compat' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -616,6 +708,7 @@ jobs:
   compare-recall:
     name: Compare Recall after import to after restart
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'compare-recall' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -636,6 +729,7 @@ jobs:
   concurrent-read-write:
     name: Concurrent inverted index read/write
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'concurrent-read-write' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -656,6 +750,7 @@ jobs:
   consecutive-create-update:
     name: Consecutive create and update operations
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'consecutive-create-update' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -676,6 +771,7 @@ jobs:
   batch-insert-mismatch:
     name: Batch insert mismatch
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'batch-insert-mismatch' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -696,6 +792,7 @@ jobs:
   rest-patch-restart:
     name: REST PATCH requests stop working after restart
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'rest-patch-restart' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -716,6 +813,7 @@ jobs:
   delete-recreate-updates:
     name: Delete and recreate class with frequent updates
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'delete-recreate-updates' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -737,6 +835,7 @@ jobs:
     # Fixed in 1.24.18 and 1.25.4
     name: Delete objects with CL ONE on a node out of sync
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'deletes-with_node-out-of-sync' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -751,6 +850,7 @@ jobs:
         run: ./deletes_with_node_out_of_sync.sh
   geo-crash:
     name: Preventing crashing of geo properties during HNSW maintenance cycles
+    if: ${{ github.event.inputs.test_to_run == 'geo-crash' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
@@ -772,6 +872,7 @@ jobs:
   compaction-roaringset:
     name: Preventing panic on compaction of roaringsets
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'compaction-roaringset' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -792,6 +893,7 @@ jobs:
   multi-node-references:
     name: Large batches with many cross-refs on a multi-node cluster
     runs-on: ubuntu-latest-4-cores
+    if: ${{ github.event.inputs.test_to_run == 'multi-node-references' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -811,6 +913,7 @@ jobs:
         run: ./multi_node_ref_imports.sh
   multi-tenancy-concurrent-imports:
     name: Concurrent clients importing into multi-node cluster
+    if: ${{ github.event.inputs.test_to_run == 'multi-tenancy-concurrent-imports' || github.event.inputs.test_to_run == '' }}
     runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
@@ -830,7 +933,8 @@ jobs:
       - name: Run chaos test
         run: ./multi_tenancy_concurrent_importing.sh
   multi_tenancy_activate_deactivate_v1_24:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 1.24 }}
+    needs: [equal-to-1_24]
+    if: ${{ (needs.equal-to-1_24.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate_v1_24' || github.event.inputs.test_to_run == '') }}
     name: Activate and deactivate tenants' shards (v1.24 only)
     runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
@@ -851,7 +955,8 @@ jobs:
       - name: Run chaos test
         run: ./multi_tenancy_activate_deactivate_v1_24.sh
   multi_tenancy_activate_deactivate:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.25 }}
+    needs: [newer-or-equal-than-1_25]
+    if: ${{ (needs.newer-or-equal-than-1_25.outputs.check ) && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate' || github.event.inputs.test_to_run == '') }}
     name: Activate and deactivate tenants' shards
     runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
@@ -874,6 +979,7 @@ jobs:
   goroutine_leak_class_delete:
     name: Check for degraded performance from goroutine leak on class delete
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'goroutine_leak_class_delete' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -894,6 +1000,7 @@ jobs:
   bm25_corruption:
     name: Validate that the BM25 (and other indexes) index does not corrupt when crashes occur during batch delete
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'bm25_corruption' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -915,6 +1022,7 @@ jobs:
     # https://github.com/weaviate/weaviate/issues/4418
     name: Test that flushing is reestablished after a backup is performed
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'backup_and_flush' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -936,6 +1044,7 @@ jobs:
     # https://github.com/weaviate/weaviate/pull/4541
     name: Test that restoring a backup without data presence ensures schema consistency across nodes
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'backup_and_restore_out_of_sync' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -971,7 +1080,8 @@ jobs:
   #     - name: Run chaos test
   #       run: ./compare_rest_graphql_while_crashing.sh
   upgrade-journey-single-node-cluster:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.25 }}
+    needs: [newer-or-equal-than-1_25]
+    if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-single-node-cluster' || github.event.inputs.test_to_run == '') }}
     name: Upgrade journey for RAFT single node cluster
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -980,7 +1090,7 @@ jobs:
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.25.0
     steps:
-      - uses: actions/checkout@v3      
+      - uses: actions/checkout@v3
       - name: Set up Go
         uses: actions/setup-go@v3
         with:
@@ -993,7 +1103,8 @@ jobs:
       - name: Run chaos test
         run: ./upgrade_single_node_journey.sh
   upgrade-journey-raft:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.25 }}
+    needs: [newer-or-equal-than-1_25]
+    if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft' || github.event.inputs.test_to_run == '')}}
     name: Upgrade to Raft journey e2e test
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1098,7 +1209,8 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
   upgrade-journey-raft-metadata-only-voters:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.25 }}
+    needs: [newer-or-equal-than-1_25]
+    if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-metadata-only-voters' || github.event.inputs.test_to_run == '') }}
     name: Upgrade to Raft journey e2e test with metadata only voters
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1149,7 +1261,8 @@ jobs:
           ./scripts/metadata_only_voters_check.sh
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
+    needs: [newer-or-equal-than-1_26]
+    if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'async-repair' || github.event.inputs.test_to_run == '') }}
     name: Chaos pipeline to ensure asynchronous replication repairs what read-repair can't yet
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1172,6 +1285,7 @@ jobs:
   update-stability:
     name: Recall Stability on object updates
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.test_to_run == 'update-stability' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1198,7 +1312,8 @@ jobs:
       - name: Run chaos test
         run: ./update_stability.sh
   debug-reindexing-endpoint-journey-tests:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.24 }}
+    needs: [newer-or-equal-than-1_24]
+    if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'debug-reindexing-endpoint-journey-tests' || github.event.inputs.test_to_run == '' )}}
     name: Debug reindexing endpoint journey tests
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1219,7 +1334,8 @@ jobs:
         run: |
           ./debug-reindexing.sh
   upgrade-journey-object-nested-properties:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.26 }}
+    needs: [newer-or-equal-than-1_26]
+    if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && (github.event.inputs.test_to_run == 'upgrade-journey-object-nested-properties' || github.event.inputs.test_to_run == '' )}}
     name: Upgrade journey nested properties
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -1240,7 +1356,8 @@ jobs:
         run: |
           ./upgrade_journey_object_nested_properties.sh
   compaction-optimization:
-    if: ${{ github.event.inputs.weaviate_max_major_version_test_set == 0 || github.event.inputs.weaviate_max_major_version_test_set >= 1.24 }}
+    needs: [newer-or-equal-than-1_24]
+    if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'compaction-optimization' || github.event.inputs.test_to_run == '' ) }}
     name: Check that compaction doesn't get stuck
     runs-on: ubuntu-latest
     timeout-minutes: 60
