@@ -1,7 +1,7 @@
 FROM python:3.11-slim-bullseye
 
 # to support pprof profiles
-RUN apt-get update && apt-get install -y golang-go pkg-config libhdf5-dev
+RUN apt-get update && apt-get install -y golang-go pkg-config libhdf5-dev git
 
 WORKDIR /workdir
 

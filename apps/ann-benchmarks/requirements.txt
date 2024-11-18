@@ -1,4 +1,4 @@
-weaviate-client==4.7.0-rc.0
+weaviate-client@git+https://github.com/weaviate/weaviate-python-client.git@6233847809c207301722df0d9b9bd4082614ff27
 loguru==0.5.3
 seaborn==0.12.2
 h5py==3.11.0

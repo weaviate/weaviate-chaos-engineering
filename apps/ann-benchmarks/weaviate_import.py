@@ -45,7 +45,7 @@ def load_records(
 
     with client.batch.fixed_size(batch_size=batch_size) as batch:
         for vector in vectors:
-            if i == 100000 and quantization in ["pq", "sq"] and override == False:
+            if i == 100000 and quantization in ["pq", "sq", "lasq"] and override == False:
                 logger.info(f"pausing import to enable quantization")
                 break
 
@@ -66,7 +66,7 @@ def load_records(
     for err in client.batch.failed_objects:
         logger.error(err.message)
 
-    if quantization in ["pq", "sq"] and override == False:
+    if quantization in ["pq", "sq", "lasq"] and override == False:
 
         if quantization == "pq":
             collection.config.update(
@@ -80,6 +80,12 @@ def load_records(
             collection.config.update(
                 vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                     quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+                )
+            )
+        elif quantization == "lasq":
+            collection.config.update(
+                vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                    quantizer=wvc.Reconfigure.VectorIndex.Quantizer.lasq()
                 )
             )
 
