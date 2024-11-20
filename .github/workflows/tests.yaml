@@ -274,8 +274,8 @@ jobs:
           glob: '*.json'
 
   ann-benchmarks-lasq-sift-aws:
-    needs: [newer-or-equal-than-1_28]
-    if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-lasq-sift-aws' || github.event.inputs.test_to_run == '')}}
+    #needs: [newer-or-equal-than-1_28] ## TODO: uncomment when we have a version with LASQ
+    #if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-lasq-sift-aws' || github.event.inputs.test_to_run == '')}}
     name: "[bench AWS] SIFT1M lasq=true"
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -384,8 +384,8 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-lasq-glove-aws:
-    needs: [newer-or-equal-than-1_28]
-    if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'ann-benchmarks-lasq-glove-aws' || github.event.inputs.test_to_run == '' ) }}
+    #needs: [newer-or-equal-than-1_28] ## TODO: uncomment when we have a version with LASQ
+    #if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'ann-benchmarks-lasq-glove-aws' || github.event.inputs.test_to_run == '' ) }}
     name: "[bench AWS] Glove100 lasq=true"
     runs-on: ubuntu-latest
     timeout-minutes: 60
