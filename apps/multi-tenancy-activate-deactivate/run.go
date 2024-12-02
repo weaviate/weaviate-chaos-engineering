@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"math/rand"
@@ -703,6 +704,11 @@ func assertInactiveTenantObjects(client *wvt.Client, className, tenantName strin
 }
 
 func getErrorWithDerivedError(err error) error {
+	var clientErr *fault.WeaviateClientError
+	if errors.As(err, &clientErr) {
+		return fmt.Errorf("%s: %w", clientErr.Error(), clientErr.DerivedFromError)
+	}
+
 	switch e := err.(type) {
 	case *fault.WeaviateClientError:
 		if e.DerivedFromError != nil {
