@@ -625,7 +625,7 @@ func updateTentantWithRetry(client *wvt.Client, className string, tenants Tenant
 		if err == nil {
 			return err
 		}
-		fmt.Printf("Attempt %d/%d failed: %v\n", attempt, maxRetries, err)
+		fmt.Printf("Attempt %d/%d failed: %v\n", attempt, maxRetries, getErrorWithDerivedError(err))
 
 		if attempt == maxRetries {
 			fmt.Println("Max retries reached. Aborting.")
@@ -691,7 +691,7 @@ func assertInactiveTenantObjects(client *wvt.Client, className, tenantName strin
 		if err == nil {
 			return
 		}
-		fmt.Printf("Attempt %d/%d failed: %v\n", attempt, maxRetries, err)
+		fmt.Printf("Attempt %d/%d failed: %v\n", attempt, maxRetries, getErrorWithDerivedError(err))
 
 		if attempt == maxRetries {
 			fmt.Println("Max retries reached. Aborting.")
@@ -699,6 +699,18 @@ func assertInactiveTenantObjects(client *wvt.Client, className, tenantName strin
 		}
 
 		time.Sleep(2 * time.Second)
+	}
+}
+
+func getErrorWithDerivedError(err error) error {
+	switch e := err.(type) {
+	case *fault.WeaviateClientError:
+		if e.DerivedFromError != nil {
+			return fmt.Errorf("%s: %w", e.Error(), e.DerivedFromError)
+		}
+		return e
+	default:
+		return e
 	}
 }
 
