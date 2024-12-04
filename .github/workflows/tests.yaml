@@ -958,7 +958,7 @@ jobs:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check ) && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate' || github.event.inputs.test_to_run == '') }}
     name: Activate and deactivate tenants' shards
-    runs-on: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
