@@ -92,6 +92,14 @@ while true; do
     break
   fi
   
+  # Check for timeout
+  current_time=$(date +%s)
+  elapsed_time=$((current_time - start_time))
+  if [ $elapsed_time -ge $timeout ]; then
+    echo "Timeout reached. Compaction did not finish in the expected time."
+    break
+  fi
+  
   prev_count=$levels_count
   
   echo "Compaction ongoing. Waiting..."
