@@ -18,8 +18,23 @@ function cleanup {
 }
 trap cleanup EXIT
 
-echo "sleeping 30s for ssh to be ready"
-sleep 30
+# Busy loop to wait for SSH to be ready with a timeout of 5 minutes
+echo "Waiting for SSH to be ready..."
+SECONDS=0
+timeout=300
+while [ $SECONDS -lt $timeout ]; do
+  if gcloud compute ssh --zone $ZONE $instance --command="echo SSH is ready" &>/dev/null; then
+    break
+  fi
+  echo "SSH not ready, retrying in 5 seconds..."
+  sleep 5
+  SECONDS=$((SECONDS + 5))
+done
+
+if [ $SECONDS -ge $timeout ]; then
+  echo "Timeout: VM is not SSH'able after 300 seconds"
+  exit 1
+fi
 
 gcloud compute scp --zone $ZONE --recurse install_docker_ubuntu.sh "$instance:~"
 gcloud compute ssh --zone $ZONE $instance -- 'sh install_docker_ubuntu.sh'
