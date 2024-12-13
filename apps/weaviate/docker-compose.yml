@@ -21,6 +21,7 @@ services:
     volumes:
     - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
@@ -30,7 +31,6 @@ services:
       CLUSTER_HOSTNAME: 'node1'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
-      ASYNC_INDEXING: '${ASYNC_INDEXING:-false}'
       PROMETHEUS_MONITORING_ENABLED: 'true'
       PROMETHEUS_MONITORING_GROUP: 'false'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'

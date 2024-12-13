@@ -16,6 +16,7 @@ services:
     volumes:
     - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
+      ASYNC_INDEXING: ${ASYNC_INDEXING}
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       PERSISTENCE_FLUSH_IDLE_MEMTABLES_AFTER: 2
       QUERY_DEFAULTS_LIMIT: 25

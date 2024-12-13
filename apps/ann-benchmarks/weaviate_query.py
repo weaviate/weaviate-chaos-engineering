@@ -81,7 +81,7 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, mul
                     ]
                 )
 
-            wait_for_all_shards_ready(collection)
+            wait_for_all_shards_ready(client)
 
             took = 0
             recall = 0

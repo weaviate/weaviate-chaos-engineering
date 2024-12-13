@@ -15,6 +15,7 @@ services:
     volumes:
       - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
       CONTEXTIONARY_URL: contextionary:9999
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
