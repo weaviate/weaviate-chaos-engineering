@@ -10,7 +10,7 @@ import time
 import os
 from datetime import timedelta
 
-from weaviate_import import reset_schema, load_records
+from weaviate_import import reset_schema, load_records, wait_for_all_shards_ready
 from weaviate_query import query
 
 values = {
@@ -165,7 +165,8 @@ for shards in values["shards"]:
             )
             logger.info(f"Waiting 30s for compactions to settle, etc")
             time.sleep(30)
-
+        logger.info(f"Waiting for all shards to be ready")
+        wait_for_all_shards_ready(client)
         logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
         query(
             client,

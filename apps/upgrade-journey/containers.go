@@ -126,6 +126,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
 				"DISABLE_TELEMETRY":                       "true",
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
+				"ASYNC_INDEXING":                          os.Getenv("ASYNC_INDEXING"),
 			},
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
 				c.volumePath(nodeId), "/var/lib/weaviate",
