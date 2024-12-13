@@ -194,7 +194,7 @@ def load_records(
                 )
 
         check_shards_readonly(collection)
-        wait_for_all_shards_ready(collection)
+        wait_for_all_shards_ready(client)
 
         i = 100000
         with client.batch.fixed_size(batch_size=batch_size) as batch:
@@ -234,8 +234,10 @@ def check_shards_readonly(collection: weaviate.collections.Collection):
         raise Exception(f"shards are not READONLY at beginning: {status}")
 
 
-def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
-    max_wait = 300
+
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient, timeout=600):
+    collection = client.collections.get(class_name)
+    max_wait = timeout
     before = time.time()
 
     while True:
@@ -250,5 +252,8 @@ def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
             return
 
         if time.time() - before > max_wait:
+            logger.error(f"Shards not ready. Timeout reached")
             raise Exception(f"after {max_wait}s not all shards READY: {status}")
+
+        logger.info(f"Shards not ready. Waiting for {time.time() - before}s")
         time.sleep(3)
