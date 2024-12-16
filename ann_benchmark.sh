@@ -24,9 +24,18 @@ echo "Building all required containers"
 ( cd apps/ann-benchmarks/ && docker build -t ann_benchmarks . )
 
 echo "Starting Weaviate..."
+echo "ASYNC_INDEXING: $ASYNC_INDEXING"
 docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml up -d
 
 wait_weaviate
+
+echo "Current directory: $PWD"
+echo "Exising files in current directory: $(ls -la)"
+
+echo "Printing environment variables"
+sudo apt install python3-pip -y
+python3 -m pip install docker
+python3 get_env_var.py
 
 echo "Run benchmark script"
 mkdir -p datasets
