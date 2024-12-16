@@ -11,6 +11,8 @@ export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
+echo "Weaviate env vars:"
+get_env_vars
 
 wait_weaviate
 

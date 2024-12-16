@@ -14,6 +14,9 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
+echo "Weaviate env vars:"
+get_env_vars
+
 wait_weaviate
 
 echo "Run import script in foreground..."

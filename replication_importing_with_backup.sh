@@ -17,6 +17,9 @@ docker compose -f $COMPOSE up -d \
   weaviate-node-3 \
   backup-s3
 
+echo "Weaviate env vars:"
+get_env_vars
+
 wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082

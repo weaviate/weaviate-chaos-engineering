@@ -83,7 +83,7 @@ def load_records(
                 )
             )
 
-        wait_for_all_shards_ready(collection)
+        wait_for_all_shards_ready(client)
 
         i = 100000
         with client.batch.fixed_size(batch_size=batch_size) as batch:
@@ -110,11 +110,11 @@ def load_records(
     logger.info(f"Finished writing {len_objects} records")
 
 
-def wait_for_all_shards_ready(client: weaviate.WeaviateClient):
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient, timeout=600):
     collection = client.collections.get(class_name)
     status = [s.status for s in collection.config.get_shards()]
 
-    max_wait = 300
+    max_wait = timeout
     before = time.time()
 
     while True:
@@ -125,4 +125,7 @@ def wait_for_all_shards_ready(client: weaviate.WeaviateClient):
             return
 
         if time.time() - before > max_wait:
+            logger.error(f"Shards not ready. Timeout reached")
             raise Exception(f"after {max_wait}s not all shards READY: {status}")
+
+        logger.info(f"Shards not ready. Waiting for {time.time() - before}s")

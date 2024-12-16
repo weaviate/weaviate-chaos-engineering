@@ -431,6 +431,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.22.0
+      ASYNC_INDEXING: ${{inputs.async_indexing}}
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling

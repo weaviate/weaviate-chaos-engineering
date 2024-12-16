@@ -13,6 +13,9 @@ echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 wait_weaviate
 
+echo "Weaviate env vars:"
+get_env_vars
+
 function dump_logs() {
   docker compose -f $COMPOSE logs
 }
