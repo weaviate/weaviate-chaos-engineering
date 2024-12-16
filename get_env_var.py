@@ -1,5 +1,6 @@
 import docker
 
+
 def get_env_variables(partial_image_name):
     client = docker.from_env()
     containers = client.containers.list()
@@ -18,5 +19,5 @@ def get_env_variables(partial_image_name):
         print(exec_result.output.decode())
         print("--------------------------------------------")
 
-get_env_variables("weaviate")
 
+get_env_variables("weaviate")
