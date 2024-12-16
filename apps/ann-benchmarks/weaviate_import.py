@@ -110,10 +110,9 @@ def load_records(
     logger.info(f"Finished writing {len_objects} records")
 
 
-def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient):
+    collection = client.collections.get(class_name)
     status = [s.status for s in collection.config.get_shards()]
-    if not all(s == "READONLY" for s in status):
-        raise Exception(f"shards are not READONLY at beginning: {status}")
 
     max_wait = 300
     before = time.time()
