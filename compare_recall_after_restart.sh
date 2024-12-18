@@ -23,6 +23,8 @@ echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
 wait_weaviate
+echo "Weaviate env vars:"
+get_env_vars
 
 echo "Import into Weaviate..."
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t recall python3 import.py
@@ -33,6 +35,9 @@ docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker
 echo "Restart Weaviate"
 docker compose -f $COMPOSE stop weaviate && \
   docker compose -f $COMPOSE start weaviate
+
+echo "Weaviate env vars:"
+get_env_vars
 
 wait_weaviate
 

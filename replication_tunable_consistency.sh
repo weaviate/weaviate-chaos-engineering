@@ -29,6 +29,9 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
+echo "Weaviate env vars:"
+get_env_vars
+
 # POST objects with consistency level ALL
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer -t importer
 

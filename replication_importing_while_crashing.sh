@@ -18,6 +18,9 @@ wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
 
+echo "Weaviate env vars:"
+get_env_vars
+
 echo "Import schema"
 if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \

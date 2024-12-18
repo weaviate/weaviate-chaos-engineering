@@ -10,7 +10,10 @@ echo "Building all required containers"
 export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose-with-memlimit.yml"
 
 echo "Starting Weaviate..."
+echo "ASYNC_INDEXING: $ASYNC_INDEXING"
 docker compose -f $COMPOSE up -d
+echo "Weaviate env vars:"
+get_env_vars
 
 wait_weaviate
 
