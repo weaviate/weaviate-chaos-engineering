@@ -26,6 +26,7 @@ on:
 env:
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
   DISABLE_RECOVERY_ON_PANIC: true
+  GET_CLASS_METHOD: always_local
 
 jobs:
   real-version-in-tag:
