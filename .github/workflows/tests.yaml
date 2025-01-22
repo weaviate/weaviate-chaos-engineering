@@ -24,8 +24,10 @@ on:
         required: true
 
 env:
-  WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
+  WEAVIATE_VERSION: semitechnologies/weaviate:1.29.0-dev-5dabf80
   DISABLE_RECOVERY_ON_PANIC: true
+  REINDEX_VECTOR_DIMENSIONS_AT_STARTUP: true
+  TRACK_VECTOR_DIMENSIONS: true
 
 jobs:
   real-version-in-tag:
