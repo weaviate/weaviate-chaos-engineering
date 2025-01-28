@@ -37,7 +37,18 @@ simple bash scripts. You can find the scripts in the root folder, such as
 `./import_while_crashing.sh` and `./compare_recall_after_restart.sh`. Or simply
 check the Github actions YAML files for examples.
 
-## Links 
+### Run the Github action workflow
+You can also run the chaos pipeline for your public weaviate image. Follow the steps below.
+
+> NOTE: You should have right permission to trigger Github action workflow. Usually available for Weaviate core developers
+
+1. Go to [Test Matrix](https://github.com/weaviate/weaviate-chaos-engineering/actions/workflows/matrix.yaml) workflow
+2. Click on "Run workflow"
+3. Choose `main` branch
+4. Enter the public docker image of your weaviate. (e.g: `semitechnologies/weaviate:1.25.29-6b28b2813`)
+5. Start and observe the workflow
+
+## Links
 
 - [Weaviate Main Repo](https://github.com/semi-technologies/weaviate).
 - [Documentation](https://weaviate.io/developers/weaviate/current/client-libraries/javascript.html).
