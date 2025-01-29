@@ -1,0 +1,4 @@
+loguru==0.6.0
+# TODO use a real version once released
+weaviate-client @ git+https://github.com/weaviate/weaviate-python-client@cde7f40dda603f328f56163efedee1aac9231d9d
+numpy==1.26.4
