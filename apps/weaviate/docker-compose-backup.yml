@@ -1,5 +1,4 @@
 ---
-version: '3.9'
 services:
   weaviate-node-1:
     init: true
@@ -112,7 +111,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
-      - ./backups-s3:/data
+      - "$PWD/apps/weaviate/backups-s3:/var/lib/weaviate"
     environment:
       MINIO_ROOT_USER: 'aws_access_key'
       MINIO_ROOT_PASSWORD: 'aws_secret_key'

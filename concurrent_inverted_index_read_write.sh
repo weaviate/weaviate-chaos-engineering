@@ -2,29 +2,17 @@
 
 set -e
 
-SIZE=100000
+source common.sh
 
-
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready after 120s"
-  exit 1
-}
+SIZE=100000 
 
 echo "Building all required containers"
 ( cd apps/importer-concurrent-inverted-index/ && docker build -t importer . )
 
+export COMPOSE="apps/weaviate/docker-compose.yml"
+
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 
@@ -37,9 +25,9 @@ if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
   -t importer; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose.yml logs weaviate
+  echo "Importer failed, printing latest Weaviate logs..."  
   exit 1
 fi
 
 echo "Passed!"
+shutdown

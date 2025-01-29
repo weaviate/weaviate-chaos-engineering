@@ -2,20 +2,7 @@
 
 set -e
 
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:8080/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready after 120s"
-  exit 1
-}
+source common.sh
 
 echo "Building all required containers"
 ( cd apps/recall/ && docker build -t recall . )
@@ -30,8 +17,10 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t reca
 
 echo "Done generating."
 
+export COMPOSE="apps/weaviate/docker-compose.yml"
+
 echo "Starting Weaviate..."
-docker-compose -f apps/weaviate/docker-compose.yml up -d
+docker compose -f $COMPOSE up -d
 
 wait_weaviate
 
@@ -42,10 +31,13 @@ echo "Check Recall"
 docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker
 
 echo "Restart Weaviate"
-docker-compose -f apps/weaviate/docker-compose.yml stop weaviate && \
-  docker-compose -f apps/weaviate/docker-compose.yml start weaviate
+docker compose -f $COMPOSE stop weaviate && \
+  docker compose -f $COMPOSE start weaviate
 
 wait_weaviate
 
 echo "Check Recall again"
 docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker
+
+echo "Passed!"
+shutdown

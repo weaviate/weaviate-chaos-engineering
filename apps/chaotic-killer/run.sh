@@ -42,8 +42,8 @@ while true; do
 
   echo killing now
   if [[ "${CHAOTIC_KILL_DOCKER}" == "y" ]]; then
-    docker-compose -f apps/weaviate/docker-compose.yml kill weaviate \
-      && docker-compose -f apps/weaviate/docker-compose.yml up weaviate -d
+    docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
+      && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
   else
     docker exec $CONTAINER_ID /bin/sh -c 'ps aux | grep '"'"'weaviate'"'"' | grep -v grep | awk '"'"'{print $1}'"'"' | xargs kill -9'
   fi

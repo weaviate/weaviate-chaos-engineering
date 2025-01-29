@@ -1,11 +1,11 @@
-#!/bin/bash 
+#!/bin/bash
 
 set -e
 
 ZONE=${ZONE:-"us-central1-a"}
 MACHINE_TYPE=${MACHINE_TYPE:-"n2-standard-8"}
 CLOUD_PROVIDER="gcp"
-OS="ubuntu-2310-amd64"
+OS="ubuntu-2204-lts"
 
 instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
 
@@ -18,8 +18,23 @@ function cleanup {
 }
 trap cleanup EXIT
 
-echo "sleeping 30s for ssh to be ready"
-sleep 30
+# Busy loop to wait for SSH to be ready with a timeout of 5 minutes
+echo "Waiting for SSH to be ready..."
+SECONDS=0
+timeout=300
+while [ $SECONDS -lt $timeout ]; do
+  if gcloud compute ssh --zone $ZONE $instance --command="echo SSH is ready" &>/dev/null; then
+    break
+  fi
+  echo "SSH not ready, retrying in 5 seconds..."
+  sleep 5
+  SECONDS=$((SECONDS + 5))
+done
+
+if [ $SECONDS -ge $timeout ]; then
+  echo "Timeout: VM is not SSH'able after 300 seconds"
+  exit 1
+fi
 
 gcloud compute scp --zone $ZONE --recurse install_docker_ubuntu.sh "$instance:~"
 gcloud compute ssh --zone $ZONE $instance -- 'sh install_docker_ubuntu.sh'
@@ -31,9 +46,3 @@ gcloud compute scp --zone $ZONE --recurse ann_benchmark.sh "$instance:~"
 gcloud compute ssh --zone $ZONE $instance -- "DATASET=$DATASET DISTANCE=$DISTANCE REQUIRED_RECALL=$REQUIRED_RECALL WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark.sh"
 mkdir -p results
 gcloud compute scp --zone $ZONE --recurse "$instance:~/results/*.json" results/
-
-
-
-
-
-

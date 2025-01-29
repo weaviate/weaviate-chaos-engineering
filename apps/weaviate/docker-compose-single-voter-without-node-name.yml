@@ -1,0 +1,29 @@
+---
+services:
+  weaviate-node-1:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_NODE_VERSION
+    ports:
+    - 8080:8080
+    - 6060:6060
+    - 50051:50051
+    restart: on-failure:0
+    volumes:
+    - "$PWD/apps/weaviate/data:/var/lib/weaviate"
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      RAFT_ENABLE_ONE_NODE_RECOVERY: 'true'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      RAFT_SNAPSHOT_THRESHOLD: 1

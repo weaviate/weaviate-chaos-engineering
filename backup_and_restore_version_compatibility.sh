@@ -57,22 +57,24 @@ for pair in "${!version_pairs[@]}"; do
   export WEAVIATE_NODE_1_VERSION=$backup_version
   export WEAVIATE_NODE_2_VERSION=$restore_version
 
+  export COMPOSE="apps/weaviate/docker-compose-backup.yml"
+
   echo "Starting Weaviate cluster..."
-  docker-compose -f apps/weaviate/docker-compose-backup.yml up -d weaviate-node-1 weaviate-backup-node backup-s3
+  docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-backup-node backup-s3
 
   wait_weaviate_cluster
 
   echo "Creating S3 bucket..."
-  docker-compose -f apps/weaviate/docker-compose-backup.yml up create-s3-bucket
+  docker compose -f $COMPOSE up create-s3-bucket
 
   echo "Run backup (v${backup_version}) and restore (v${restore_version}) version compatibility operations"
   docker run --rm --network host -t backup_and_restore_version_compatibility python3 backup_and_restore_version_compatibility.py
 
   echo "Removing S3 bucket..."
-  docker-compose -f apps/weaviate/docker-compose-backup.yml up remove-s3-bucket
+  docker compose -f $COMPOSE up remove-s3-bucket
 
   echo "Cleaning up containers for next test..."
-  docker-compose -f apps/weaviate/docker-compose-backup.yml down --remove-orphans
+  docker compose -f $COMPOSE down --remove-orphans
 done
 
 echo "Passed!"

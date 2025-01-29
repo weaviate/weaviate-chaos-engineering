@@ -133,35 +133,38 @@ func (b *batch) send(client *http.Client, origin string) error {
 
 	req.Header.Add("content-type", "application/json")
 
+	const maxRetries = 100
+	const retryDelay = 1 * time.Second
+
 	var res *http.Response
-	attempt := 0
-	res, err = client.Do(req)
-	for err != nil {
-		fmt.Printf("attempt %d failed with %s, try again in 1s...\n", attempt, err)
-		time.Sleep(1 * time.Second)
 
-		r.Seek(0, 0)
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		res, err = client.Do(req)
 
-		if attempt == 100 {
-			log.Printf("abort after 100 retries")
-			return err
+		if err == nil && res != nil && res.StatusCode == 200 {
+			io.ReadAll(res.Body)
+			res.Body.Close()
+			return nil
 		}
 
-		attempt++
-		res, err = client.Do(req)
+		if attempt < maxRetries {
+			fmt.Printf("Attempt %d failed (error: %v). Retrying in 1s...\n", attempt, err)
+			time.Sleep(retryDelay)
+
+			r.Seek(0, 0)
+		} else {
+			fmt.Printf("Aborting after %d retries\n", maxRetries)
+		}
 	}
 
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		msg, _ := io.ReadAll(res.Body)
-
-		return errors.Errorf("status %d: %s", res.StatusCode, string(msg))
+	if err != nil {
+		return fmt.Errorf("request failed after %d retries: %v", maxRetries, err)
 	}
 
-	io.ReadAll(res.Body)
+	msg, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	return errors.Errorf("status %d: %s", res.StatusCode, string(msg))
 
-	return nil
 }
 
 func randomVector(dim int) []float32 {

@@ -1,13 +1,20 @@
 workdir/
 weaviate-data/
 datasets/
-results/
+results/*
 logs/
 apps/**/vendor/**
 .DS_Store
 
+apps/weaviate/data*/
+apps/weaviate/backups*/
+
+
 # IDE files
-.idea/
-.vscode/
-.venv/
-__pycache__
+**/.idea/
+**/.vscode/
+**/.venv/
+**/__pycache__*/
+
+apps/weaviate/backups*/
+apps/upgrade-journey-object-nested-properties/.docker_data

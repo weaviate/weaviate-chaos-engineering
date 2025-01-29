@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v4/weaviate/fault"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 	"golang.org/x/sync/errgroup"
@@ -20,7 +21,7 @@ import (
 
 func main() {
 	if err := do(context.Background()); err != nil {
-		log.Fatal(err)
+		log.Fatal(getErrorWithDerivedError(err))
 	}
 }
 
@@ -354,5 +355,17 @@ func getClass() *models.Class {
 				DataType: []string{"string"},
 			},
 		},
+	}
+}
+
+func getErrorWithDerivedError(err error) error {
+	switch e := err.(type) {
+	case *fault.WeaviateClientError:
+		if e.DerivedFromError != nil {
+			return fmt.Errorf("%s: %w", e.Error(), e.DerivedFromError)
+		}
+		return e
+	default:
+		return e
 	}
 }

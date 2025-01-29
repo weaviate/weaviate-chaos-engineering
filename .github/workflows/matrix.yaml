@@ -7,7 +7,11 @@ on:
         description: "The weaviate docker image to version to run tests against"
         type: string
         required: true
-  push:
+      test_to_run:
+        description: "The name of the chaos test to run. It takes the name of the test from the tests.yaml file as input. Example: 'filter-memory-leak'. If not passed, all tests will run."
+        required: false
+        default: ''
+        type: string
   schedule:
     - cron: '0 0 */2 * *'
 
@@ -23,7 +27,7 @@ jobs:
   weaviate-version-information:
     runs-on: ubuntu-latest
     env:
-      weaviate_version: "${{inputs.weaviate_version || '1.25.2'}}"
+      weaviate_version: "${{inputs.weaviate_version || '1.27.2'}}"
     outputs:
       weaviate_version: ${{ steps.set-output.outputs.weaviate_version }}
     steps:
@@ -39,7 +43,7 @@ jobs:
     uses: ./.github/workflows/tests.yaml
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
-      weaviate_version: ${{ github.event_name == 'schedule' && 'latest' || inputs.weaviate_version || '1.25.2' }}
+      weaviate_version: ${{ github.event_name == 'schedule' && 'nightly' || inputs.weaviate_version || '1.27.2' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
@@ -60,7 +64,7 @@ jobs:
           # This data has been defined as a Workflow in the slack channel chaos-pipeline
           payload: |
             {
-              "message": "Chaos pipeline failed for Weaviate version: ${{ needs.weaviate-version-information.outputs.weaviate_version }}.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "message": "Chaos pipeline failed for Weaviate version: latest.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "slack_channel": "${{ env.SLACK_CHANNEL }}"
             }
         env:

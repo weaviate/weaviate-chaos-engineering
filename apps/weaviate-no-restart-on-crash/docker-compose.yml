@@ -1,5 +1,4 @@
 ---
-version: '3.9'
 services:
   weaviate:
     init: true
@@ -15,8 +14,9 @@ services:
     - 8080:8080
     - 6060:6060
     - 50051:50051
+    - 2112:2112
     volumes:
-    - "$PWD/weaviate-data:/var/lib/weaviate"
+    - "$PWD/apps/weaviate/data:/var/lib/weaviate"
     environment:
       - PERSISTENCE_DATA_PATH
       - PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS
@@ -27,4 +27,6 @@ services:
       - DISK_USE_READONLY_PERCENTAGE
       - PERSISTENCE_LSM_ACCESS_STRATEGY
       - DISABLE_TELEMETRY
+      - PROMETHEUS_MONITORING_ENABLED
+      - PERSISTENCE_LSM_MAX_SEGMENT_SIZE
 ...

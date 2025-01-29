@@ -2,39 +2,18 @@
 
 set -e
 
+source common.sh
+
 SIZE=300000
-
-function wait_weaviate() {
-  echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
-    if curl -sf -o /dev/null localhost:$1/v1/.well-known/ready; then
-      echo "Weaviate is ready"
-      return 0
-    fi
-
-    echo "Weaviate is not ready on $1, trying again in 1s"
-    sleep 1
-  done
-  echo "ERROR: Weaviate is not ready in port ${1} after 120s"
-  exit 1
-}
-
-function shutdown() {
-  echo "Cleaning up ressources..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true
-  docker container rm -f importer &>/dev/null && echo 'Deleted container importer'
-  docker container rm -f killer  &>/dev/null && echo 'Deleted container killer'
-}
-trap 'shutdown; exit 1' SIGINT ERR
 
 echo "Building all required containers"
 ( cd apps/replicated-import/ && docker build -t importer . )
 ( cd apps/chaotic-cluster-killer/ && docker build -t killer . )
 
-echo "Starting Weaviate..."
+export COMPOSE="apps/weaviate/docker-compose-replication.yml"
 
-docker-compose -f apps/weaviate/docker-compose-replication.yml up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+echo "Starting Weaviate..."
+docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
 wait_weaviate 8080
 wait_weaviate 8081
 wait_weaviate 8082
@@ -46,8 +25,7 @@ if ! docker run \
   --rm \
   --name importer \
   -t importer python3 run.py --action schema; then
-  echo "Could not apply schema"
-  docker-compose -f apps/weaviate/docker-compose.yml logs
+  echo "Could not apply schema"  
   exit 1
 fi
 
@@ -67,10 +45,11 @@ if ! docker run \
   -e 'ORIGIN=http://localhost:8080' \
   --network host \
   -t importer python3 run.py --action import; then
-  echo "Importer failed, printing latest Weaviate logs..."
-  docker-compose -f apps/weaviate/docker-compose-replication.yml logs weaviate-node-1 weaviate-node-2 weaviate-node-3
+  echo "Importer failed, printing latest Weaviate logs..."  
   exit 1
 fi
 
 echo "Import completed successfully, stop killer"
 docker rm -f killer
+echo "Passed!"
+shutdown
