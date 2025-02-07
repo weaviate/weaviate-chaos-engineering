@@ -28,16 +28,13 @@ function wait_weaviate() {
 # error msg says named vectorizers are only supported in Weaviate v1.24.0 and higher
 # "1.23.7 1.23.16"
 
-# Define versions to test
-declare -a versions=(
-  # TODO these are really broken
-    # "1.28.4"
-    # "1.28.0"
+# to test go from 1.28.2 to 1.28.X and vice versa
 
-    "1.27.10"
-    "1.27.0"
-    "1.26.13"
-    "1.26.0"
+# TODO add tests for going from new->old->new, old->new->old, etc
+# TODO read and write in all phases
+# TODO test 1.28 with msgpack and without
+
+
 
     # 1.25.* verify_multivectors.py", line ~56 fails with: The number of target vectors must be equal to the number of vectors.
     # "1.25.29"
@@ -46,6 +43,20 @@ declare -a versions=(
     # 1.24.* verify_multivectors.py", line ~30 fails with: AssertionError: Expected 1 object in Normalvector, got 0
     # "1.24.26"
     # "1.24.0"
+
+  # TODO these are really broken
+    # "1.28.4"
+    # "1.28.0"
+    # "1.28.4-68dc579"
+    # "1.28.4-8af02e7"
+
+# Define versions to test
+declare -a versions=(
+    "1.28.4-1a67582"
+    "1.27.10"
+    "1.27.0"
+    "1.26.13"
+    "1.26.0"
 )
 
 echo "Building all required containers"
@@ -79,7 +90,7 @@ for intermediate_version in "${versions[@]}"; do
     wait_weaviate
 
     # verify queryable on intermediate version
-    docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py --skip-multivector
+    docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py --multivector-support DROPS_MULTIVECTOR
 
     # shutdown weaviate
     docker-compose -f apps/weaviate/docker-compose.yml down

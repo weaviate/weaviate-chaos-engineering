@@ -8,16 +8,22 @@ BOTH_COLLECTION_NAME = "Both"
 NORMAL_VECTOR_NAME = "normal"
 MULTIVECTOR_NAME = "multi"
 
+# TODO flag to do only normal vectors or both
+
 # Example properties
 # Example vectors
 NORMAL_VECTOR = {
     NORMAL_VECTOR_NAME: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6],
+}
+NORMAL_VECTOR_QUERY = {
+    NORMAL_VECTOR_NAME: NORMAL_VECTOR[NORMAL_VECTOR_NAME],
 }
 MULTI_VECTOR = {
     MULTIVECTOR_NAME: [[0.1, 0.1], [0.2, 0.2]],
 }
 MULTI_VECTOR_QUERY = {
     MULTIVECTOR_NAME: weaviate.classes.query.NearVector.multidimensional(MULTI_VECTOR[MULTIVECTOR_NAME]),
+    # MULTIVECTOR_NAME: weaviate.classes.query.NearVector.list_of_vectors(MULTI_VECTOR[MULTIVECTOR_NAME]),
 }
 # merge
 BOTH_VECTORS = {
@@ -25,7 +31,7 @@ BOTH_VECTORS = {
     **MULTI_VECTOR,
 }
 BOTH_VECTORS_QUERY = {
-    **NORMAL_VECTOR,
+    **NORMAL_VECTOR_QUERY,
     **MULTI_VECTOR_QUERY,
 }
 NORMAL_VECTOR_PROPERTIES = {"name": "Normal"}
