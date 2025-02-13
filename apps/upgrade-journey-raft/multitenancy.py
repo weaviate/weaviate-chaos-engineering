@@ -5,7 +5,7 @@ from weaviate.classes.config import Property, DataType, Configure
 from weaviate.classes.query import Filter
 from weaviate.classes.tenants import Tenant
 from weaviate.collections.classes.config import ConsistencyLevel
-from graphql_aggregate import graphql_aggregate
+from graphql_aggregate import graphql_grpc_aggregate
 
 
 number_of_tenants = 300
@@ -146,7 +146,7 @@ def _books_sanity_checks(client: weaviate.WeaviateClient, i: int, suffix: str = 
     class_name = _get_class_name(i, suffix)
     tenant = _get_tenant_name(i, suffix)
     logger.debug("running {} sanity checks with tenant {}", class_name, tenant)
-    assert graphql_aggregate(class_name, tenant)
+    assert graphql_grpc_aggregate(client, class_name, tenant)
     collection = (
         client.collections.get(class_name)
         .with_tenant(tenant)
