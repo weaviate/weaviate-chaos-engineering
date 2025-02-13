@@ -6,7 +6,7 @@ from weaviate.classes.query import Filter, QueryReference
 from weaviate.classes.data import DataReference
 from weaviate.util import generate_uuid5
 from weaviate.collections.classes.config import ConsistencyLevel
-from graphql_aggregate import graphql_aggregate
+from graphql_aggregate import graphql_grpc_aggregate
 
 
 def create(client: weaviate.WeaviateClient):
@@ -200,7 +200,7 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
     logger.info(
         "nearText with where query for Snow Crash found: {}", result.objects[0].properties["title"]
     )
-    assert graphql_aggregate("Books")
+    assert graphql_grpc_aggregate(client, "Books")
 
 
 def _authors_sanity_checks(client: weaviate.WeaviateClient):
@@ -261,4 +261,4 @@ def _authors_sanity_checks(client: weaviate.WeaviateClient):
     logger.info(
         "where on reference Books genre property equal to dystopian found: {}", len(result.objects)
     )
-    assert graphql_aggregate("Authors")
+    assert graphql_grpc_aggregate(client, "Authors")

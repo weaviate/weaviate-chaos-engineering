@@ -1,24 +1,23 @@
 from loguru import logger
-import requests
+import weaviate
 
 host = "http://localhost:8080"
 
 
-def graphql_aggregate(class_name: str, tenant: str = "") -> bool:
-    aggregate_class_part = class_name
+def graphql_grpc_aggregate(
+    client: weaviate.WeaviateClient, class_name: str, tenant: str = ""
+) -> bool:
     if len(tenant) > 0:
-        aggregate_class_part = f'{class_name}(tenant:"{tenant}")'
-    aggregate = "{Aggregate {" + aggregate_class_part + " {meta {count}}}}"
-    res = requests.post(host + "/v1/graphql", json={"query": aggregate})
-    if res.status_code == 200:
-        res_body = res.json()
-        logger.debug("GraphQL response: {}", res_body)
-        if res_body["data"] is not None and res_body["data"]["Aggregate"] is not None:
-            if res_body["data"]["Aggregate"][class_name] is not None:
-                if len(res_body["data"]["Aggregate"][class_name]) == 1:
-                    m = res_body["data"]["Aggregate"][class_name][0]["meta"]["count"]
-                    if m is not None:
-                        logger.info("GraphQL Aggregate {} count is: {}", class_name, m)
-                        return True
-    logger.error("GraphQL Aggregate errored, status code: {}", res.status_code)
-    return False
+        collection = client.collections.get(class_name).with_tenant(tenant)
+        resp = collection.aggregate.over_all(total_count=True)
+        logger.info(
+            "GraphQL/gRPC Aggregate {} with tenant: {} count is: {}",
+            class_name,
+            tenant,
+            resp.total_count,
+        )
+    else:
+        collection = client.collections.get(class_name)
+        resp = collection.aggregate.over_all(total_count=True)
+        logger.info("GraphQL/gRPC Aggregate {} count is: {}", class_name, resp.total_count)
+    return True
