@@ -52,7 +52,7 @@ echo "Restart node 3"
 docker compose -f $COMPOSE up -d weaviate-node-3
 wait_weaviate 8082
 # Give some time for async repair to restore the objects in the restarted node
-sleep 30
+sleep 120
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_async_repair -t cluster_async_repair; then
   echo "All objects read with consistency level ALL after weaviate-node-3 restarted".
 else
