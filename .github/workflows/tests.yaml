@@ -1148,7 +1148,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.DISABLE_LAZY_LOAD_SHARDS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
           delete-sts: 'true'
       - name: Weaviate v1.25.0 - check data after upgrade to Raft version
         run: |
@@ -1162,7 +1162,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.DISABLE_LAZY_LOAD_SHARDS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Weaviate preview image - check old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1202,7 +1202,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.DISABLE_LAZY_LOAD_SHARDS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
           delete-sts: 'true'
       - name: Weaviate preview image - check additional and old data
         run: |
