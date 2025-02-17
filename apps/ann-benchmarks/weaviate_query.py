@@ -6,23 +6,35 @@ import weaviate
 import weaviate.classes.config as wvc
 from weaviate.exceptions import WeaviateQueryException
 import h5py
+import torch
 import json
 from loguru import logger
 
 from weaviate_pprof import obtain_heap_profile
+from weaviate_import import wait_for_all_shards_ready
 
 limit = 10
 class_name = "Vector"
 results = []
 
 
-def search_grpc(collection: weaviate.collections.Collection, dataset, i, input_vec):
+def search_grpc(
+    collection: weaviate.collections.Collection, dataset, i, input_vec, multivector=False
+):
     out = {}
     before = time.time()
     try:
-        objs = collection.query.near_vector(
-            near_vector=input_vec, limit=limit, return_properties=[]
-        ).objects
+        if not multivector:
+            objs = collection.query.near_vector(
+                near_vector=input_vec, limit=limit, return_properties=[]
+            ).objects
+        else:
+            objs = collection.query.near_vector(
+                near_vector=input_vec,
+                limit=limit,
+                target_vector="multivector",
+                return_properties=[],
+            ).objects
     except WeaviateQueryException as e:
         logger.error(e.message)
         objs = []
@@ -36,27 +48,47 @@ def search_grpc(collection: weaviate.collections.Collection, dataset, i, input_v
     return out
 
 
-def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels):
+def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, multivector=False):
     collection = client.collections.get(class_name)
     schema = collection.config.get()
     shards = schema.sharding_config.actual_count
-    efC = schema.vector_index_config.ef_construction
-    m = schema.vector_index_config.max_connections
+    if not multivector:
+        efC = schema.vector_index_config.ef_construction
+        m = schema.vector_index_config.max_connections
+    else:
+        efC = schema.vector_config["multivector"].vector_index_config.ef_construction
+        m = schema.vector_config["multivector"].vector_index_config.max_connections
     logger.info(f"build params: shards={shards}, efC={efC}, m={m} labels={labels}")
-
     vectors = dataset["test"]
+    if multivector:
+        vector_dim: int = 128
+        vectors = [torch.from_numpy(sample.reshape(-1, vector_dim)) for sample in vectors]
     run_id = f"{int(time.time())}"
 
     for ef in ef_values:
         for api in ["grpc"]:
-            collection.config.update(vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(ef=ef))
+            if not multivector:
+                collection.config.update(
+                    vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(ef=ef)
+                )
+            else:
+                collection.config.update(
+                    vectorizer_config=[
+                        wvc.Reconfigure.NamedVectors.update(
+                            name="multivector",
+                            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(ef=ef),
+                        )
+                    ]
+                )
+
+            wait_for_all_shards_ready(collection)
 
             took = 0
             recall = 0
             for i, vec in enumerate(vectors):
                 res = {}
                 if api == "grpc":
-                    res = search_grpc(collection, dataset, i, vec.tolist())
+                    res = search_grpc(collection, dataset, i, vec.tolist(), multivector)
                 elif api == "grpc_clientless":
                     res = search_grpc_clientless(stub, dataset, i, vec)
                 elif api == "graphql":
