@@ -4,6 +4,7 @@ set -e
 
 dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
+multivector=${MULTIVECTOR_DATASET:-"false"}
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
@@ -37,11 +38,25 @@ mkdir -p datasets
       echo "Datasets exists locally"
   else
       echo "Downloading dataset"
-      curl -LO http://ann-benchmarks.com/${dataset}.hdf5
+      if [ "$multivector" = true ]; then
+
+        echo "Downloading multivector dataset"
+        curl -LO https://storage.googleapis.com/ann-datasets/custom/Multivector/${dataset}.hdf5
+      else
+        echo "Downloading single vector dataset"
+        curl -LO http://ann-benchmarks.com/${dataset}.hdf5
+      fi
   fi
 
 )
-docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 32 --labels "pq=false,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+
+if [ "$multivector" = true ]; then
+  multivector_flag="-mv"
+else
+  multivector_flag=""
+fi
+
+docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py $multivector_flag -v /datasets/${dataset}.hdf5 -d $distance -m 32 --labels "pq=false,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
 echo "Initial run complete, now restart Weaviate"
 
@@ -53,7 +68,7 @@ echo "Weaviate ready, wait 30s for caches to be hot"
 sleep 30
 
 echo "Second run (query only)"
-docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py -v /datasets/${dataset}.hdf5 -d $distance -m 32 --query-only --labels "pq=false,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py $multivector_flag -v /datasets/${dataset}.hdf5 -d $distance -m 32 --query-only --labels "pq=false,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
 docker run --network host -t -v "$PWD/datasets:/datasets" \
   -v "$PWD/results:/workdir/results" \
