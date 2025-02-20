@@ -17,52 +17,57 @@ function wait_weaviate() {
   exit 1
 }
 
-# TODO should i test starting from "old", going to "new", and then back to "old"? eg opposite?
-# technically ppl can create msgpack on 1.28 though might not be available via api
 
-# too old, error msg says at least 1.23.7 needed
-# "1.21.0 1.21.9"
-# "1.22.0 1.22.13"
-# "1.23.0 1.23.6"
+declare -a no_multivector_versions=(
+# Traceback (most recent call last):
+#   File "/workdir/verify_multivectors.py", line 43, in <module>
+#     assert len(normal_objects.objects) == 1, f"Expected 1 object in {NORMAL_VECTOR_COLLECTION_NAME}, got {len(normal_objects.objects)}"
+#            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# AssertionError: Expected 1 object in Normalvector, got 0
+  # "1.24.26"
 
-# error msg says named vectorizers are only supported in Weaviate v1.24.0 and higher
-# "1.23.7 1.23.16"
-
-# to test go from 1.28.2 to 1.28.X and vice versa
-
-# TODO add tests for going from new->old->new, old->new->old, etc
-# TODO read and write in all phases
-# TODO test 1.28 with msgpack and without
-
-
-
-    # 1.25.* verify_multivectors.py", line ~56 fails with: The number of target vectors must be equal to the number of vectors.
-    # "1.25.29"
-    # "1.25.0"
-
-    # 1.24.* verify_multivectors.py", line ~30 fails with: AssertionError: Expected 1 object in Normalvector, got 0
-    # "1.24.26"
-    # "1.24.0"
-
-  # TODO these are really broken
-    # "1.28.4"
-    # "1.28.0"
-    # "1.28.4-68dc579"
-    # "1.28.4-8af02e7"
-
-# Define versions to test
-declare -a versions=(
-    "1.28.4-1a67582"
-    "1.27.10"
-    "1.27.0"
-    "1.26.13"
-    "1.26.0"
+# Traceback (most recent call last):
+#   File "/workdir/verify_multivectors.py", line 71, in <module>
+#     normal_results = normal_collection.query.near_vector(
+#                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/site-packages/weaviate/syncify.py", line 23, in sync_method
+#     return _EventLoopSingleton.get_instance().run_until_complete(
+#            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/site-packages/weaviate/event_loop.py", line 42, in run_until_complete
+#     return fut.result()
+#            ^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/concurrent/futures/_base.py", line 456, in result
+#     return self.__get_result()
+#            ^^^^^^^^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/concurrent/futures/_base.py", line 401, in __get_result
+#     raise self._exception
+#   File "/usr/local/lib/python3.11/site-packages/weaviate/collections/queries/near_vector/query.py", line 92, in near_vector
+#     res = await self._query.near_vector(
+#                 ^^^^^^^^^^^^^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/site-packages/weaviate/collections/grpc/query.py", line 248, in near_vector
+#     near_vector=self._parse_near_vector(
+#                 ^^^^^^^^^^^^^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/site-packages/weaviate/collections/grpc/shared.py", line 376, in _parse_near_vector
+#     vector_per_target_tmp, near_vector_grpc = self._vector_per_target(
+#                                               ^^^^^^^^^^^^^^^^^^^^^^^^
+#   File "/usr/local/lib/python3.11/site-packages/weaviate/collections/grpc/shared.py", line 129, in _vector_per_target
+#     raise WeaviateInvalidInputError(
+# weaviate.exceptions.WeaviateInvalidInputError: Invalid input provided: The number of target vectors must be equal to the number of vectors..
+  # "1.25.29"
+  "1.28.4"
 )
 
-echo "Building all required containers"
-( cd apps/multivector-version-compatibility/ && docker build -t multivector_version_compatibility . )
+# TODO can we easily use "latest" patch instead of specific versions?
+declare -a drop_multivector_versions=(
+    # "1.28.6"
+    # "1.27.10"
+    # "1.26.13"
+)
 
-for intermediate_version in "${versions[@]}"; do
+function test_version_sequence() {
+    local intermediate_version=$1
+    local multivector_support=$2
+
     echo "Testing version sequence: $WEAVIATE_VERSION -> $intermediate_version -> $WEAVIATE_VERSION"
     
     # remove any files in docker volumes
@@ -90,7 +95,7 @@ for intermediate_version in "${versions[@]}"; do
     wait_weaviate
 
     # verify queryable on intermediate version
-    docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py --multivector-support DROPS_MULTIVECTOR
+    docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py --multivector-support "$multivector_support"
 
     # shutdown weaviate
     docker-compose -f apps/weaviate/docker-compose.yml down
@@ -108,6 +113,17 @@ for intermediate_version in "${versions[@]}"; do
 
     echo "Completed testing version sequence: $WEAVIATE_VERSION -> $intermediate_version -> $WEAVIATE_VERSION"
     echo "----------------------------------------"
+}
+
+echo "Building all required containers"
+( cd apps/multivector-version-compatibility/ && docker build -t multivector_version_compatibility . )
+
+for intermediate_version in "${drop_multivector_versions[@]}"; do
+    test_version_sequence "$intermediate_version" "DROPS_MULTIVECTOR"
+done
+
+for intermediate_version in "${no_multivector_versions[@]}"; do
+    test_version_sequence "$intermediate_version" "NONE"
 done
 
 echo "All versions tested successfully!"

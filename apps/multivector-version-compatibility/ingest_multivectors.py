@@ -22,8 +22,7 @@ MULTI_VECTOR = {
     MULTIVECTOR_NAME: [[0.1, 0.1], [0.2, 0.2]],
 }
 MULTI_VECTOR_QUERY = {
-    MULTIVECTOR_NAME: weaviate.classes.query.NearVector.multidimensional(MULTI_VECTOR[MULTIVECTOR_NAME]),
-    # MULTIVECTOR_NAME: weaviate.classes.query.NearVector.list_of_vectors(MULTI_VECTOR[MULTIVECTOR_NAME]),
+    MULTIVECTOR_NAME: weaviate.classes.query.NearVector.list_of_vectors(MULTI_VECTOR[MULTIVECTOR_NAME]),
 }
 # merge
 BOTH_VECTORS = {

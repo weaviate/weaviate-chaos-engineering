@@ -105,34 +105,27 @@ if args.multivector_support in {MULTIVECTOR_SUPPORT_FULL, MULTIVECTOR_SUPPORT_DR
     if args.multivector_support in {MULTIVECTOR_SUPPORT_FULL}:
         assert vectors_match(both_normal_results.objects[0].vector, BOTH_VECTORS), "Vector mismatch in both vectors normal search"
 
-# TODO i need to figure out the right syntax here
-# if args.multivector_support in {MULTIVECTOR_SUPPORT_FULL}:
-#     # extract target vectors: class Both has multiple vectors, but no target vectors were provided
-#     both_multi_results = both_collection.query.near_vector(
-#         MULTI_VECTOR_QUERY,
-#         # target_vector=MULTIVECTOR_NAME,
-#         target_vector=[MULTIVECTOR_NAME],
-#         # target_vector=weaviate.classes.query.TargetVectors.minimum(MULTIVECTOR_NAME),
-#         # target_vector=weaviate.classes.query.TargetVectors.minimum([MULTIVECTOR_NAME]),
-#         include_vector=True,
-#         limit=10,
-#     )
-#     assert len(both_multi_results.objects) > 0, "Expected at least one result from both collection multi-vector search"
-#     assert both_multi_results.objects[0].properties["name"] == BOTH_VECTORS_PROPERTIES["name"], "Name mismatch in both vectors multi search"
-#     assert both_multi_results.objects[0].vector == BOTH_VECTORS, "Vector mismatch in both vectors multi search"
+if args.multivector_support in {MULTIVECTOR_SUPPORT_FULL}:
+    both_multi_results = both_collection.query.near_vector(
+        MULTI_VECTOR_QUERY,
+        target_vector=MULTIVECTOR_NAME,
+        include_vector=True,
+        limit=10,
+    )
+    assert len(both_multi_results.objects) > 0, "Expected at least one result from both collection multi-vector search"
+    assert both_multi_results.objects[0].properties["name"] == BOTH_VECTORS_PROPERTIES["name"], "Name mismatch in both vectors multi search"
+    assert vectors_match(both_multi_results.objects[0].vector, BOTH_VECTORS), "Vector mismatch in both vectors multi search"
 
-# if args.multivector_support in {MULTIVECTOR_SUPPORT_FULL}:
-#     # Search both vectors collection with both vector types simultaneously
-#     both_combined_results = both_collection.query.near_vector(
-#         near_vector=BOTH_VECTORS_QUERY,
-#         # target_vector=[NORMAL_VECTOR_NAME, MULTIVECTOR_NAME],
-#         # target_vector=weaviate.classes.query.TargetVectors.minimum([MULTIVECTOR_NAME]),
-#         include_vector=True,
-#         limit=10,
-#     )
-#     assert len(both_combined_results.objects) == 1, "Expected 1 result from both collection combined vector search"
-#     assert both_combined_results.objects[0].properties["name"] == BOTH_VECTORS_PROPERTIES["name"], "Name mismatch in both vectors combined search"
-#     assert vectors_match(both_combined_results.objects[0].vector, BOTH_VECTORS), "Vector mismatch in both vectors combined search"
+if args.multivector_support in {MULTIVECTOR_SUPPORT_FULL}:
+    # Search both vectors collection with both vector types simultaneously
+    both_combined_results = both_collection.query.near_vector(
+        near_vector=BOTH_VECTORS_QUERY,
+        target_vector=[NORMAL_VECTOR_NAME, MULTIVECTOR_NAME],
+        include_vector=True,
+        limit=10,
+    )
+    assert len(both_combined_results.objects) == 1, "Expected 1 result from both collection combined vector search"
+    assert both_combined_results.objects[0].properties["name"] == BOTH_VECTORS_PROPERTIES["name"], "Name mismatch in both vectors combined search"
+    assert vectors_match(both_combined_results.objects[0].vector, BOTH_VECTORS), "Vector mismatch in both vectors combined search"
 
 client.close()
-# curl -H "Content-Type: application/json" -X POST -d '{"query": "{Get {CollectionMultivector {name _additional{vectors{colbert}}}}}"}' localhost:8080/v1/graphql# 
