@@ -128,6 +128,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"RAFT_JOIN":                               fmt.Sprintf("%s:8300", c.hostname(nodeId)),
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
+				"MAXIMUM_ALLOWED_COLLECTIONS_COUNT":       "-1",
 			},
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
 				c.volumePath(nodeId), "/var/lib/weaviate",
