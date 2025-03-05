@@ -80,7 +80,35 @@ if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
     values["labels"]["dim_to_segment_ratio"] = values["dim_to_segment_ratio"]
 
-f = h5py.File(args.vectors)
+# Add better error handling for file opening
+try:
+    # Check if file exists
+    if not os.path.exists(args.vectors):
+        logger.error(f"Dataset file does not exist: {args.vectors}")
+        sys.exit(1)
+
+    # Check if file is empty
+    if os.path.getsize(args.vectors) == 0:
+        logger.error(f"Dataset file is empty: {args.vectors}")
+        sys.exit(1)
+
+    logger.info(
+        f"Opening dataset file: {args.vectors} (size: {os.path.getsize(args.vectors)} bytes)"
+    )
+    f = h5py.File(args.vectors)
+    logger.info(f"Successfully opened dataset file")
+except OSError as e:
+    logger.error(f"Failed to open dataset file: {args.vectors}")
+    logger.error(f"Error details: {str(e)}")
+    logger.error(f"File exists: {os.path.exists(args.vectors)}")
+    logger.error(
+        f"File size: {os.path.getsize(args.vectors) if os.path.exists(args.vectors) else 'N/A'}"
+    )
+    logger.error(
+        f"File permissions: {oct(os.stat(args.vectors).st_mode)[-3:] if os.path.exists(args.vectors) else 'N/A'}"
+    )
+    sys.exit(1)
+
 values["labels"]["dataset_file"] = os.path.basename(args.vectors)
 vectors = f["train"]
 
