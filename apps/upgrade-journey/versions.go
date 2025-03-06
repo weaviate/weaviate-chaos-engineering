@@ -189,13 +189,14 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 	weaviateImage := fmt.Sprintf("semitechnologies/weaviate:%s", version)
 	env := map[string]string{
 		"AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
-		"LOG_LEVEL":                 "debug",
-		"QUERY_DEFAULTS_LIMIT":      "20",
-		"PERSISTENCE_DATA_PATH":     "./data",
-		"DEFAULT_VECTORIZER_MODULE": "none",
-		"CLUSTER_HOSTNAME":          "weaviate-test",
-		"RAFT_JOIN":                 "weaviate-test:8300",
-		"RAFT_BOOTSTRAP_EXPECT":     "1",
+		"LOG_LEVEL":                         "debug",
+		"QUERY_DEFAULTS_LIMIT":              "20",
+		"PERSISTENCE_DATA_PATH":             "./data",
+		"DEFAULT_VECTORIZER_MODULE":         "none",
+		"CLUSTER_HOSTNAME":                  "weaviate-test",
+		"RAFT_JOIN":                         "weaviate-test:8300",
+		"RAFT_BOOTSTRAP_EXPECT":             "1",
+		"MAXIMUM_ALLOWED_COLLECTIONS_COUNT": "-1",
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        weaviateImage,
