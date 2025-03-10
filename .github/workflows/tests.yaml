@@ -36,6 +36,11 @@ jobs:
     outputs:
       real_version: ${{ steps.weaviate-version-from-image.outputs.weaviate_version }}
     steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
       - name: Retrieve the weaviate version from the image
         uses: weaviate/github-common-actions/.github/actions/weaviate-version-in-image@main
         id: weaviate-version-from-image
@@ -104,7 +109,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -130,7 +135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -165,7 +170,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -201,7 +206,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -238,7 +243,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -274,7 +279,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -311,7 +316,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -344,7 +349,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -377,7 +382,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -412,7 +417,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -439,7 +444,7 @@ jobs:
         with:
           go-version: '1.20'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -466,7 +471,7 @@ jobs:
         with:
           go-version: '1.20'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -487,7 +492,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -510,7 +515,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -531,7 +536,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -552,7 +557,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -573,7 +578,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -594,7 +599,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -615,7 +620,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -636,7 +641,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -657,7 +662,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -678,7 +683,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -699,7 +704,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -720,7 +725,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -741,7 +746,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -762,7 +767,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -783,7 +788,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -804,7 +809,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -825,7 +830,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -842,7 +847,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -863,7 +868,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -884,7 +889,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -905,7 +910,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -926,7 +931,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -948,7 +953,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -970,7 +975,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -991,7 +996,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1012,7 +1017,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1034,7 +1039,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1056,7 +1061,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1073,7 +1078,7 @@ jobs:
   #   steps:
   #     - uses: actions/checkout@v3
   #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
+  #       uses: docker/login-action@v3
   #       with:
   #         username: ${{secrets.DOCKER_USERNAME}}
   #         password: ${{secrets.DOCKER_PASSWORD}}
@@ -1096,7 +1101,7 @@ jobs:
         with:
           go-version: '1.20'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1115,7 +1120,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1220,7 +1225,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1276,7 +1281,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1305,7 +1310,7 @@ jobs:
       #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
       #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1322,7 +1327,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1344,7 +1349,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
@@ -1366,7 +1371,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
