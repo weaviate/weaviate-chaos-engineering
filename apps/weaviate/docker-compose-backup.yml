@@ -34,6 +34,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
+      MAXIMUM_ALLOWED_COLLECTIONS_COUNT: -1
 
   # Mutually exclusive with weaviate-node-2
   # Used for single-node BRO version compat
