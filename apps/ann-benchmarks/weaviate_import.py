@@ -148,11 +148,14 @@ def load_records(
                     "i": i,
                 }
 
+                multivector_object = {}
+                if multivector:
+                    multivector_object["multivector"] = vector
                 batch.add_object(
                     properties=data_object,
-                    vector=vector,
-                    collection=class_name,
+                    vector=vector if multivector is False else multivector_object,
                     uuid=uuid.UUID(int=i),
+                    collection=class_name,
                 )
                 i += 1
 
