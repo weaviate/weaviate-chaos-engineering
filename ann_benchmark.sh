@@ -31,24 +31,56 @@ wait_weaviate
 
 echo "Run benchmark script"
 mkdir -p datasets
-( 
+(
   cd datasets;
-  if [ -f ${dataset}.hdf5 ]
+  if [ -f ${dataset}.hdf5 ] && [ -s ${dataset}.hdf5 ]
   then
-      echo "Datasets exists locally"
+      echo "Dataset exists locally and is not empty"
   else
       echo "Downloading dataset"
-      if [ "$multivector" = true ]; then
+      # Add retries and more robust download
+      for i in {1..3}; do
+        echo "Download attempt $i"
+        rm -f ${dataset}.hdf5.tmp
+        if [ "$multivector" = true ]; then
+  
+          echo "Downloading multivector dataset"
+          curl -LO https://storage.googleapis.com/ann-datasets/custom/Multivector/${dataset}.hdf5
+          break
+        else
+          echo "Downloading single vector dataset"
+          if curl -L --retry 5 --retry-delay 2 --connect-timeout 30 -o ${dataset}.hdf5.tmp http://ann-benchmarks.com/${dataset}.hdf5; then
+            # Verify file is not empty
+            if [ -s ${dataset}.hdf5.tmp ]; then
+              mv ${dataset}.hdf5.tmp ${dataset}.hdf5
+              echo "Download successful"
+              break
+            else
+              echo "Downloaded file is empty, retrying..."
+            fi
+          else
+            echo "Download failed, retrying..."
+          fi
+        fi
 
-        echo "Downloading multivector dataset"
-        curl -LO https://storage.googleapis.com/ann-datasets/custom/Multivector/${dataset}.hdf5
-      else
-        echo "Downloading single vector dataset"
-        curl -LO http://ann-benchmarks.com/${dataset}.hdf5
-      fi
+        if [ $i -eq 3 ]; then
+          echo "Failed to download dataset after 3 attempts"
+          exit 1
+        fi
+
+        sleep 5
+      done
   fi
 
+  # Verify the file exists and is not empty
+  if [ ! -f ${dataset}.hdf5 ] || [ ! -s ${dataset}.hdf5 ]; then
+    echo "Dataset file is missing or empty"
+    exit 1
+  fi
+
+  echo "Dataset file size: $(du -h ${dataset}.hdf5)"
 )
+
 
 if [ "$multivector" = true ]; then
   multivector_flag="-mv"
