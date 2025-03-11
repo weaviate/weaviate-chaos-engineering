@@ -111,7 +111,7 @@ def load_records(
                                 quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
                                     segments=int(len(vectors[0][0]) / dim_to_seg_ratio),
                                 )
-                            )
+                            ),
                         )
                     ]
                 )
@@ -129,7 +129,7 @@ def load_records(
                             name="multivector",
                             vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                                 quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
-                            )
+                            ),
                         )
                     ]
                 )
