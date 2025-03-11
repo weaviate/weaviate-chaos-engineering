@@ -68,7 +68,7 @@ def load_records(
 
     with client.batch.fixed_size(batch_size=batch_size) as batch:
         for vector in vectors:
-            if i == 100000 and quantization in ["pq", "sq"] and override == False:
+            if i == 100000 and quantization in ["pq", "sq", "bq"] and override == False:
                 logger.info(f"pausing import to enable quantization")
                 break
 
