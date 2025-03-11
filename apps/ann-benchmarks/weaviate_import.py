@@ -94,19 +94,45 @@ def load_records(
 
     if quantization in ["pq", "sq"] and override == False:
         if quantization == "pq":
-            collection.config.update(
-                vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                    quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
-                        segments=int(len(vectors[0]) / dim_to_seg_ratio),
+            if multivector is False:
+                collection.config.update(
+                    vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
+                            segments=int(len(vectors[0]) / dim_to_seg_ratio),
+                        )
                     )
                 )
-            )
-        elif quantization == "sq":
-            collection.config.update(
-                vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                    quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+            else:
+                collection.config.update(
+                    vectorizer_config=[
+                        wvc.Reconfigure.NamedVectors.update(
+                            name="multivector",
+                            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
+                                    segments=int(len(vectors[0]) / dim_to_seg_ratio),
+                                )
+                            )
+                        )
+                    ]
                 )
-            )
+        elif quantization == "sq":
+            if multivector is False:
+                collection.config.update(
+                    vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+                    )
+                )
+            else:
+                collection.config.update(
+                    vectorizer_config=[
+                        wvc.Reconfigure.NamedVectors.update(
+                            name="multivector",
+                            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+                            )
+                        )
+                    ]
+                )
 
         check_shards_readonly(collection)
         wait_for_all_shards_ready(collection)
