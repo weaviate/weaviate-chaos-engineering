@@ -92,7 +92,7 @@ def load_records(
     for err in client.batch.failed_objects:
         logger.error(err.message)
 
-    if quantization in ["pq", "sq"] and override == False:
+    if quantization in ["pq", "sq", "bq"] and override == False:
         if quantization == "pq":
             if multivector is False:
                 collection.config.update(
@@ -133,6 +133,17 @@ def load_records(
                         )
                     ]
                 )
+        elif quantization == "bq" and multivector is True:
+            collection.config.update(
+                vectorizer_config=[
+                    wvc.Reconfigure.NamedVectors.update(
+                        name="multivector",
+                        vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                            quantizer=wvc.Reconfigure.VectorIndex.Quantizer.bq()
+                        ),
+                    )
+                ]
+            )
 
         check_shards_readonly(collection)
         wait_for_all_shards_ready(collection)
