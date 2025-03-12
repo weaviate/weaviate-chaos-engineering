@@ -3,6 +3,7 @@ import weaviate
 import sys
 from loguru import logger
 import h5py
+import torch
 import grpc
 import pathlib
 import time
@@ -30,6 +31,7 @@ values = {
     "quantization": False,
     "dim_to_segment_ratio": 4,
     "override": False,
+    "multivector": False,
 }
 
 pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
@@ -48,6 +50,7 @@ parser.add_argument("-c", "--quantization")
 parser.add_argument("-q", "--query-only", action=argparse.BooleanOptionalAction)
 parser.add_argument("-o", "--override", action=argparse.BooleanOptionalAction)
 parser.add_argument("-s", "--dim-to-segment-ratio")
+parser.add_argument("-mv", "--multivector", action=argparse.BooleanOptionalAction, default=False)
 args = parser.parse_args()
 
 
@@ -80,6 +83,9 @@ if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
     values["labels"]["dim_to_segment_ratio"] = values["dim_to_segment_ratio"]
 
+
+values["multivector"] = args.multivector
+
 # Add better error handling for file opening
 try:
     # Check if file exists
@@ -109,8 +115,13 @@ except OSError as e:
     )
     sys.exit(1)
 
+
 values["labels"]["dataset_file"] = os.path.basename(args.vectors)
 vectors = f["train"]
+if values["multivector"]:
+    vector_dim: int = 128
+    vectors = [torch.from_numpy(sample.reshape(-1, vector_dim)) for sample in vectors]
+
 
 efC = values["efC"]
 distance = args.distance
@@ -122,13 +133,14 @@ for shards in values["shards"]:
             quantization = values["quantization"]
             override = values["override"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
+            multivector = values["multivector"]
             before_import = time.time()
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
             )
             if override == False:
-                reset_schema(client, efC, m, shards, distance)
-            load_records(client, vectors, quantization, dim_to_seg_ratio, override)
+                reset_schema(client, efC, m, shards, distance, multivector)
+            load_records(client, vectors, quantization, dim_to_seg_ratio, override, multivector)
             elapsed = time.time() - before_import
             logger.info(
                 f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
@@ -137,11 +149,5 @@ for shards in values["shards"]:
             time.sleep(30)
 
         logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
-        query(
-            client,
-            stub,
-            f,
-            values["ef"],
-            values["labels"],
-        )
+        query(client, stub, f, values["ef"], values["labels"], values["multivector"])
         logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
