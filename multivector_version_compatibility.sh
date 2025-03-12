@@ -57,11 +57,14 @@ declare -a no_multivector_versions=(
   "1.28.4"
 )
 
-# TODO can we easily use "latest" patch instead of specific versions?
 declare -a drop_multivector_versions=(
-    # "1.28.6"
-    # "1.27.10"
-    # "1.26.13"
+    "1.28.6"
+    "1.27.10"
+    "1.26.13"
+)
+
+declare -a full_multivector_versions=(
+  "1.29.0"
 )
 
 function test_version_sequence() {

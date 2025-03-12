@@ -8,8 +8,6 @@ BOTH_COLLECTION_NAME = "Both"
 NORMAL_VECTOR_NAME = "normal"
 MULTIVECTOR_NAME = "multi"
 
-# TODO flag to do only normal vectors or both
-
 # Example properties
 # Example vectors
 NORMAL_VECTOR = {
