@@ -20,7 +20,9 @@ MULTI_VECTOR = {
     MULTIVECTOR_NAME: [[0.1, 0.1], [0.2, 0.2]],
 }
 MULTI_VECTOR_QUERY = {
-    MULTIVECTOR_NAME: weaviate.classes.query.NearVector.list_of_vectors(MULTI_VECTOR[MULTIVECTOR_NAME]),
+    MULTIVECTOR_NAME: weaviate.classes.query.NearVector.list_of_vectors(
+        MULTI_VECTOR[MULTIVECTOR_NAME]
+    ),
 }
 # merge
 BOTH_VECTORS = {
@@ -109,12 +111,12 @@ def main():
         properties=NORMAL_VECTOR_PROPERTIES,
         vector=NORMAL_VECTOR,
     )
-    
+
     multi_collection.data.insert(
         properties=MULTI_VECTOR_PROPERTIES,
         vector=MULTI_VECTOR,
     )
-    
+
     both_collection.data.insert(
         properties=BOTH_VECTORS_PROPERTIES,
         vector=BOTH_VECTORS,
