@@ -102,6 +102,20 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.26.0"
           operator: ">="
+  newer-or-equal-than-1_29:
+    name: "Check if the version is 1.29.0 or newer"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.29.0"
+          operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -1264,6 +1278,23 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
+  multivector-version-compatibility:
+    needs: [newer-or-equal-than-1_29]
+    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'multivector-version-compatibility' || github.event.inputs.test_to_run == '') }}
+    name: Test multivector version compatibility from current version, back to older version, then back to current again
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./multivector_version_compatibility.sh
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     needs: [newer-or-equal-than-1_26]
