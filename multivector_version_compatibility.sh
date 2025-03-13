@@ -39,11 +39,11 @@ function test_version_sequence() {
     echo "Testing version sequence: $WEAVIATE_VERSION -> $intermediate_version -> $WEAVIATE_VERSION"
     
     # remove any files in docker volumes
-    docker-compose -f apps/weaviate/docker-compose.yml rm -v
+    docker compose -f apps/weaviate/docker-compose.yml rm -v
 
     # Test with WEAVIATE_VERSION
     echo "Starting Weaviate version $WEAVIATE_VERSION..."
-    docker-compose -f apps/weaviate/docker-compose.yml up -d
+    docker compose -f apps/weaviate/docker-compose.yml up -d
     wait_weaviate
 
     # import data
@@ -55,29 +55,29 @@ function test_version_sequence() {
     docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py
 
     # shutdown weaviate
-    docker-compose -f apps/weaviate/docker-compose.yml down
+    docker compose -f apps/weaviate/docker-compose.yml down
 
     # Test with intermediate version
     echo "Starting Weaviate version $intermediate_version"
-    WEAVIATE_VERSION=$intermediate_version docker-compose -f apps/weaviate/docker-compose.yml up -d
+    WEAVIATE_VERSION=$intermediate_version docker compose -f apps/weaviate/docker-compose.yml up -d
     wait_weaviate
 
     # verify queryable on intermediate version
     docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py --multivector-support "$multivector_support"
 
     # shutdown weaviate
-    docker-compose -f apps/weaviate/docker-compose.yml down
+    docker compose -f apps/weaviate/docker-compose.yml down
 
     # Test with WEAVIATE_VERSION again
     echo "Starting Weaviate version $WEAVIATE_VERSION again"
-    docker-compose -f apps/weaviate/docker-compose.yml up -d
+    docker compose -f apps/weaviate/docker-compose.yml up -d
     wait_weaviate
 
     # verify queryable on multivectors after going through intermediate version
     docker run --network host -t multivector_version_compatibility python3 verify_multivectors.py
 
     # shutdown weaviate
-    docker-compose -f apps/weaviate/docker-compose.yml down
+    docker compose -f apps/weaviate/docker-compose.yml down
 
     echo "Completed testing version sequence: $WEAVIATE_VERSION -> $intermediate_version -> $WEAVIATE_VERSION"
     echo "----------------------------------------"
