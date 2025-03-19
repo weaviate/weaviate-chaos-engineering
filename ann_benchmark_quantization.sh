@@ -71,7 +71,7 @@ sleep 30
 
 echo "Second run (query only)"
 echo "try sleeping to reduce flakiness"
-sleep 30
+sleep 300
 echo "done sleep"
 docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py $multivector_flag -v /datasets/${dataset}.hdf5 -d $distance -m 16 --quantization $quantization --query-only --labels "quantization=$quantization,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
