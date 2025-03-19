@@ -4,7 +4,7 @@ set -e
 
 source common.sh
 
-export COMPOSE="apps/weaviate/docker-compose-single-voter-without-node-name.yml"
+export COMPOSE="apps/weaviate/docker-compose-single-voter-with-node-name.yml"
 
 function restart() {
   echo "Restarting node ..."
