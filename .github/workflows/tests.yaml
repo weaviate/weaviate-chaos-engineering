@@ -421,7 +421,7 @@ jobs:
   ann-benchmarks-multivector-gcp:
     name: "[bench GCP] MULTIVECTOR3M"
     needs: [newer-or-equal-than-1_29]
-    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-gcp' || github.event.inputs.test_to_run == '') }}
+    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -457,7 +457,7 @@ jobs:
   ann-benchmarks-multivector-pq-gcp:
     name: "[bench GCP] MULTIVECTOR3M pq=true"
     needs: [newer-or-equal-than-1_29]
-    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-pq-gcp' || github.event.inputs.test_to_run == '') }}
+    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-pq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -494,7 +494,7 @@ jobs:
   ann-benchmarks-multivector-sq-gcp:
     name: "[bench GCP] MULTIVECTOR3M sq=true"
     needs: [newer-or-equal-than-1_29]
-    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-sq-gcp' || github.event.inputs.test_to_run == '') }}
+    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-sq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
@@ -531,7 +531,7 @@ jobs:
   ann-benchmarks-multivector-bq-gcp:
     name: "[bench GCP] MULTIVECTOR3M bq=true"
     needs: [newer-or-equal-than-1_29]
-    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-bq-gcp' || github.event.inputs.test_to_run == '') }}
+    if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-bq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
