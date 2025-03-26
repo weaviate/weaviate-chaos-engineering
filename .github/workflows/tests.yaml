@@ -425,7 +425,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl
+      DATASET: lotte-recreation-reduced-vl-50000
       DISTANCE: dot
       REQUIRED_RECALL: 0.992
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -461,7 +461,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl
+      DATASET: lotte-recreation-reduced-vl-50000
       DISTANCE: dot
       REQUIRED_RECALL: 0.990
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -498,7 +498,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl
+      DATASET: lotte-recreation-reduced-vl-50000
       DISTANCE: dot
       REQUIRED_RECALL: 0.990
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -535,7 +535,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl
+      DATASET: lotte-recreation-reduced-vl-50000
       DISTANCE: dot
       REQUIRED_RECALL: 0.95
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}

@@ -102,6 +102,15 @@ sleep 30
 echo "Second run (query only)"
 docker run --network host -t -v "$PWD/results:/workdir/results" -v "$PWD/datasets:/datasets" ann_benchmarks python3 run.py $multivector_flag -v /datasets/${dataset}.hdf5 -d $distance -m 32 --query-only --labels "pq=false,after_restart=true,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
+echo "Check if prefilled cache is used"
+docker logs weaviate-no-restart-on-crash-weaviate-1 2>&1 | grep "prefilled"
+
+echo "Check if completed loading shard"
+docker logs weaviate-no-restart-on-crash-weaviate-1 2>&1 | grep -i "completed loading shard"
+
+echo "Check if there are errors in the logs"
+docker logs weaviate-no-restart-on-crash-weaviate-1 2>&1 | grep -i "erro"
+
 docker run --network host -t -v "$PWD/datasets:/datasets" \
   -v "$PWD/results:/workdir/results" \
   -e "REQUIRED_RECALL=$REQUIRED_RECALL" \
