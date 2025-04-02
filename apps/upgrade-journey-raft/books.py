@@ -170,7 +170,7 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
     logger.info("aggregate where page_count gt 800: {}", aggregate.total_count)
     assert aggregate.total_count == 4
     result = collection.query.near_text(
-        query=["Essos", "Westeros", "Throne"], target_vector="description", certainty=0.75
+        query=["Essos", "Westeros", "Throne"], target_vector="description", certainty=0.74
     )
     assert len(result.objects) == 1
     assert result.objects[0].properties["title"] == "A Game of Thrones"

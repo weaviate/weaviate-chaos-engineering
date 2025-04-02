@@ -1,11 +1,12 @@
 from loguru import logger
-import requests, time
+import requests, time, argparse
 
 host = "http://localhost:8080"
 
 
-def _get_nodes_count():
-    res = requests.get(host + "/v1/nodes")
+def _get_nodes_count(api_key=None):
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
+    res = requests.get(host + "/v1/nodes", headers=headers)
     if res.status_code == 200:
         res_body = res.json()
         number_of_nodes = len(res_body["nodes"])
@@ -14,8 +15,9 @@ def _get_nodes_count():
     return -1
 
 
-def _get_statistics():
-    res = requests.get(host + "/v1/cluster/statistics")
+def _get_statistics(api_key=None):
+    headers = {"Authorization": f"Bearer {api_key}"} if api_key else None
+    res = requests.get(host + "/v1/cluster/statistics", headers=headers)
     if res.status_code == 200:
         res_body = res.json()
         return res_body["id"], res_body["raft"]["applied_index"]
@@ -28,9 +30,9 @@ def is_in_sync(nodes: dict) -> bool:
     return len(unique_vals) == 1
 
 
-def check_cluster_sync():
+def check_cluster_sync(api_key=None):
     logger.info("started checking if cluster is in sync")
-    replicas = _get_nodes_count()
+    replicas = _get_nodes_count(api_key)
     if replicas == -1:
         logger.error("can't get number of nodes in cluster")
         return
@@ -39,7 +41,7 @@ def check_cluster_sync():
     sec, cutoff = 0, 2400
     while sec < cutoff:
         sec = sec + 1
-        id, applied_index = _get_statistics()
+        id, applied_index = _get_statistics(api_key)
         nodes[id] = applied_index
         logger.info("nodes len {} nodes {}", len(nodes), nodes)
         if len(nodes) == replicas and is_in_sync(nodes):
@@ -53,4 +55,7 @@ def check_cluster_sync():
 
 
 if __name__ == "__main__":
-    check_cluster_sync()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--api-key", help="API key for authentication", default=None)
+    args = parser.parse_args()
+    check_cluster_sync(args.api_key)

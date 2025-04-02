@@ -2,6 +2,12 @@
 set -eou pipefail
 
 WEAVIATE_PORT=${WEAVIATE_PORT:-8080}
+WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-""}
+
+AUTH_BEARER=""
+if [[ -n "$WEAVIATE_API_KEY" ]]; then
+  AUTH_BEARER="-H \"Authorization: Bearer $WEAVIATE_API_KEY\""
+fi
 
 function echo_green() {
   green='\033[0;32m'; nc='\033[0m'; echo -e "${green}${*}${nc}"
@@ -16,7 +22,7 @@ function echo_red() {
 }
 
 function get_node_names() {
-  echo $(curl -sf localhost:${WEAVIATE_PORT}/v1/nodes | jq -r '.nodes[].name' | tr '\n' ',')
+  echo $(curl -sf $AUTH_BEARER localhost:${WEAVIATE_PORT}/v1/nodes | jq -r '.nodes[].name' | tr '\n' ',')
 }
 
 function get_setting() {

@@ -2,12 +2,15 @@ from loguru import logger
 import weaviate
 import books, multitenancy
 from show_logs import show_logs
+import argparse
 
 
-def sanity_checks():
+def sanity_checks(api_key=None):
     try:
         logger.info("Connect to Weaviate")
-        with weaviate.connect_to_local() as client:
+        with weaviate.connect_to_local(
+            auth_credentials=weaviate.auth.AuthApiKey(api_key=api_key) if api_key else None
+        ) as client:
             logger.info("Check Multitenancy collection existence")
             multitenancy.check_additional_collections_existence(client)
             logger.info("Run Multitenancy sanity checks")
@@ -23,4 +26,7 @@ def sanity_checks():
 
 
 if __name__ == "__main__":
-    sanity_checks()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--api-key", help="API key for authentication", default=None)
+    args = parser.parse_args()
+    sanity_checks(args.api_key)
