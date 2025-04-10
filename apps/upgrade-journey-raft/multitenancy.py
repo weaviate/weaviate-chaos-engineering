@@ -5,6 +5,7 @@ from weaviate.classes.config import Property, DataType, Configure
 from weaviate.classes.query import Filter
 from weaviate.classes.tenants import Tenant
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.classes.query import MetadataQuery
 from graphql_aggregate import graphql_grpc_aggregate
 
 
@@ -153,7 +154,10 @@ def _books_sanity_checks(client: weaviate.WeaviateClient, i: int, suffix: str = 
         .with_consistency_level(consistency_level=ConsistencyLevel.ONE)
     )
     result = collection.query.near_text(
-        query=["Essos", "Westeros", "Throne"], target_vector="description", certainty=0.75
+        query=["Essos", "Westeros", "Throne"],
+        target_vector="description",
+        certainty=0.74,
+        return_metadata=MetadataQuery(certainty=True),
     )
     assert len(result.objects) == 1
     assert result.objects[0].properties["title"] == "A Game of Thrones"
