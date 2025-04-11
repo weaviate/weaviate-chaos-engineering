@@ -1454,7 +1454,7 @@ jobs:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
           path: apps/upgrade-journey-raft/logs/
   rbac-upgrade-journey:
-    needs: [newer-or-equal-than-1_30]
+    needs: [real-version-in-tag, newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
     name: RBAC upgrade journey e2e test
     runs-on: ubuntu-latest
@@ -1478,7 +1478,7 @@ jobs:
         id: get_previous
         uses: weaviate/github-common-actions/.github/actions/get-previous-version@main
         with:
-          weaviate_version: ${{ env.WEAVIATE_VERSION }}
+          weaviate_version: ${{ needs.real-version-in-tag.outputs.real_version }}
           jump_type: 'minor'
           jumps: '1'
       - name: Set WEAVIATE_INITIAL_VERSION environment variable
