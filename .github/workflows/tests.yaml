@@ -102,6 +102,20 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.26.0"
           operator: ">="
+  newer-or-equal-than-1_28:
+    name: "Check if the version is newer than 1.28"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.28.0"
+          operator: ">="          
   newer-or-equal-than-1_29:
     name: "Check if the version is newer than 1.29"
     needs: real-version-in-tag
@@ -1780,3 +1794,26 @@ jobs:
       - name: Run compaction-optimization chaos tests
         run: |
           ./compaction_optimization.sh
+
+  tombstones-cleanup-while-crash:
+    needs: [newer-or-equal-than-1_28]
+    if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'tombstones-cleanup-while-crash' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that tombstone cleanup works while crashes happen
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.22'
+      - name: Run tombstones-cleanup-while-crash chaos tests
+        run: |
+          ./tombstones_cleanup_while_crash.sh
