@@ -51,6 +51,7 @@ parser.add_argument("-q", "--query-only", action=argparse.BooleanOptionalAction)
 parser.add_argument("-o", "--override", action=argparse.BooleanOptionalAction)
 parser.add_argument("-s", "--dim-to-segment-ratio")
 parser.add_argument("-mv", "--multivector", action=argparse.BooleanOptionalAction, default=False)
+parser.add_argument("-mi", "--multivector-implementation", default="regular")
 args = parser.parse_args()
 
 
@@ -85,6 +86,7 @@ if (args.dim_to_segment_ratio) != None:
 
 
 values["multivector"] = args.multivector
+values["multivector_implementation"] = args.multivector_implementation
 
 # Add better error handling for file opening
 try:
@@ -134,13 +136,24 @@ for shards in values["shards"]:
             override = values["override"]
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
             multivector = values["multivector"]
+            multivector_implementation = values["multivector_implementation"]
             before_import = time.time()
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
             )
             if override == False:
-                reset_schema(client, efC, m, shards, distance, multivector)
-            load_records(client, vectors, quantization, dim_to_seg_ratio, override, multivector)
+                reset_schema(
+                    client, efC, m, shards, distance, multivector, multivector_implementation
+                )
+            load_records(
+                client,
+                vectors,
+                quantization,
+                dim_to_seg_ratio,
+                override,
+                multivector,
+                multivector_implementation,
+            )
             elapsed = time.time() - before_import
             logger.info(
                 f"Finished import with efC={efC}, m={m}, shards={shards} in {str(timedelta(seconds=elapsed))}"
@@ -149,5 +162,12 @@ for shards in values["shards"]:
             time.sleep(30)
 
         logger.info(f"Starting querying for efC={efC}, m={m}, shards={shards}")
-        query(client, stub, f, values["ef"], values["labels"], values["multivector"])
+        query(
+            client,
+            stub,
+            f,
+            values["ef"],
+            values["labels"],
+            values["multivector"],
+        )
         logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")
