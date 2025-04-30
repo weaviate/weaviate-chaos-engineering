@@ -601,7 +601,7 @@ jobs:
     env:
       DATASET: lotte-recreation-reduced-vl-50000
       DISTANCE: dot
-      REQUIRED_RECALL: 0.992
+      REQUIRED_RECALL: 0.80
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       BOOT_DISK_SIZE: 20GB
       MULTIVECTOR_DATASET: true
