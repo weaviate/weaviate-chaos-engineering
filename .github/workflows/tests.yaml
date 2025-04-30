@@ -594,7 +594,7 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
   ann-benchmarks-multivector-muvera-gcp:
-    name: "[bench GCP] MULTIVECTOR3M"
+    name: "[bench GCP] MULTIVECTOR MUVERA"
     if: ${{ (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-muvera-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
