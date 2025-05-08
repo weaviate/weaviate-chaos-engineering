@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"slices"
 	"sort"
 	"time"
 
@@ -17,6 +18,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
+
+// skip versions that are not compatible with the upgrade journey due to bugs or breaking changes
+//var skipVersions = []string{"1.25.0", "1.25.1", "1.25.2", "1.25.3", "1.25.4", "1.25.5", "1.25.6", "1.25.7", "1.25.8", "1.25.9", "1.25.10", "1.25.11", "1.25.12", "1.25.13", "1.25.14", "1.25.15", "1.25.16", "1.25.17", "1.25.18", "1.25.19", "1.26.0", "1.26.1", "1.26.2", "1.26.3", "1.26.4", "1.26.5"}
+var skipVersions = []string{"1.24.26"}
 
 func buildVersionList(ctx context.Context, min, target string) ([]string, error) {
 	ghReleases, err := retrieveVersionListFromGH()
@@ -129,6 +134,10 @@ func sortSemverAndTrimToMinimum(versions semverList, min, max string) semverList
 
 	i := 0
 	for _, version := range versions {
+		// if the version is in the skipVersions list, skip it
+		if slices.Contains(skipVersions, version.version.String()) {
+			continue
+		}
 		if !version.largerOrEqual(minV) {
 			continue
 		}
