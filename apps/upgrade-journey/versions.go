@@ -15,7 +15,7 @@ import (
 	hashicorpversion "github.com/hashicorp/go-version"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate"
 )
 
 func buildVersionList(ctx context.Context, min, target string) ([]string, error) {

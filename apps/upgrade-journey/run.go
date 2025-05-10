@@ -8,13 +8,14 @@ import (
 	"math/rand"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
 	"github.com/google/uuid"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate/filters"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 )
 
@@ -69,7 +70,7 @@ func main() {
 			logReader, logErr := c.Logs(ctx)
 			if logErr != nil {
 				name, _ := c.Name(ctx)
-				log.Fatal(fmt.Printf("can't get container %s logs, err: %w", name, logErr))
+				log.Fatal(fmt.Sprintf("can't get container %s logs, err: %v", name, logErr))
 			}
 			io.Copy(os.Stdout, logReader)
 		}
@@ -85,26 +86,36 @@ func do(ctx context.Context, client *weaviate.Client, numNodes int) (*cluster, e
 		return c, err
 	}
 
+	previousVersion := ""
 	for i, version := range versions {
 
 		if err := startOrUpgrade(ctx, c, i, version); err != nil {
-			return c, err
+			return c, fmt.Errorf("start or upgrade: %w", err)
 		}
 
 		if i == 0 {
 			if err := createSchema(ctx, client); err != nil {
-				return c, err
+				return c, fmt.Errorf("create schema: %w", err)
 			}
 		}
 
+		if strings.HasPrefix(previousVersion, "1.24") && strings.HasPrefix(version, "1.25") {
+			// We are upgrading from v1.24 to v1.25 we need to wait a little bit more of time
+			// for schema to migrate to V2 version
+			log.Printf("upgrading from v1.24 to v1.25 (%s => %s). We need to wait (30 seconds) for schema to migrate to V2", previousVersion, version)
+			time.Sleep(30 * time.Second)
+		}
+
 		if err := importForVersion(ctx, client, version); err != nil {
-			return c, err
+			return c, fmt.Errorf("import for version: %w", err)
 		}
 
 		backoff.Retry(
 			func() error { return verify(ctx, client, i) },
 			backoff.WithMaxRetries(backoff.NewConstantBackOff(1*time.Second), 15),
 		)
+
+		previousVersion = version
 	}
 
 	return c, nil
@@ -484,7 +495,7 @@ func importForVersion(ctx context.Context, client *weaviate.Client,
 ) error {
 	targetID := uuid.New().String()
 	if err := importTargetObject(ctx, client, version, targetID); err != nil {
-		return fmt.Errorf("source object: %w", err)
+		return fmt.Errorf("target object: %w", err)
 	}
 
 	if err := importSourceObject(ctx, client, version, targetID); err != nil {
