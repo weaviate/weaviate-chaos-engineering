@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"path"
 	"strings"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
+	tescontainersnetwork "github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -32,10 +32,9 @@ func newCluster(nodeCount int) *cluster {
 	}
 
 	return &cluster{
-		nodeCount:   nodeCount,
-		networkName: fmt.Sprintf("weaviate-upgrade-journey-%d", rand.Int()),
-		rootDir:     rootDir,
-		containers:  make([]testcontainers.Container, nodeCount),
+		nodeCount:  nodeCount,
+		rootDir:    rootDir,
+		containers: make([]testcontainers.Container, nodeCount),
 	}
 }
 
@@ -81,16 +80,14 @@ func (c *cluster) rollingUpdate(ctx context.Context, version string) error {
 }
 
 func (c *cluster) startNetwork(ctx context.Context) error {
-	_, err := testcontainers.GenericNetwork(ctx, testcontainers.GenericNetworkRequest{
-		NetworkRequest: testcontainers.NetworkRequest{
-			Name:     c.networkName,
-			Internal: false,
-		},
-	})
+	network, err := tescontainersnetwork.New(
+		ctx,
+		tescontainersnetwork.WithAttachable(),
+	)
 	if err != nil {
-		return fmt.Errorf("network %s: %w", c.networkName, err)
+		return fmt.Errorf("network %s: %w", network.Name, err)
 	}
-
+	c.networkName = network.Name
 	return nil
 }
 
