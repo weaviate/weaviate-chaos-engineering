@@ -15,12 +15,7 @@ def get_muvera_config(multivector_implementation="regular"):
     if multivector_implementation == "regular":
         return None
     elif multivector_implementation == "muvera":
-        return wvc.Configure.VectorIndex.MultiVector.muvera_config(
-            enabled=True,
-            ksim=1,
-            dprojections=8,
-            repetitions=20,
-        )
+        return wvc.Configure.VectorIndex.MultiVector.Encoding.muvera()
 
 
 def get_vectorizer_config(efC, m, multivector=False, multivector_implementation="regular"):
@@ -40,7 +35,7 @@ def get_vectorizer_config(efC, m, multivector=False, multivector_implementation=
                     max_connections=m,
                     ef=-1,
                     multi_vector=wvc.Configure.VectorIndex.MultiVector.multi_vector(
-                        muvera_config=muvera_config
+                        encoding=muvera_config
                     ),
                 ),
             )
