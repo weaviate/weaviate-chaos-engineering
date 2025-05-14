@@ -262,15 +262,6 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 		return err
 	}
 
-	numberOfTenants := 50
-	tenants := make([]models.Tenant, numberOfTenants)
-	for i := range numberOfTenants {
-		tenants[i] = models.Tenant{
-			Name:           fmt.Sprintf("tenant_%v", i),
-			ActivityStatus: models.TenantActivityStatusACTIVE,
-		}
-	}
-
 	err = createTenants(ctx, client, mtClassName, "tenant")
 	if err != nil {
 		return err

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/go-version"
 	hashicorpversion "github.com/hashicorp/go-version"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -67,22 +66,22 @@ func retrieveVersionListFromGH() ([]string, error) {
 
 func getHighestLast2MinorVersions(versions []string, maxVersion string) ([]string, error) {
 	// Parse versions
-	parsedVersions := make([]*version.Version, 0, len(versions))
+	parsedVersions := make([]*hashicorpversion.Version, 0, len(versions))
 	for _, v := range versions {
-		parsed, err := version.NewVersion(v)
+		parsed, err := hashicorpversion.NewVersion(v)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse version %s: %w", v, err)
 		}
 		parsedVersions = append(parsedVersions, parsed)
 	}
-	parsedMaxVersion, err := version.NewVersion(maxVersion)
+	parsedMaxVersion, err := hashicorpversion.NewVersion(maxVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse version %s: %w", maxVersion, err)
 	}
 	parsedMaxMinor := parsedMaxVersion.Segments()[1]
 
 	// Group by major version
-	minorVersions := make(map[int]*version.Version)
+	minorVersions := make(map[int]*hashicorpversion.Version)
 	for _, v := range parsedVersions {
 		minor := v.Segments()[1]
 		if minor < parsedMaxMinor {
@@ -100,8 +99,8 @@ func getHighestLast2MinorVersions(versions []string, maxVersion string) ([]strin
 
 	// Sort in descending order
 	sort.Slice(result, func(i, j int) bool {
-		v1, _ := version.NewVersion(result[i])
-		v2, _ := version.NewVersion(result[j])
+		v1, _ := hashicorpversion.NewVersion(result[i])
+		v2, _ := hashicorpversion.NewVersion(result[j])
 		return v1.GreaterThan(v2)
 	})
 
