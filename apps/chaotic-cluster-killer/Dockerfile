@@ -6,6 +6,6 @@ RUN ["apk", "add", "curl", "bash"]
 
 COPY run.sh .
 
-COPY --from=docker:latest /usr/local/bin/docker /usr/local/bin/docker
+COPY --from=docker:28.1.1-dind-rootless /usr/local/bin/docker /usr/local/bin/docker
 
 CMD ["bash", "/chaos/run.sh"]
