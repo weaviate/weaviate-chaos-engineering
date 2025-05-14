@@ -121,7 +121,6 @@ def load_records(
         logger.error(err.message)
 
     if quantization in ["pq", "sq", "bq"] and override == False:
-        muvera_config = get_muvera_config(multivector_implementation)
         if quantization == "pq":
             if multivector is False:
                 collection.config.update(
@@ -129,7 +128,6 @@ def load_records(
                         quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
                             segments=int(len(vectors[0]) / dim_to_seg_ratio),
                         ),
-                        muvera_config=muvera_config,
                     )
                 )
             else:
@@ -141,7 +139,6 @@ def load_records(
                                 quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
                                     segments=int(len(vectors[0][0]) / dim_to_seg_ratio),
                                 ),
-                                muvera_config=muvera_config,
                             ),
                         )
                     ]
@@ -151,7 +148,6 @@ def load_records(
                 collection.config.update(
                     vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                         quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq(),
-                        muvera_config=muvera_config,
                     )
                 )
             else:
@@ -161,7 +157,6 @@ def load_records(
                             name="multivector",
                             vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                                 quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq(),
-                                muvera_config=muvera_config,
                             ),
                         )
                     ]
@@ -173,7 +168,6 @@ def load_records(
                         name="multivector",
                         vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                             quantizer=wvc.Reconfigure.VectorIndex.Quantizer.bq(),
-                            muvera_config=muvera_config,
                         ),
                     )
                 ]
