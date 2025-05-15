@@ -1328,7 +1328,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}' 
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1345,7 +1345,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
           delete-sts: 'true'
       - name: Weaviate v1.25.0 - check data after upgrade to Raft version
         run: |
@@ -1359,7 +1359,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
       - name: Weaviate preview image - check old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1385,7 +1385,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady  --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set podManagementPolicy=OrderedReady  --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
           delete-sts: 'true'
       - name: Weaviate v1.24.x - check additional and old data
         run: |
@@ -1399,7 +1399,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
           delete-sts: 'true'
       - name: Weaviate preview image - check additional and old data
         run: |
