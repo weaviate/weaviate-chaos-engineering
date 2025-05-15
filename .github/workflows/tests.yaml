@@ -1308,6 +1308,7 @@ jobs:
       WEAVIATE_NON_RAFT_VERSION: 1.24.15
       WEAVIATE_RAFT_VERSION_1: 1.25.0
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      PERSISTENCE_MAX_REUSE_WAL_SIZE: 0  # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
