@@ -5,6 +5,7 @@ set -e
 dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
 multivector=${MULTIVECTOR_DATASET:-"false"}
+multivector_implementation=${MULTIVECTOR_IMPLEMENTATION:-"regular"}
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
@@ -84,6 +85,9 @@ mkdir -p datasets
 
 if [ "$multivector" = true ]; then
   multivector_flag="-mv"
+  if [ "$multivector_implementation" = "muvera" ]; then
+    multivector_flag="$multivector_flag -mi muvera"
+  fi
 else
   multivector_flag=""
 fi

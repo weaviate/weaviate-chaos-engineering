@@ -11,25 +11,52 @@ import time
 class_name = "Vector"
 
 
-def reset_schema(client: weaviate.WeaviateClient, efC, m, shards, distance, multivector=False):
+def get_muvera_config(multivector_implementation="regular"):
+    if multivector_implementation == "regular":
+        return None
+    elif multivector_implementation == "muvera":
+        return wvc.Configure.VectorIndex.MultiVector.Encoding.muvera()
+
+
+def get_vectorizer_config(efC, m, multivector=False, multivector_implementation="regular"):
+    if not multivector:
+        vectorizer_config = wvc.Configure.Vectorizer.none()
+    else:
+        if multivector_implementation == "regular":
+            muvera_config = None
+        else:
+            muvera_config = get_muvera_config(multivector_implementation)
+
+        vectorizer_config = [
+            wvc.Configure.NamedVectors.none(
+                name="multivector",
+                vector_index_config=wvc.Configure.VectorIndex.hnsw(
+                    ef_construction=efC,
+                    max_connections=m,
+                    ef=-1,
+                    multi_vector=wvc.Configure.VectorIndex.MultiVector.multi_vector(
+                        encoding=muvera_config
+                    ),
+                ),
+            )
+        ]
+    return vectorizer_config
+
+
+def reset_schema(
+    client: weaviate.WeaviateClient,
+    efC,
+    m,
+    shards,
+    distance,
+    multivector=False,
+    multivector_implementation="regular",
+):
     client.collections.delete_all()
+
     client.collections.create(
         name=class_name,
-        vectorizer_config=(
-            wvc.Configure.Vectorizer.none()
-            if not multivector
-            else [
-                wvc.Configure.NamedVectors.none(
-                    name="multivector",
-                    vector_index_config=wvc.Configure.VectorIndex.hnsw(
-                        ef_construction=efC,
-                        max_connections=m,
-                        ef=-1,
-                        multi_vector=wvc.Configure.VectorIndex.MultiVector.multi_vector(),
-                    ),
-                )
-            ]
-        ),
+        vectorizer_config=get_vectorizer_config(efC, m, multivector, multivector_implementation),
         vector_index_config=(
             wvc.Configure.VectorIndex.hnsw(
                 ef_construction=efC,
@@ -58,6 +85,7 @@ def load_records(
     dim_to_seg_ratio,
     override,
     multivector=False,
+    multivector_implementation="regular",
 ):
     collection = client.collections.get(class_name)
     i = 0
@@ -99,7 +127,7 @@ def load_records(
                     vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                         quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
                             segments=int(len(vectors[0]) / dim_to_seg_ratio),
-                        )
+                        ),
                     )
                 )
             else:
@@ -110,7 +138,7 @@ def load_records(
                             vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
                                 quantizer=wvc.Reconfigure.VectorIndex.Quantizer.pq(
                                     segments=int(len(vectors[0][0]) / dim_to_seg_ratio),
-                                )
+                                ),
                             ),
                         )
                     ]
@@ -119,7 +147,7 @@ def load_records(
             if multivector is False:
                 collection.config.update(
                     vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq(),
                     )
                 )
             else:
@@ -128,7 +156,7 @@ def load_records(
                         wvc.Reconfigure.NamedVectors.update(
                             name="multivector",
                             vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq()
+                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.sq(),
                             ),
                         )
                     ]
@@ -139,7 +167,7 @@ def load_records(
                     wvc.Reconfigure.NamedVectors.update(
                         name="multivector",
                         vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                            quantizer=wvc.Reconfigure.VectorIndex.Quantizer.bq()
+                            quantizer=wvc.Reconfigure.VectorIndex.Quantizer.bq(),
                         ),
                     )
                 ]
