@@ -1407,6 +1407,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
           values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}' 
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: pre_upgrade_1_24_weaviate_pods.log
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1415,6 +1420,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_1_25_weaviate_pods.log
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1429,6 +1444,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs for preview upgrade
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_preview_weaviate_pods.log
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1455,6 +1480,16 @@ jobs:
           else
             echo "Schema V1 succesfully synchronized"
           fi
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs for downgrade
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_downgrade_to_1_24_weaviate_pods.log
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1469,6 +1504,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs for preview upgrade
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_preview_after_downgrade_weaviate_pods.log
       - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1483,12 +1528,33 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Set timestamp
+        if: always()
+        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v4
+        env:
+          NOW: ${{ env.NOW }}
         with:
-          name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs-${{ env.NOW }}
+          path: |
+            /tmp/*.log
+            apps/upgrade-journey-raft/logs/
+      - name: Check for panics in logs
+        if: always()
+        run: |
+          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log; then
+            echo "::error::Found panic in weaviate logs"
+            echo "Panic context:"
+            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log
+            exit 1
+          fi
   upgrade-journey-raft-1_30:
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-1_30' || github.event.inputs.test_to_run == '')}}
@@ -1520,6 +1586,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
           values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: pre_upgrade_1_24_weaviate_pods.log
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1528,6 +1599,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_1_25_weaviate_pods.log
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1542,6 +1623,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_1_29_weaviate_pods.log
       - name: Weaviate v1.29.0 image - upgrade K8s from Raft to another Raft version (rolling update)
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1568,6 +1659,16 @@ jobs:
           else
             echo "Schema V1 succesfully synchronized"
           fi
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_downgrade_to_1_24_weaviate_pods.log
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1582,6 +1683,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_1_29_after_downgrade_weaviate_pods.log
       - name: Weaviate v1.29.0 image - upgrade K8s from none-raft to Raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1596,6 +1707,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_preview_weaviate_pods.log
       - name: Weaviate preview image - upgrade from v1.29.0 to preview image (rolling update)
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1609,12 +1730,33 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Set timestamp
+        if: always()
+        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v4
+        env:
+          NOW: ${{ env.NOW }}
         with:
-          name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs-${{ env.NOW }}
+          path: |
+            /tmp/*.log
+            apps/upgrade-journey-raft/logs/
+      - name: Check for panics in logs
+        if: always()
+        run: |
+          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log; then
+            echo "::error::Found panic in weaviate logs"
+            echo "Panic context:"
+            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log
+            exit 1
+          fi
   upgrade-journey-raft-metadata-only-voters:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-metadata-only-voters' || github.event.inputs.test_to_run == '') }}
@@ -1644,6 +1786,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
           values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: pre_upgrade_weaviate_pods.log
       - name: Weaviate v1.25 with metadata only voters setting - import data and additional data
         run: |
           cd apps/upgrade-journey-raft
@@ -1653,6 +1800,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_weaviate_pods.log
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1666,12 +1823,33 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Set timestamp
+        if: always()
+        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v4
+        env:
+          NOW: ${{ env.NOW }}
         with:
-          name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs-${{ env.NOW }}
+          path: |
+            /tmp/*.log
+            apps/upgrade-journey-raft/logs/
+      - name: Check for panics in logs
+        if: always()
+        run: |
+          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log; then
+            echo "::error::Found panic in weaviate logs"
+            echo "Panic context:"
+            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log
+            exit 1
+          fi
   rbac-upgrade-journey:
     needs: [real-version-in-tag, newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
@@ -1740,6 +1918,11 @@ jobs:
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: pre_upgrade_weaviate_pods.log
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - create roles
         run: |
           cd apps/rbac-upgrade-journey
@@ -1752,6 +1935,16 @@ jobs:
         run: |
           cd apps/rbac-upgrade-journey
           python3 check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_upgrade_enable_dynamic_user_management_weaviate_pods.log
       - name: Generate RBAC with dynamic user management
         run: |
           cat > ${{ env.RBAC_CONFIG }} << 'EOF'
@@ -1834,6 +2027,16 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+          log_file_name: post_downgrade_weaviate_pods.log
       - name: Generate RBAC config file
         run: |
           cat > ${{ env.RBAC_CONFIG }} << 'EOF'
@@ -1875,12 +2078,33 @@ jobs:
         run: |
           cd apps/rbac-upgrade-journey
           python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Set timestamp
+        if: always()
+        run: echo "NOW=$(date +'%Y%m%d.%H%M%S')" >> $GITHUB_ENV
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v4
+        env:
+          NOW: ${{ env.NOW }}
         with:
-          name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs-${{ env.NOW }}
+          path: |
+            /tmp/*.log
+            apps/upgrade-journey-raft/logs/
+      - name: Check for panics in logs
+        if: always()
+        run: |
+          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log; then
+            echo "::error::Found panic in weaviate logs"
+            echo "Panic context:"
+            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/*weaviate_pods.log
+            exit 1
+          fi
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     needs: [newer-or-equal-than-1_26]
