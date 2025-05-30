@@ -24,13 +24,6 @@ pod_names=$(kubectl -n weaviate get pods -o jsonpath='{range.items[*]}{..metadat
 declare -a pod_names_array
 IFS=',' read -ra pod_names_array <<< "$pod_names"
 
-for pod_name in "${pod_names_array[@]}"; do
-  if [[ $pod_name == *"weaviate"* ]]; then
-    echo_green "store logs from $pod_name ------------------------------------------------"
-    kubectl -n weaviate logs $pod_name > "$LOG_DIR/${pod_name}_logs.txt"
-  fi
-done
-
 echo_green "store kubectl -n weaviate get pods output ------------------------------------------------"
 kubectl -n weaviate get pods > "$LOG_DIR/pods_status.txt"
 
@@ -43,7 +36,6 @@ kubectl -n weaviate describe svc weaviate-headless > "$LOG_DIR/weaviate_headless
 # Create a summary file with all the log locations
 cat > "$LOG_DIR/log_summary.txt" << EOF
 Log files generated at: $LOG_DIR
-- Pod logs: ${LOG_DIR}/*_logs.txt
 - Pod status: ${LOG_DIR}/pods_status.txt
 - Cluster statistics: ${LOG_DIR}/cluster_statistics.json
 - Headless service description: ${LOG_DIR}/weaviate_headless_service.txt
