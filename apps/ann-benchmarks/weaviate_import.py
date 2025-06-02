@@ -96,7 +96,7 @@ def load_records(
 
     with client.batch.fixed_size(batch_size=batch_size) as batch:
         for vector in vectors:
-            if i == 100000 and quantization in ["pq", "sq", "bq"] and override == False:
+            if i == 100000 and quantization in ["pq", "sq", "bq", "rq"] and override == False:
                 logger.info(f"pausing import to enable quantization")
                 break
 
@@ -120,7 +120,7 @@ def load_records(
     for err in client.batch.failed_objects:
         logger.error(err.message)
 
-    if quantization in ["pq", "sq", "bq"] and override == False:
+    if quantization in ["pq", "sq", "bq", "rq"] and override == False:
         if quantization == "pq":
             if multivector is False:
                 collection.config.update(
@@ -172,6 +172,24 @@ def load_records(
                     )
                 ]
             )
+        elif quantization == "rq":
+            if multivector is False:
+                collection.config.update(
+                    vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.rq(),
+                    )
+                )
+            else:
+                collection.config.update(
+                    vectorizer_config=[
+                        wvc.Reconfigure.NamedVectors.update(
+                            name="multivector",
+                            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
+                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.rq(),
+                            ),
+                        )
+                    ]
+                )
 
         check_shards_readonly(collection)
         wait_for_all_shards_ready(collection)
