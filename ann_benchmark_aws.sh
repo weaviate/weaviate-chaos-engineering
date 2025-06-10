@@ -15,22 +15,33 @@ region="eu-central-1"
 run_id=$(uuidgen | tr [:upper:] [:lower:])
 key_id="key-$run_id"
 
+# Create cleanup info directory and save region info
+mkdir -p .cleanup_info
+echo "$region" > .cleanup_info/region
+
 vpc_id=$(aws ec2 describe-vpcs --region $region | jq -r '.Vpcs[0].VpcId')
 
 # subnet_id=$( aws ec2 describe-subnets --region $region --filters=Name=vpc-id,Values=$vpc_id | jq -r '.Subnets[3].SubnetId')
 
 group_id=$(aws ec2 create-security-group --group-name "benchmark-run-$run_id" --description "created for benchmark run $run_id" --vpc-id $vpc_id --region $region | jq -r '.GroupId'
 )
+# Save group_id for cleanup
+echo "$group_id" > .cleanup_info/group_id
+
 aws ec2 authorize-security-group-ingress --ip-permissions '[ { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "IpRanges": [ { "CidrIp": "0.0.0.0/0" } ] } ]' --group-id $group_id --region $region | jq
 
 ami=$(aws ec2 describe-images --region $region --owner amazon --filter "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu*22.04*${ARCH}*" | jq -r '.Images[0].ImageId')
 
 aws ec2 create-key-pair --key-name "$key_id" --region "$region" | jq -r '.KeyMaterial' > "${key_id}.pem"
 chmod 600 "${key_id}.pem"
+# Save key_id for cleanup
+echo "$key_id" > .cleanup_info/key_id
 
 instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600   --ebs-optimized --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 120 } } ]" | jq -r '.Instances[0].InstanceId' )
 
 echo "instance ready: $instance_id"
+# Save instance_id for cleanup
+echo "$instance_id" > .cleanup_info/instance_id
 
 function cleanup() {
   set +e  # Continue cleanup even if individual commands fail
@@ -80,6 +91,9 @@ function cleanup() {
       sleep 10
     done
   fi
+
+  # Clean up info files
+  rm -rf .cleanup_info
 }
 trap cleanup EXIT SIGINT SIGTERM ERR
 
