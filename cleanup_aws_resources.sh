@@ -25,7 +25,6 @@ if [ -f ".cleanup_info/instance_id" ]; then
   echo "Terminating instance $instance_id"
   aws ec2 terminate-instances --instance-ids "$instance_id" --region "$region" | jq || true
 
-  # Busy loop to wait for instance termination with timeout
   echo "Waiting for instance to terminate..."
   SECONDS=0
   timeout=300

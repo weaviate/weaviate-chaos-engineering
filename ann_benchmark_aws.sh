@@ -44,56 +44,8 @@ echo "instance ready: $instance_id"
 echo "$instance_id" > .cleanup_info/instance_id
 
 function cleanup() {
-  set +e  # Continue cleanup even if individual commands fail
-
-  if [ ! -z "$instance_id" ]; then
-    echo "Terminating instance $instance_id"
-    aws ec2 terminate-instances --instance-ids "$instance_id" --region "$region" | jq || true
-
-    # Busy loop to wait for instance termination with timeout
-    echo "Waiting for instance to terminate..."
-    SECONDS=0
-    timeout=300
-    while [ $SECONDS -lt $timeout ]; do
-      status=$(aws ec2 describe-instances --instance-ids "$instance_id" --region "$region" | jq -r '.Reservations[0].Instances[0].State.Name' || echo "error")
-      if [ "$status" = "terminated" ]; then
-        echo "Instance successfully terminated"
-        break
-      elif [ "$status" = "error" ]; then
-        echo "Instance not found - assuming terminated"
-        break
-      fi
-      echo "Instance status: $status"
-      sleep 5
-      SECONDS=$((SECONDS + 5))
-    done
-
-    if [ $SECONDS -ge $timeout ]; then
-      echo "Error: Timeout waiting for instance termination. Please check AWS instances for manual cleanup."
-      exit 1
-    fi
-  fi
-
-  if [ ! -z "$key_id" ]; then
-    echo "Deleting key pair $key_id"
-    aws ec2 delete-key-pair --key-name "$key_id" --region "$region" | jq || true
-    rm -f "${key_id}.pem" || true
-  fi
-
-  if [ ! -z "$group_id" ]; then
-    echo "Deleting security group $group_id"
-    # Add retry loop for security group deletion since it might fail if instance is still terminating
-    for i in {1..6}; do
-      if aws ec2 delete-security-group --group-id "$group_id" --region "$region" | jq; then
-        break
-      fi
-      echo "Retrying security group deletion in 10 seconds..."
-      sleep 10
-    done
-  fi
-
-  # Clean up info files
-  rm -rf .cleanup_info
+  echo "Running cleanup via cleanup_aws_resources.sh..."
+  bash ./cleanup_aws_resources.sh
 }
 trap cleanup EXIT SIGINT SIGTERM ERR
 
