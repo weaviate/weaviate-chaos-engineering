@@ -9,7 +9,10 @@ MULTIVECTOR_DATASET=${MULTIVECTOR_DATASET:-"false"}
 export CLOUD_PROVIDER="gcp"
 export OS="ubuntu-2204-lts"
 
-instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
+# Generate deterministic instance name using GITHUB_RUN_ID + random string
+run_id=${GITHUB_RUN_ID:-"local"}
+random_suffix=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+instance="benchmark-${run_id}-${random_suffix}"
 
 # Create cleanup info directory and save cleanup information
 mkdir -p .cleanup_info

@@ -11,8 +11,10 @@ distance=${DISTANCE:-"l2-squared"}
 
 region="eu-central-1"
 
-# to make sure all aws resources are unique
-run_id=$(uuidgen | tr [:upper:] [:lower:])
+# Generate deterministic run_id using GITHUB_RUN_ID + random string
+github_run_id=${GITHUB_RUN_ID:-"local"}
+random_suffix=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+run_id="${github_run_id}-${random_suffix}"
 key_id="key-$run_id"
 
 # Create cleanup info directory and save region info

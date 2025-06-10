@@ -10,7 +10,10 @@ OS="ubuntu-2204-lts"
 MULTIVECTOR_DATASET=${MULTIVECTOR_DATASET:-"false"}
 MULTIVECTOR_IMPLEMENTATION=${MULTIVECTOR_IMPLEMENTATION:-"regular"}
 
-instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
+# Generate deterministic instance name using GITHUB_RUN_ID + random string
+run_id=${GITHUB_RUN_ID:-"local"}
+random_suffix=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+instance="benchmark-${run_id}-${random_suffix}"
 
 # Create cleanup info directory and save cleanup information
 mkdir -p .cleanup_info
