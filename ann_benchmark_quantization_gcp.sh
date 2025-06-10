@@ -11,13 +11,19 @@ export OS="ubuntu-2204-lts"
 
 instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
 
+# Create cleanup info directory and save cleanup information
+mkdir -p .cleanup_info
+echo "$ZONE" > .cleanup_info/zone
+echo "$instance" > .cleanup_info/instance
+
 gcloud compute instances create $instance \
   --image-family=$OS --image-project=ubuntu-os-cloud \
   --machine-type=$MACHINE_TYPE --zone $ZONE \
   --boot-disk-size=$BOOT_DISK_SIZE
 
 function cleanup {
-  gcloud compute instances delete $instance --quiet --zone $ZONE
+  echo "Running cleanup via cleanup_gcp_resources.sh..."
+  bash ./cleanup_gcp_resources.sh
 }
 trap cleanup EXIT
 

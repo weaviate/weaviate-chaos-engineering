@@ -453,6 +453,9 @@ jobs:
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -487,6 +490,9 @@ jobs:
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_quantization_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -523,6 +529,9 @@ jobs:
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -560,6 +569,9 @@ jobs:
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_quantization_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -597,6 +609,9 @@ jobs:
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_quantization_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -634,6 +649,9 @@ jobs:
       - name: Run chaos test
         if: always()
         run: ./ann_benchmark_quantization_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
@@ -683,6 +701,9 @@ jobs:
         env:
           QUANTIZATION: sq
         run: ./ann_benchmark_quantization_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
       - id: 'upload-files'
         uses: 'google-github-actions/upload-cloud-storage@v1'
         with:
