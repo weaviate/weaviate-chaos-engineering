@@ -24,7 +24,9 @@ gcloud compute instances create $instance \
   --image-family=$OS --image-project=ubuntu-os-cloud \
   --machine-type=$MACHINE_TYPE --zone $ZONE \
   --boot-disk-size=$BOOT_DISK_SIZE \
-  --max-run-duration=4h
+  --max-run-duration=4h \
+  --instance-termination-action=DELETE
+
 
 function cleanup {
   echo "Running cleanup via cleanup_gcp_resources.sh..."
