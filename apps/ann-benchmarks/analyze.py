@@ -28,6 +28,18 @@ class TestResults(unittest.TestCase):
 
     def test_recall_before_after(self):
         allowed_delta = 0.02
+
+        pd.set_option("display.max_rows", None)
+        pd.set_option("display.max_columns", None)
+        pd.set_option("display.max_colwidth", None)  # For full cell content (especially strings)
+        pd.set_option("display.expand_frame_repr", False)  # Avoid line wrapping for wide DataFrames
+
+        print(self.df.loc[self.df["after_restart"] == "false", "recall"].describe(include="all"))
+        print(self.df.loc[self.df["after_restart"] == "true", "recall"].describe(include="all"))
+
+        print(self.df.loc[self.df["after_restart"] == "false", "recall"])
+        print(self.df.loc[self.df["after_restart"] == "true", "recall"])
+
         mean_recall_before = self.df.loc[self.df["after_restart"] == "false", "recall"].mean()
         mean_recall_after = self.df.loc[self.df["after_restart"] == "true", "recall"].mean()
 
