@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/semi-technologies/weaviate-go-client/v3/weaviate"
 	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/batch"
+	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/fault"
 	"github.com/semi-technologies/weaviate/entities/models"
 )
 
@@ -55,7 +56,7 @@ func do(ctx context.Context) error {
 	}
 
 	if err := client.Schema().ClassCreator().WithClass(getClass(shards)).Do(ctx); err != nil {
-		return err
+		return getErrorWithDerivedError(err)
 	}
 
 	count := 0
@@ -106,7 +107,7 @@ func buildAndSendBatchWithRetries(ctx context.Context, batcher *batch.ObjectsBat
 
 		res, err := batcher.Do(ctx)
 		if err != nil {
-			lastErr = err
+			lastErr = getErrorWithDerivedError(err)
 			continue
 		} else {
 			for _, c := range res {
@@ -206,4 +207,16 @@ func newClient(origin string) (*weaviate.Client, error) {
 		Scheme: parsed.Scheme,
 	}
 	return weaviate.New(cfg), nil
+}
+
+func getErrorWithDerivedError(err error) error {
+	switch e := err.(type) {
+	case *fault.WeaviateClientError:
+		if e.DerivedFromError != nil {
+			return fmt.Errorf("%s: %w", e.Error(), e.DerivedFromError)
+		}
+		return e
+	default:
+		return e
+	}
 }
