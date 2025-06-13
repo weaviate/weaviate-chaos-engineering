@@ -15,7 +15,7 @@ region="eu-central-1"
 github_run_id=${GITHUB_RUN_ID:-"local"}
 random_suffix=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
 run_id="${github_run_id}-${random_suffix}"
-key_id="benchmark-${run_id}"
+key_id="key-$run_id"
 
 # Create cleanup info directory and save region info
 mkdir -p .cleanup_info
@@ -39,7 +39,8 @@ chmod 600 "${key_id}.pem"
 # Save key_id for cleanup
 echo "$key_id" > .cleanup_info/key_id
 
-instance_id=$(aws ec2 run-instances \ --image-id $ami \ --count 1 \ --instance-type $MACHINE_TYPE \ --key-name $key_id \ --security-group-ids $group_id \ --region $region \ --associate-public-ip-address \ --ebs-optimized \ --block-device-mappings "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 120 } } ]" \ --instance-initiated-shutdown-behavior terminate \ --user-data '#!/bin/bash shutdown -h +240' \ | jq -r '.Instances[0].InstanceId')
+instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600   --ebs-optimized --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 120 } } ]" | jq -r '.Instances[0].InstanceId' )
+
 echo "instance ready: $instance_id"
 # Save instance_id for cleanup
 echo "$instance_id" > .cleanup_info/instance_id
