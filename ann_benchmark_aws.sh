@@ -11,9 +11,15 @@ distance=${DISTANCE:-"l2-squared"}
 
 region="eu-central-1"
 
-# to make sure all aws resources are unique
-run_id=$(uuidgen | tr [:upper:] [:lower:])
+# Generate deterministic run_id using GITHUB_RUN_ID + random string
+github_run_id=${GITHUB_RUN_ID:-"local"}
+random_suffix=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+run_id="${github_run_id}-${random_suffix}"
 key_id="key-$run_id"
+
+# Create cleanup info directory and save region info
+mkdir -p .cleanup_info
+echo "$region" > .cleanup_info/region
 
 vpc_id=$(aws ec2 describe-vpcs --region $region | jq -r '.Vpcs[0].VpcId')
 
@@ -21,65 +27,27 @@ vpc_id=$(aws ec2 describe-vpcs --region $region | jq -r '.Vpcs[0].VpcId')
 
 group_id=$(aws ec2 create-security-group --group-name "benchmark-run-$run_id" --description "created for benchmark run $run_id" --vpc-id $vpc_id --region $region | jq -r '.GroupId'
 )
+# Save group_id for cleanup
+echo "$group_id" > .cleanup_info/group_id
+
 aws ec2 authorize-security-group-ingress --ip-permissions '[ { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "IpRanges": [ { "CidrIp": "0.0.0.0/0" } ] } ]' --group-id $group_id --region $region | jq
 
 ami=$(aws ec2 describe-images --region $region --owner amazon --filter "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu*22.04*${ARCH}*" | jq -r '.Images[0].ImageId')
 
 aws ec2 create-key-pair --key-name "$key_id" --region "$region" | jq -r '.KeyMaterial' > "${key_id}.pem"
 chmod 600 "${key_id}.pem"
+# Save key_id for cleanup
+echo "$key_id" > .cleanup_info/key_id
 
 instance_id=$(aws ec2 run-instances --image-id $ami --count 1 --instance-type $MACHINE_TYPE --key-name $key_id --security-group-ids $group_id  --region $region --associate-public-ip-address --cli-read-timeout 600   --ebs-optimized --block-device-mapping "[ { \"DeviceName\": \"/dev/sda1\", \"Ebs\": { \"VolumeSize\": 120 } } ]" | jq -r '.Instances[0].InstanceId' )
 
 echo "instance ready: $instance_id"
+# Save instance_id for cleanup
+echo "$instance_id" > .cleanup_info/instance_id
 
 function cleanup() {
-  set +e  # Continue cleanup even if individual commands fail
-
-  if [ ! -z "$instance_id" ]; then
-    echo "Terminating instance $instance_id"
-    aws ec2 terminate-instances --instance-ids "$instance_id" --region "$region" | jq || true
-
-    # Busy loop to wait for instance termination with timeout
-    echo "Waiting for instance to terminate..."
-    SECONDS=0
-    timeout=300
-    while [ $SECONDS -lt $timeout ]; do
-      status=$(aws ec2 describe-instances --instance-ids "$instance_id" --region "$region" | jq -r '.Reservations[0].Instances[0].State.Name' || echo "error")
-      if [ "$status" = "terminated" ]; then
-        echo "Instance successfully terminated"
-        break
-      elif [ "$status" = "error" ]; then
-        echo "Instance not found - assuming terminated"
-        break
-      fi
-      echo "Instance status: $status"
-      sleep 5
-      SECONDS=$((SECONDS + 5))
-    done
-
-    if [ $SECONDS -ge $timeout ]; then
-      echo "Error: Timeout waiting for instance termination. Please check AWS instances for manual cleanup."
-      exit 1
-    fi
-  fi
-
-  if [ ! -z "$key_id" ]; then
-    echo "Deleting key pair $key_id"
-    aws ec2 delete-key-pair --key-name "$key_id" --region "$region" | jq || true
-    rm -f "${key_id}.pem" || true
-  fi
-
-  if [ ! -z "$group_id" ]; then
-    echo "Deleting security group $group_id"
-    # Add retry loop for security group deletion since it might fail if instance is still terminating
-    for i in {1..6}; do
-      if aws ec2 delete-security-group --group-id "$group_id" --region "$region" | jq; then
-        break
-      fi
-      echo "Retrying security group deletion in 10 seconds..."
-      sleep 10
-    done
-  fi
+  echo "Running cleanup via cleanup_aws_resources.sh..."
+  bash ./cleanup_aws_resources.sh
 }
 trap cleanup EXIT SIGINT SIGTERM ERR
 

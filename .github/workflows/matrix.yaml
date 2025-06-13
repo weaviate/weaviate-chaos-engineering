@@ -51,6 +51,29 @@ jobs:
       DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
       GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
+  cleanup-cancelled-instances:
+    needs: [run-with-sync-indexing]
+    if: always() && (cancelled() || failure())
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v1'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
+          aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
+          aws-region: eu-central-1
+      - name: Cleanup cancelled GCP instances
+        run: ./cleanup_cancelled_gcp_instances.sh
+      - name: Cleanup cancelled AWS resources
+        run: ./cleanup_cancelled_aws_resources.sh
   send-slack-message-on-failure:
     needs: [weaviate-version-information, run-with-sync-indexing]
     if: failure() && github.event_name == 'schedule'

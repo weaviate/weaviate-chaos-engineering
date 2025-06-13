@@ -9,15 +9,26 @@ MULTIVECTOR_DATASET=${MULTIVECTOR_DATASET:-"false"}
 export CLOUD_PROVIDER="gcp"
 export OS="ubuntu-2204-lts"
 
-instance="benchmark-$(uuidgen | tr [:upper:] [:lower:])"
+# Generate deterministic instance name using GITHUB_RUN_ID + random string
+run_id=${GITHUB_RUN_ID:-"local"}
+random_suffix=$(head /dev/urandom | tr -dc a-z0-9 | head -c 8)
+instance="benchmark-${run_id}-${random_suffix}"
+
+# Create cleanup info directory and save cleanup information
+mkdir -p .cleanup_info
+echo "$ZONE" > .cleanup_info/zone
+echo "$instance" > .cleanup_info/instance
 
 gcloud compute instances create $instance \
   --image-family=$OS --image-project=ubuntu-os-cloud \
   --machine-type=$MACHINE_TYPE --zone $ZONE \
-  --boot-disk-size=$BOOT_DISK_SIZE
+  --boot-disk-size=$BOOT_DISK_SIZE \
+  --max-run-duration=4h \
+  --instance-termination-action=DELETE
 
 function cleanup {
-  gcloud compute instances delete $instance --quiet --zone $ZONE
+  echo "Running cleanup via cleanup_gcp_resources.sh..."
+  bash ./cleanup_gcp_resources.sh
 }
 trap cleanup EXIT
 
