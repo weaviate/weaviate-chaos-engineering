@@ -184,7 +184,7 @@ jobs:
         uses: fabriziocacicia/semver-compare-action@v0.1.0
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.32.0"
+          second: "1.32.0-dev"  # TODO: change to 1.32.0 when the version is released
           operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
