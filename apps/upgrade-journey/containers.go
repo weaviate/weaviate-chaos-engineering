@@ -135,7 +135,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				WithStatusCodeMatcher(func(status int) bool {
 					return status >= 200 && status <= 299
 				}).
-				WithStartupTimeout(30 * time.Second),
+				WithStartupTimeout(c.getStartupTimeout()),
 		},
 		Started: true,
 	})
@@ -158,4 +158,17 @@ func (c *cluster) allNodes() string {
 	}
 
 	return strings.Join(hosts, ",")
+}
+
+func (c *cluster) getStartupTimeout() time.Duration {
+	// Base timeout of 30 seconds for single node
+	baseTimeout := 30 * time.Second
+
+	// For multi-node clusters, increase timeout based on node count
+	// Each additional node adds 30 seconds to account for cluster joining time
+	if c.nodeCount > 1 {
+		return baseTimeout + time.Duration(c.nodeCount)*30*time.Second
+	}
+
+	return baseTimeout
 }
