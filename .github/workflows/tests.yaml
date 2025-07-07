@@ -740,7 +740,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 1
-      MINIMUM_WEAVIATE_VERSION: 1.22.0
+      MINIMUM_WEAVIATE_VERSION: 1.29.0
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling
@@ -767,7 +767,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 3
-      MINIMUM_WEAVIATE_VERSION: 1.22.0
+      MINIMUM_WEAVIATE_VERSION: 1.29.0
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling

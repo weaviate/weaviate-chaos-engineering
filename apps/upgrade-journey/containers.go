@@ -124,6 +124,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"CLUSTER_JOIN":                            fmt.Sprintf("%s:7100", c.hostname(0)),
 				"RAFT_JOIN":                               c.hostname(0),
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
+				"RAFT_BOOTSTRAP_TIMEOUT":                  "300",
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
 			},
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
@@ -167,7 +168,7 @@ func (c *cluster) getStartupTimeout() time.Duration {
 	// For multi-node clusters, increase timeout based on node count
 	// Each additional node adds 30 seconds to account for cluster joining time
 	if c.nodeCount > 1 {
-		return baseTimeout + time.Duration(c.nodeCount)*30*time.Second
+		return baseTimeout + time.Duration(c.nodeCount)*60*time.Second
 	}
 
 	return baseTimeout
