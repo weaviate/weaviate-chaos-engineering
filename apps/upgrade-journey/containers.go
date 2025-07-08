@@ -121,7 +121,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"CLUSTER_GOSSIP_BIND_PORT":                "7100",
 				"CLUSTER_DATA_BIND_PORT":                  "7101",
 				"CLUSTER_HOSTNAME":                        c.hostname(nodeId),
-				"CLUSTER_JOIN":                            fmt.Sprintf("%s:7100", c.hostname(0)),
+				"CLUSTER_JOIN":                            c.allNodes(),
 				"RAFT_JOIN":                               fmt.Sprintf("%s,%s,%s", c.hostname(0), c.hostname(1), c.hostname(2)),
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
 				"DISABLE_TELEMETRY":                       "true",
