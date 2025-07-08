@@ -18,7 +18,7 @@ import (
 	"github.com/weaviate/weaviate-go-client/v5/weaviate"
 )
 
-func buildVersionList(ctx context.Context, min, target string) ([]string, error) {
+func buildVersionList(ctx context.Context, min, target string, isMultiNode bool) ([]string, error) {
 	ghReleases, err := retrieveVersionListFromGH()
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func buildVersionList(ctx context.Context, min, target string) ([]string, error)
 	}
 
 	versions := parseSemverList(ghReleases)
-	versions = sortSemverAndTrimToMinimum(versions, min, max)
+	versions = sortSemverAndTrimToMinimum(versions, min, max, isMultiNode)
 	list := versions.toStringList()
 
 	return append(list, target), nil
@@ -117,13 +117,19 @@ func (self semver) patch() int64 {
 	return self.version.Segments64()[2]
 }
 
-func sortSemverAndTrimToMinimum(versions semverList, min, max string) semverList {
+func sortSemverAndTrimToMinimum(versions semverList, min, max string, isMultiNode bool) semverList {
 	sort.Slice(versions, func(a, b int) bool {
 		return versions[a].version.LessThan(versions[b].version)
 	})
 
 	minV := parseSingleSemverWithoutLeadingV(min)
 	maxV := parseSingleSemverWithoutLeadingV(max)
+
+	if isMultiNode {
+		// limit to only 3 last minor versions
+		newMin := fmt.Sprintf("%v.%v.0", maxV.major(), maxV.minor()-3)
+		minV = parseSingleSemverWithoutLeadingV(newMin)
+	}
 
 	out := make(semverList, len(versions))
 

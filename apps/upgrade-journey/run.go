@@ -47,7 +47,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	versions, err = buildVersionList(ctx, minimumW, targetW)
+	versions, err = buildVersionList(ctx, minimumW, targetW, numNodes > 1)
 	if err != nil {
 		log.Fatal(err)
 	}

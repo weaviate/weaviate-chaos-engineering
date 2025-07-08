@@ -21,11 +21,12 @@ func Test_sortSemverAndTrimToMinimum(t *testing.T) {
 	}
 	versions := parseSemverList(ghReleases)
 	tests := []struct {
-		name     string
-		versions semverList
-		min      string
-		max      string
-		want     []string
+		name        string
+		versions    semverList
+		min         string
+		max         string
+		isMultiNode bool
+		want        []string
 	}{
 		{
 			name:     "from 1.22.7 to 1.22.9",
@@ -44,10 +45,37 @@ func Test_sortSemverAndTrimToMinimum(t *testing.T) {
 				"1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.22.0", "1.22.1", "1.22.2", "1.22.3", "1.22.4", "1.22.5", "1.22.6", "1.22.7", "1.22.8",
 			},
 		},
+		{
+			name:        "only last 3 minor versions",
+			versions:    versions,
+			min:         "1.7.2",
+			max:         "1.23.0",
+			isMultiNode: true,
+			want: []string{
+				"1.20.0", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.20.5", "1.20.6", "1.21.0", "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5",
+				"1.21.6", "1.21.7", "1.21.8", "1.21.9", "1.22.0", "1.22.1", "1.22.2", "1.22.3", "1.22.4", "1.22.5", "1.22.6", "1.22.7", "1.22.8",
+			},
+		},
+		{
+			name:        "all versions",
+			versions:    versions,
+			min:         "1.7.2",
+			max:         "1.23.0",
+			isMultiNode: false,
+			want: []string{
+				"1.7.2", "1.8.0", "1.9.0", "1.9.1", "1.10.0", "1.10.1", "1.11.0", "1.12.0", "1.12.1", "1.12.2", "1.13.0", "1.13.1", "1.13.2",
+				"1.14.0", "1.14.1", "1.15.0", "1.15.1", "1.15.2", "1.15.3", "1.15.4", "1.15.5", "1.16.0", "1.16.1", "1.16.2", "1.16.3",
+				"1.16.4", "1.16.5", "1.16.6", "1.16.7", "1.16.8", "1.16.9", "1.17.0", "1.17.1", "1.17.2", "1.17.3", "1.17.4", "1.17.5",
+				"1.17.6", "1.18.0", "1.18.1", "1.18.2", "1.18.3", "1.18.4", "1.18.5", "1.18.6", "1.19.0", "1.19.1", "1.19.2", "1.19.3", "1.19.4",
+				"1.19.5", "1.19.6", "1.19.7", "1.19.8", "1.19.9", "1.19.10", "1.19.11", "1.19.12", "1.19.13", "1.20.0", "1.20.1", "1.20.2",
+				"1.20.3", "1.20.4", "1.20.5", "1.20.6", "1.21.0", "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.5", "1.21.6", "1.21.7",
+				"1.21.8", "1.21.9", "1.22.0", "1.22.1", "1.22.2", "1.22.3", "1.22.4", "1.22.5", "1.22.6", "1.22.7", "1.22.8",
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := sortSemverAndTrimToMinimum(tt.versions, tt.min, tt.max); !reflect.DeepEqual(got.toStringList(), tt.want) {
+			if got := sortSemverAndTrimToMinimum(tt.versions, tt.min, tt.max, tt.isMultiNode); !reflect.DeepEqual(got.toStringList(), tt.want) {
 				t.Errorf("sortSemverAndTrimToMinimum() = %v, want %v", got.toStringList(), tt.want)
 			}
 		})
