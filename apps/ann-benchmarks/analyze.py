@@ -28,6 +28,7 @@ class TestResults(unittest.TestCase):
 
     def test_recall_before_after(self):
         allowed_delta = 0.02
+
         mean_recall_before = self.df.loc[self.df["after_restart"] == "false", "recall"].mean()
         mean_recall_after = self.df.loc[self.df["after_restart"] == "true", "recall"].mean()
 
