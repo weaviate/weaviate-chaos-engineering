@@ -1883,7 +1883,7 @@ jobs:
       # Run it before installing dependencies.
       - name: Get Previous Minor Version
         id: get_previous
-        uses: weaviate/github-common-actions/.github/actions/get-previous-version@djanicek/auth-get-version
+        uses: weaviate/github-common-actions/.github/actions/get-previous-version@main
         with:
           weaviate_version: ${{ needs.real-version-in-tag.outputs.real_version }}
           jump_type: 'minor'
