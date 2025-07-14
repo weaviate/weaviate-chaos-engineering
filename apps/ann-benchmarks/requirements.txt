@@ -1,6 +1,6 @@
-weaviate-client@git+https://github.com/weaviate/weaviate-python-client.git@dev/1.31
+weaviate-client@git+https://github.com/weaviate/weaviate-python-client.git@dev/1.32
 loguru==0.5.3
 seaborn==0.12.2
 h5py==3.13.0
 pandas==2.2.3
-torch==2.6.0
+torch==2.6
