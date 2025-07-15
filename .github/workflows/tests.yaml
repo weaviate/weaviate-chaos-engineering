@@ -1888,6 +1888,7 @@ jobs:
           weaviate_version: ${{ needs.real-version-in-tag.outputs.real_version }}
           jump_type: 'minor'
           jumps: '1'
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set WEAVIATE_INITIAL_VERSION environment variable
         run: |
           echo "WEAVIATE_INITIAL_VERSION=${{ steps.get_previous.outputs.previous_version }}" >> $GITHUB_ENV
