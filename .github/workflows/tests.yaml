@@ -889,6 +889,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.22.0
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling
@@ -916,6 +917,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 3
       MINIMUM_WEAVIATE_VERSION: 1.22.0
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       # - name: Polar Signals Continuous Profiling
@@ -2198,6 +2200,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       MINIMUM_WEAVIATE_VERSION: 1.25.0
       NUM_NODES: 1
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
@@ -2221,6 +2224,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       MINIMUM_WEAVIATE_VERSION: 1.25.0
       NUM_NODES: 3
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v3
       - name: Set up Go
