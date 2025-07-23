@@ -1893,7 +1893,7 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set WEAVIATE_INITIAL_VERSION environment variable
         run: |
-          echo "WEAVIATE_INITIAL_VERSION=${{ steps.get_previous.outputs.previous_version }}" >> $GITHUB_ENV
+          echo "WEAVIATE_INITIAL_VERSION=1.30.12-198d91c" >> $GITHUB_ENV
       - name: Install python dependencies
         run: |
           cd apps/rbac-upgrade-journey
