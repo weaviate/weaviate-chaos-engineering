@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"time"
@@ -35,12 +36,34 @@ func retrieveVersionListFromGH() ([]string, error) {
 	// ignore pagination, for now we assume that the first page contains enough
 	// versions. This might require changing in the future and we might have to
 	// page through the API to get all desired version
-	res, err := http.Get("https://api.github.com/repos/weaviate/weaviate/releases?per_page=100")
+
+	// Create HTTP client with authentication if token is available
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://api.github.com/repos/weaviate/weaviate/releases?per_page=100", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add GitHub token if available
+	if token := getGitHubToken(); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	// Add User-Agent header to avoid rate limiting
+	req.Header.Set("User-Agent", "weaviate-chaos-engineering")
+
+	res, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 
 	defer res.Body.Close()
+
+	// Check if we got an error response
+	if res.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(res.Body)
+		return nil, fmt.Errorf("GitHub API request failed with status %d: %s", res.StatusCode, string(body))
+	}
 
 	type githubRelease struct {
 		TagName string `json:"tag_name"`
@@ -62,6 +85,14 @@ func retrieveVersionListFromGH() ([]string, error) {
 	}
 
 	return out, nil
+}
+
+func getGitHubToken() string {
+	// Check for GitHub token in environment variables
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		return token
+	}
+	return ""
 }
 
 func getHighestLast2MinorVersions(versions []string, maxVersion string) ([]string, error) {
