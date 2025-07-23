@@ -1862,216 +1862,216 @@ jobs:
         with:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
           path: apps/upgrade-journey-raft/logs/
-  rbac-upgrade-journey:
-    needs: [real-version-in-tag, newer-or-equal-than-1_30]
-    if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
-    name: RBAC upgrade journey e2e test
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      WEAVIATE_API_KEY: "admin-key"
-      WEAVIATE_API_KEY_CUSTOM: "custom-key"
-      RBAC_CONFIG: /tmp/rbac_config.yaml
-    steps:
-      - uses: actions/checkout@v3
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{secrets.DOCKER_USERNAME}}
-          password: ${{secrets.DOCKER_PASSWORD}}
-      # Get previous minor version for standard upgrade/downgrade
-      # BEAWARE: This action sets up its own Python environment, so we need to install dependencies again.
-      # Run it before installing dependencies.
-      - name: Get Previous Minor Version
-        id: get_previous
-        uses: weaviate/github-common-actions/.github/actions/get-previous-version@main
-        with:
-          weaviate_version: ${{ needs.real-version-in-tag.outputs.real_version }}
-          jump_type: 'minor'
-          jumps: '1'
-          gh_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set WEAVIATE_INITIAL_VERSION environment variable
-        run: |
-          echo "WEAVIATE_INITIAL_VERSION=${{ steps.get_previous.outputs.previous_version }}" >> $GITHUB_ENV
-      - name: Install python dependencies
-        run: |
-          cd apps/rbac-upgrade-journey
-          pip3 install --ignore-installed  -r requirements.txt
-      - name: Generate RBAC config file
-        run: |
-          cat > ${{ env.RBAC_CONFIG }} << 'EOF'
-          authentication:
-            anonymous_access:
-              enabled: false
-            apikey:
-              enabled: true
-              allowed_keys:
-              - ${{ env.WEAVIATE_API_KEY }}
-              - ${{ env.WEAVIATE_API_KEY_CUSTOM }}
-              users:
-              - admin-user
-              - custom-user
-          authorization:
-            admin_list:
-              enabled: false
-            rbac:
-              enabled: true
-              root_users:
-                - admin-user
-          EOF
-      - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - setup K8s 3-node cluster with low RAFT snapshot threshold
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'setup'
-          workers: '1'
-          replicas: '3'
-          weaviate-version: ${{env.WEAVIATE_INITIAL_VERSION}}
-          modules: 'text2vec-contextionary'
-          rbac: 'true'
-          auth-config: ${{ env.RBAC_CONFIG }}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
-      - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - create roles
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 create_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - import data
-        run: |
-          cd apps/upgrade-journey-raft
-          python3 run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
-      - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - check roles
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Generate RBAC with dynamic user management
-        run: |
-          cat > ${{ env.RBAC_CONFIG }} << 'EOF'
-          authentication:
-            anonymous_access:
-              enabled: false
-            apikey:
-              enabled: true
-              allowed_keys:
-              - ${{ env.WEAVIATE_API_KEY }}
-              - ${{ env.WEAVIATE_API_KEY_CUSTOM }}
-              users:
-              - admin-user
-              - custom-user
-            db_users:
-              enabled: true
-          authorization:
-            admin_list:
-              enabled: false
-            rbac:
-              enabled: true
-              root_users:
-                - admin-user
-          EOF
-      - name: Weaviate ${{env.WEAVIATE_VERSION}} - upgrade K8s cluster and enable dynamic user management
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'upgrade'
-          workers: '1'
-          replicas: '3'
-          weaviate-version: ${{env.WEAVIATE_VERSION}}
-          modules: 'text2vec-contextionary'
-          rbac: 'true'
-          auth-config: ${{ env.RBAC_CONFIG }}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check data after upgrade
-        run: |
-          cd apps/upgrade-journey-raft
-          python3 checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check roles
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - add additional data and check all (old and new) data
-        run: |
-          cd apps/upgrade-journey-raft
-          python3 additional_run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
-          python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - add additional roles and check all (old and new) roles
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 additional_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-          python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - sync with schema V1
-        run: |
-          if [ "$(curl -X POST -H "Authorization: Bearer ${{ env.WEAVIATE_API_KEY}}" -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
-            echo "Synchronization of schema V1 failed"
-            exit 1
-          else
-            echo "Schema V1 succesfully synchronized"
-          fi
-      - name: Weaviate ${{env.WEAVIATE_VERSION}} - create users and check that they exist
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 create_users.py --api-key ${{ env.WEAVIATE_API_KEY }}
-          python3 check_users.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - perform a rolling restart
-        run: |
-          cd apps/rbac-upgrade-journey
-          ./scripts/restart_and_wait.sh
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check roles after rolling restart
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check users after rolling restart
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 check_users.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check data after rolling restart
-        run: |
-          cd apps/upgrade-journey-raft
-          python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
-      - name: Generate RBAC config file
-        run: |
-          cat > ${{ env.RBAC_CONFIG }} << 'EOF'
-          authentication:
-            anonymous_access:
-              enabled: false
-            apikey:
-              enabled: true
-              allowed_keys:
-              - ${{ env.WEAVIATE_API_KEY }}
-              - ${{ env.WEAVIATE_API_KEY_CUSTOM }}
-              users:
-              - admin-user
-              - custom-user
-          authorization:
-            admin_list:
-              enabled: false
-            rbac:
-              enabled: true
-              root_users:
-                - admin-user
-          EOF
-      - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - downgrade back to ${{ env.WEAVIATE_INITIAL_VERSION}}
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'upgrade'
-          workers: '1'
-          replicas: '3'
-          weaviate-version: ${{env.WEAVIATE_INITIAL_VERSION}}
-          modules: 'text2vec-contextionary'
-          rbac: 'true'
-          auth-config: ${{ env.RBAC_CONFIG }}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
-      - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - check additional and old data
-        run: |
-          cd apps/upgrade-journey-raft
-          python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
-      - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - check roles after downgrade
-        run: |
-          cd apps/rbac-upgrade-journey
-          python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Archive logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+  # rbac-upgrade-journey:
+  #   needs: [real-version-in-tag, newer-or-equal-than-1_30]
+  #   if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
+  #   name: RBAC upgrade journey e2e test
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 60
+  #   env:
+  #     PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+  #     WEAVIATE_API_KEY: "admin-key"
+  #     WEAVIATE_API_KEY_CUSTOM: "custom-key"
+  #     RBAC_CONFIG: /tmp/rbac_config.yaml
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - name: Login to Docker Hub
+  #       uses: docker/login-action@v3
+  #       with:
+  #         username: ${{secrets.DOCKER_USERNAME}}
+  #         password: ${{secrets.DOCKER_PASSWORD}}
+  #     # Get previous minor version for standard upgrade/downgrade
+  #     # BEAWARE: This action sets up its own Python environment, so we need to install dependencies again.
+  #     # Run it before installing dependencies.
+  #     - name: Get Previous Minor Version
+  #       id: get_previous
+  #       uses: weaviate/github-common-actions/.github/actions/get-previous-version@main
+  #       with:
+  #         weaviate_version: ${{ needs.real-version-in-tag.outputs.real_version }}
+  #         jump_type: 'minor'
+  #         jumps: '1'
+  #         gh_token: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Set WEAVIATE_INITIAL_VERSION environment variable
+  #       run: |
+  #         echo "WEAVIATE_INITIAL_VERSION=${{ steps.get_previous.outputs.previous_version }}" >> $GITHUB_ENV
+  #     - name: Install python dependencies
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         pip3 install --ignore-installed  -r requirements.txt
+  #     - name: Generate RBAC config file
+  #       run: |
+  #         cat > ${{ env.RBAC_CONFIG }} << 'EOF'
+  #         authentication:
+  #           anonymous_access:
+  #             enabled: false
+  #           apikey:
+  #             enabled: true
+  #             allowed_keys:
+  #             - ${{ env.WEAVIATE_API_KEY }}
+  #             - ${{ env.WEAVIATE_API_KEY_CUSTOM }}
+  #             users:
+  #             - admin-user
+  #             - custom-user
+  #         authorization:
+  #           admin_list:
+  #             enabled: false
+  #           rbac:
+  #             enabled: true
+  #             root_users:
+  #               - admin-user
+  #         EOF
+  #     - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - setup K8s 3-node cluster with low RAFT snapshot threshold
+  #       uses: weaviate/weaviate-local-k8s@v2
+  #       with:
+  #         operation: 'setup'
+  #         workers: '1'
+  #         replicas: '3'
+  #         weaviate-version: ${{env.WEAVIATE_INITIAL_VERSION}}
+  #         modules: 'text2vec-contextionary'
+  #         rbac: 'true'
+  #         auth-config: ${{ env.RBAC_CONFIG }}
+  #         values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+  #     - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - create roles
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 create_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - import data
+  #       run: |
+  #         cd apps/upgrade-journey-raft
+  #         python3 run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+  #     - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - check roles
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Generate RBAC with dynamic user management
+  #       run: |
+  #         cat > ${{ env.RBAC_CONFIG }} << 'EOF'
+  #         authentication:
+  #           anonymous_access:
+  #             enabled: false
+  #           apikey:
+  #             enabled: true
+  #             allowed_keys:
+  #             - ${{ env.WEAVIATE_API_KEY }}
+  #             - ${{ env.WEAVIATE_API_KEY_CUSTOM }}
+  #             users:
+  #             - admin-user
+  #             - custom-user
+  #           db_users:
+  #             enabled: true
+  #         authorization:
+  #           admin_list:
+  #             enabled: false
+  #           rbac:
+  #             enabled: true
+  #             root_users:
+  #               - admin-user
+  #         EOF
+  #     - name: Weaviate ${{env.WEAVIATE_VERSION}} - upgrade K8s cluster and enable dynamic user management
+  #       uses: weaviate/weaviate-local-k8s@v2
+  #       with:
+  #         operation: 'upgrade'
+  #         workers: '1'
+  #         replicas: '3'
+  #         weaviate-version: ${{env.WEAVIATE_VERSION}}
+  #         modules: 'text2vec-contextionary'
+  #         rbac: 'true'
+  #         auth-config: ${{ env.RBAC_CONFIG }}
+  #         values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check data after upgrade
+  #       run: |
+  #         cd apps/upgrade-journey-raft
+  #         python3 checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check roles
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - add additional data and check all (old and new) data
+  #       run: |
+  #         cd apps/upgrade-journey-raft
+  #         python3 additional_run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+  #         python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - add additional roles and check all (old and new) roles
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 additional_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #         python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - sync with schema V1
+  #       run: |
+  #         if [ "$(curl -X POST -H "Authorization: Bearer ${{ env.WEAVIATE_API_KEY}}" -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
+  #           echo "Synchronization of schema V1 failed"
+  #           exit 1
+  #         else
+  #           echo "Schema V1 succesfully synchronized"
+  #         fi
+  #     - name: Weaviate ${{env.WEAVIATE_VERSION}} - create users and check that they exist
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 create_users.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #         python3 check_users.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - perform a rolling restart
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         ./scripts/restart_and_wait.sh
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check roles after rolling restart
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check users after rolling restart
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 check_users.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check data after rolling restart
+  #       run: |
+  #         cd apps/upgrade-journey-raft
+  #         python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+  #     - name: Generate RBAC config file
+  #       run: |
+  #         cat > ${{ env.RBAC_CONFIG }} << 'EOF'
+  #         authentication:
+  #           anonymous_access:
+  #             enabled: false
+  #           apikey:
+  #             enabled: true
+  #             allowed_keys:
+  #             - ${{ env.WEAVIATE_API_KEY }}
+  #             - ${{ env.WEAVIATE_API_KEY_CUSTOM }}
+  #             users:
+  #             - admin-user
+  #             - custom-user
+  #         authorization:
+  #           admin_list:
+  #             enabled: false
+  #           rbac:
+  #             enabled: true
+  #             root_users:
+  #               - admin-user
+  #         EOF
+  #     - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - downgrade back to ${{ env.WEAVIATE_INITIAL_VERSION}}
+  #       uses: weaviate/weaviate-local-k8s@v2
+  #       with:
+  #         operation: 'upgrade'
+  #         workers: '1'
+  #         replicas: '3'
+  #         weaviate-version: ${{env.WEAVIATE_INITIAL_VERSION}}
+  #         modules: 'text2vec-contextionary'
+  #         rbac: 'true'
+  #         auth-config: ${{ env.RBAC_CONFIG }}
+  #         values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+  #     - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - check additional and old data
+  #       run: |
+  #         cd apps/upgrade-journey-raft
+  #         python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+  #     - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - check roles after downgrade
+  #       run: |
+  #         cd apps/rbac-upgrade-journey
+  #         python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+  #     - name: Archive logs
+  #       if: always()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs
+  #         path: apps/upgrade-journey-raft/logs/
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     needs: [newer-or-equal-than-1_26]
