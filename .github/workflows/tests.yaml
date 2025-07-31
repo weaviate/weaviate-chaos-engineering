@@ -469,6 +469,13 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v1'
       - name: Run chaos test
         if: always()
+        env:
+          RQ_BITS: 8
+        run: ./ann_benchmark_quantization_aws.sh
+      - name: Run chaos test with RQ with one bit
+        if: always()
+        env:
+          RQ_BITS: 1
         run: ./ann_benchmark_quantization_aws.sh
       - name: Cleanup AWS resources
         if: always()
