@@ -12,6 +12,11 @@ on:
         required: false
         default: ''
         type: string
+      issue_number:
+        description: "Optional: The issue number to update in the QA project board"
+        type: string
+        default: ''
+        required: false
   schedule:
     - cron: '0 0 */2 * *'
 
@@ -92,3 +97,49 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  notify-weaviate-qa:
+    needs: [run-with-sync-indexing]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.QA_APP_ID }}
+          private_key: ${{ secrets.QA_APP_PRIVATE_KEY }}
+  
+      - name: Determine test result
+        if: inputs.issue_number != ''
+        id: test_result
+        run: |
+          if [ "${{ needs.run-with-sync-indexing.result }}" == "success" ]; then
+            echo "status=Passed" >> $GITHUB_OUTPUT
+          else
+            echo "status=Failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Print issue number
+        if: inputs.issue_number != ''
+        run: |
+          echo "Issue number: ${{ inputs.issue_number }}"
+
+      - name: Notify weaviate-qa repository
+        if: inputs.issue_number != ''
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ steps.generate_token.outputs.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/weaviate/weaviate-qa/actions/workflows/update_project.yaml/dispatches \
+            -d '{
+              "ref": "ci/update_issue",
+              "inputs": {
+                "issue_number": "${{ github.event.inputs.issue_number }}",
+                "target": "Chaos",
+                "status": "${{ steps.test_result.outputs.status }}",
+                "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "url_field_name": "Chaos Job"
+              }
+            }'
+
+            
