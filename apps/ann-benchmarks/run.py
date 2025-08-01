@@ -140,6 +140,7 @@ for shards in values["shards"]:
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
             multivector = values["multivector"]
             multivector_implementation = values["multivector_implementation"]
+            rq_bits = values["rq_bits"]
             before_import = time.time()
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
@@ -156,7 +157,7 @@ for shards in values["shards"]:
                 override,
                 multivector,
                 multivector_implementation,
-                values["rq_bits"],
+                rq_bits,
             )
             elapsed = time.time() - before_import
             logger.info(

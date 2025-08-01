@@ -174,6 +174,7 @@ def load_records(
                 ]
             )
         elif quantization == "rq":
+            logger.info(f"Updating rq bits to {rq_bits}")
             if multivector is False:
                 collection.config.update(
                     vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
