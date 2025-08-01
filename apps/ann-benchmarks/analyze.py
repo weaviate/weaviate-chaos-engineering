@@ -35,7 +35,7 @@ class TestResults(unittest.TestCase):
         delta = abs(mean_recall_before - mean_recall_after)
         self.assertTrue(
             delta < allowed_delta,
-            f"allowed delta for recall before and after restart is {allowed_delta}, got before={mean_recall_before}, after={mean_recall_after}",
+            f"delta {delta} for recall before and after restart beyond allowed {allowed_delta}, got before={mean_recall_before}, after={mean_recall_after}",
         )
 
     def test_qps_before_after(self):
