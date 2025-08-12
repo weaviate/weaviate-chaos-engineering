@@ -162,6 +162,7 @@ func getClass(shards int) *models.Class {
 		},
 		ReplicationConfig: &models.ReplicationConfig{
 			AsyncEnabled: true,
+			Factor:       3,
 		},
 		Properties: []*models.Property{
 			{

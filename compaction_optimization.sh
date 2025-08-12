@@ -6,6 +6,7 @@ source common.sh
 
 SIZE=10000
 BATCH_SIZE=1024
+DATA_FOLDER="./apps/weaviate/data-node-3/" # "./apps/weaviate/data/"
 
 # This test is to check if the compaction optimization is working as expected,
 # by forcing the maximum segment size to be a low number, 5MB, we ensure that
@@ -18,7 +19,7 @@ echo "Building all required containers"
 ( cd apps/importer-no-vector-index/ && docker build -t importer-no-vector . )
 ( cd apps/analyze-segments/ && docker build -t analyzer . )
 
-export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
+export COMPOSE="apps/weaviate/docker-compose-replication.yml"
 
 echo "Starting Weaviate..."
 PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS=1 PERSISTENCE_LSM_MAX_SEGMENT_SIZE="5MB" docker compose -f $COMPOSE up -d
@@ -45,16 +46,16 @@ fi
 
 class_name="novector"
 echo "Run analize segments script"
-dir=$(ls --color=never ./apps/weaviate/data/${class_name})
+dir=$(ls --color=never ${DATA_FOLDER}${class_name})
 num_directories=$(echo "$dir" | wc -l)
 if [ "$num_directories" -gt 1 ]; then
-  echo "Error: Multiple directories found in ./apps/weaviate/data/${class_name}"
+  echo "Error: Multiple directories found in ${DATA_FOLDER}${class_name}"
   echo "$dir"
   exit 1
 fi
 
 echo "Segments analysis with max LSM segment size of 5MB:"
-output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
+output=$(docker run --network host -v ${DATA_FOLDER}${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
 echo "$output"
 
 # Maximum segment size
@@ -73,7 +74,7 @@ start_time=$(date +%s)
 prev_count=0
 same_count=0
 while true; do
-  output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
+  output=$(docker run --network host -v ${DATA_FOLDER}${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
   
   # Extract levels from the output
   levels=$(awk 'NR>3 {print $3}' <<< "$output")
@@ -110,7 +111,7 @@ echo ""
 
 # Once all segments are in compacted check if the sum of any pair of segments is greater than ${new_size}MB
 # for consecutive pairs of segments with the same level.
-output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
+output=$(docker run --network host -v ${DATA_FOLDER}${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
 
 # Process the output, extracting segment sizes and levels
 segments=$(awk 'NR>3 {print $2, $3}' <<< "$output")
