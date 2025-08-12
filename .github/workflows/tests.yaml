@@ -184,8 +184,22 @@ jobs:
         uses: fabriziocacicia/semver-compare-action@v0.1.0
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.32.0-dev"  # TODO: change to 1.32.0 when the version is released
+          second: "1.32.0"
           operator: ">="
+  newer-or-equal-than-1_33:
+    name: "Check if the version is newer than 1.33"
+    needs: real-version-in-tag
+    runs-on: ubuntu-latest
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.1.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.33.0-dev"  # TODO: change to 1.33.0 when the version is released
+          operator: ">="          
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -473,7 +487,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_aws.sh
       - name: Run chaos test with RQ with one bit
-        if: always()
+        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
         run: ./ann_benchmark_quantization_aws.sh
@@ -597,7 +611,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_gcp.sh
       - name: Run chaos test with RQ with one bit
-        if: always()
+        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
         run: ./ann_benchmark_quantization_gcp.sh
@@ -766,7 +780,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_gcp.sh
       - name: Run chaos test with RQ with one bit
-        if: always()
+        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
         run: ./ann_benchmark_quantization_gcp.sh
@@ -871,7 +885,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_gcp.sh
       - name: Run chaos test with RQ with one bit
-        if: always()
+        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           QUANTIZATION: rq
           RQ_BITS: 1
