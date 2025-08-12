@@ -11,10 +11,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/semi-technologies/weaviate-go-client/v3/weaviate"
-	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/batch"
-	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/fault"
-	"github.com/semi-technologies/weaviate/entities/models"
+
+	"github.com/weaviate/weaviate-go-client/v5/weaviate"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate/batch"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate/fault"
+	"github.com/weaviate/weaviate/entities/models"
 )
 
 func main() {
@@ -158,6 +159,9 @@ func getClass(shards int) *models.Class {
 		},
 		ShardingConfig: map[string]interface{}{
 			"desiredCount": shards,
+		},
+		ReplicationConfig: &models.ReplicationConfig{
+			AsyncEnabled: true,
 		},
 		Properties: []*models.Property{
 			{
