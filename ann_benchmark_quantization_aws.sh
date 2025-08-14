@@ -9,7 +9,8 @@ ARCH=amd64
 dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
 RQ_BITS=${RQ_BITS:-"8"}
-
+MULTIVECTOR_DATASET=${MULTIVECTOR_DATASET:-"false"}
+MULTIVECTOR_IMPLEMENTATION=${MULTIVECTOR_IMPLEMENTATION:-"regular"}
 region="eu-central-1"
 
 # Generate deterministic run_id using GITHUB_RUN_ID + random string
@@ -100,7 +101,7 @@ ssh -i "${key_id}.pem" $ssh_addr -- 'sudo sudo groupadd docker; sudo usermod -aG
 ssh -i "${key_id}.pem" $ssh_addr -- "mkdir -p ~/apps/"
 scp -i "${key_id}.pem" -r apps/ann-benchmarks "$ssh_addr:~/apps/"
 scp -i "${key_id}.pem" -r apps/weaviate-no-restart-on-crash/ "$ssh_addr:~/apps/"
-scp -i "${key_id}.pem" -r ann_benchmark_quantization.sh "$ssh_addr:~"
-ssh -i "${key_id}.pem" $ssh_addr -- "DATASET=$dataset DISTANCE=$distance REQUIRED_RECALL=$REQUIRED_RECALL QUANTIZATION=$QUANTIZATION WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS RQ_BITS=$RQ_BITS bash ann_benchmark_quantization.sh"
+scp -i "${key_id}.pem" -r ann_benchmark.sh "$ssh_addr:~"
+ssh -i "${key_id}.pem" $ssh_addr -- "MULTIVECTOR_IMPLEMENTATION=$MULTIVECTOR_IMPLEMENTATION MULTIVECTOR_DATASET=$MULTIVECTOR_DATASET DATASET=$dataset DISTANCE=$distance REQUIRED_RECALL=$REQUIRED_RECALL QUANTIZATION=$QUANTIZATION RQ_BITS=$RQ_BITS WEAVIATE_VERSION=$WEAVIATE_VERSION MACHINE_TYPE=$MACHINE_TYPE CLOUD_PROVIDER=$CLOUD_PROVIDER OS=$OS bash ann_benchmark.sh"
 mkdir -p results
 scp -i "${key_id}.pem" -r "$ssh_addr:~/results/*.json" results/

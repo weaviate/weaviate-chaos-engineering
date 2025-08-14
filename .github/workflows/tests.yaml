@@ -675,7 +675,7 @@ jobs:
     env:
       DATASET: lotte-recreation-reduced-vl-50000
       DISTANCE: dot
-      REQUIRED_RECALL: 0.990
+      REQUIRED_RECALL: 0.99
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       BOOT_DISK_SIZE: 40GB
       MULTIVECTOR_DATASET: true
@@ -830,6 +830,7 @@ jobs:
         if: always()
         env:
           QUANTIZATION: pq
+          REQUIRED_RECALL: 0.60
         run: ./ann_benchmark_quantization_gcp.sh
 
       - name: Run chaos test with SQ
