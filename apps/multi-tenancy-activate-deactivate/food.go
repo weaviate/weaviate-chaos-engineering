@@ -13,6 +13,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -229,6 +230,11 @@ func createData(client *weaviate.Client, objects []*models.Object) {
 	requireNotNil(resp)
 	requireTrue(len(resp) == len(objects), "expected len(resp) == len(objects)")
 	for i := 0; i < len(resp); i++ {
+		if resp[i].Result.Errors != nil {
+			for _, err := range resp[i].Result.Errors.Error {
+				fmt.Println(err.Message)
+			}
+		}
 		s := resp[i].Result.Status
 		requireNotNil(s)
 		requireTrue(*s == "SUCCESS", "*s == SUCCESS")
