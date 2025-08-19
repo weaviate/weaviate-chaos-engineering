@@ -97,7 +97,7 @@ jobs:
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-  notify-weaviate-qa:
+  notify-results-to-weaviate-qa:
     needs: [run-with-sync-indexing]
     runs-on: ubuntu-latest
     if: always()
@@ -119,11 +119,6 @@ jobs:
             echo "status=Failed" >> $GITHUB_OUTPUT
           fi
 
-      - name: Print issue number
-        if: inputs.issue_number != ''
-        run: |
-          echo "Issue number: ${{ inputs.issue_number }}"
-
       - name: Notify weaviate-qa repository
         if: inputs.issue_number != ''
         run: |
@@ -142,4 +137,32 @@ jobs:
               }
             }'
 
-            
+  notify-in-progress-to-weaviate-qa:
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Generate GitHub App Token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{ secrets.QA_APP_ID }}
+          private_key: ${{ secrets.QA_APP_PRIVATE_KEY }}
+  
+      - name: Notify weaviate-qa repository
+        if: inputs.issue_number != ''
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ steps.generate_token.outputs.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/weaviate/weaviate-qa/actions/workflows/update_project.yaml/dispatches \
+            -d '{
+              "ref": "main",
+              "inputs": {
+                "issue_number": "${{ github.event.inputs.issue_number }}",
+                "target": "Chaos",
+                "status": "In progress",
+                "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                "url_field_name": "Chaos Job"
+              }
+            }'
+          
