@@ -86,6 +86,7 @@ def load_records(
     override,
     multivector=False,
     multivector_implementation="regular",
+    rq_bits=8,
 ):
     collection = client.collections.get(class_name)
     i = 0
@@ -173,10 +174,11 @@ def load_records(
                 ]
             )
         elif quantization == "rq":
+            logger.info(f"Updating rq bits to {rq_bits}")
             if multivector is False:
                 collection.config.update(
                     vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.rq(),
+                        quantizer=wvc.Reconfigure.VectorIndex.Quantizer.rq(bits=rq_bits),
                     )
                 )
             else:
@@ -185,7 +187,7 @@ def load_records(
                         wvc.Reconfigure.NamedVectors.update(
                             name="multivector",
                             vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(
-                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.rq(),
+                                quantizer=wvc.Reconfigure.VectorIndex.Quantizer.rq(bits=rq_bits),
                             ),
                         )
                     ]

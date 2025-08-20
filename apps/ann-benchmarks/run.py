@@ -32,6 +32,7 @@ values = {
     "dim_to_segment_ratio": 4,
     "override": False,
     "multivector": False,
+    "rq_bits": 8,
 }
 
 pathlib.Path("./results").mkdir(parents=True, exist_ok=True)
@@ -52,6 +53,7 @@ parser.add_argument("-o", "--override", action=argparse.BooleanOptionalAction)
 parser.add_argument("-s", "--dim-to-segment-ratio")
 parser.add_argument("-mv", "--multivector", action=argparse.BooleanOptionalAction, default=False)
 parser.add_argument("-mi", "--multivector-implementation", default="regular")
+parser.add_argument("-rq", "--rq-bits", default=8)
 args = parser.parse_args()
 
 
@@ -80,6 +82,7 @@ if (args.labels) != None:
 values["quantization"] = args.quantization or False
 values["override"] = args.override or False
 values["query_only"] = args.query_only
+values["rq_bits"] = int(args.rq_bits)
 if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
     values["labels"]["dim_to_segment_ratio"] = values["dim_to_segment_ratio"]
@@ -137,6 +140,7 @@ for shards in values["shards"]:
             dim_to_seg_ratio = values["dim_to_segment_ratio"]
             multivector = values["multivector"]
             multivector_implementation = values["multivector_implementation"]
+            rq_bits = values["rq_bits"]
             before_import = time.time()
             logger.info(
                 f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
@@ -153,6 +157,7 @@ for shards in values["shards"]:
                 override,
                 multivector,
                 multivector_implementation,
+                rq_bits,
             )
             elapsed = time.time() - before_import
             logger.info(

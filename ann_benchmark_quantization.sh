@@ -6,7 +6,7 @@ dataset=${DATASET:-"sift-128-euclidean"}
 distance=${DISTANCE:-"l2-squared"}
 quantization=${QUANTIZATION:-"none"}
 multivector=${MULTIVECTOR_DATASET:-"false"}
-
+rq_bits=${RQ_BITS:-"8"}
 
 function wait_weaviate() {
   echo "Wait for Weaviate to be ready"
@@ -57,8 +57,8 @@ if [ "$multivector" = true ]; then
 else
   multivector_flag=""
 fi
-
-docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py $multivector_flag -v /datasets/${dataset}.hdf5 -d $distance -m 16 --quantization $quantization --dim-to-segment-ratio 4 --labels "quantization=$quantization,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+echo "rq_bits: $rq_bits"
+docker run --network host -t -v "$PWD/datasets:/datasets" -v "$PWD/results:/workdir/results" ann_benchmarks python3 run.py $multivector_flag -v /datasets/${dataset}.hdf5 -d $distance -m 16 --quantization $quantization --dim-to-segment-ratio 4 --rq-bits $rq_bits --labels "quantization=$quantization,after_restart=false,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
 
 echo "Initial run complete, now restart Weaviate"
 
