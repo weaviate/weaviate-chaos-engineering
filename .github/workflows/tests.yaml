@@ -490,6 +490,7 @@ jobs:
         if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
+          REQUIRED_RECALL: 0.55
         run: ./ann_benchmark_quantization_aws.sh
       - name: Cleanup AWS resources
         if: always()
