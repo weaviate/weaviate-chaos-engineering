@@ -487,7 +487,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_aws.sh
       - name: Run chaos test with RQ with one bit
-        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
+        #if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
         run: ./ann_benchmark_quantization_aws.sh
@@ -611,7 +611,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_gcp.sh
       - name: Run chaos test with RQ with one bit
-        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
+        #if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
         run: ./ann_benchmark_quantization_gcp.sh
@@ -780,7 +780,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_gcp.sh
       - name: Run chaos test with RQ with one bit
-        if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
+        #if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
         run: ./ann_benchmark_quantization_gcp.sh
@@ -885,7 +885,7 @@ jobs:
           RQ_BITS: 8
         run: ./ann_benchmark_quantization_gcp.sh
       - name: Run chaos test with RQ with one bit
-        #if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
+        ##if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           QUANTIZATION: rq
           RQ_BITS: 1
