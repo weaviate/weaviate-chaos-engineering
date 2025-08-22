@@ -981,7 +981,7 @@ jobs:
   replicated-imports-with-choas-killing:
     name: Replicated imports with chaos killing
     if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-choas-killing' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1004,7 +1004,7 @@ jobs:
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
     if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-backup' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1025,7 +1025,7 @@ jobs:
   replication-tunable-consistency:
     name: Replication tunable consistency
     if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1046,7 +1046,7 @@ jobs:
   counting-while-compacting:
     name: Counting while compacting
     if: ${{ github.event.inputs.test_to_run == 'counting-while-compacting' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1088,7 +1088,7 @@ jobs:
   import-with-kills:
     name: Import during constant kills/crashes
     if: ${{ github.event.inputs.test_to_run == 'import-with-kills' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1109,7 +1109,7 @@ jobs:
   heavy-imports-crashing:
     name: Heavy object store imports while crashing
     if: ${{ github.event.inputs.test_to_run == 'heavy-imports-crashing' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1150,7 +1150,7 @@ jobs:
         run: ./segfault_filtered_vector_search.sh
   backup-restore-crud:
     name: Backup & Restore CRUD
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'backup-restore-crud' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1171,7 +1171,7 @@ jobs:
         run: ./backup_and_restore_crud.sh
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'backup-restore-crud-multi-node' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1192,7 +1192,7 @@ jobs:
         run: ./backup_and_restore_multi_node_crud.sh
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     if: ${{ github.event.inputs.test_to_run == 'backup-restore-version-compat' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1276,7 +1276,7 @@ jobs:
         run: ./consecutive_create_and_update_operations.sh
   batch-insert-mismatch:
     name: Batch insert mismatch
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'batch-insert-mismatch' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1297,7 +1297,7 @@ jobs:
         run: ./consecutive_create_and_update_operations.sh
   rest-patch-restart:
     name: REST PATCH requests stop working after restart
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'rest-patch-restart' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1318,7 +1318,7 @@ jobs:
         run: ./rest_patch_stops_working_after_restart.sh
   delete-recreate-updates:
     name: Delete and recreate class with frequent updates
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'delete-recreate-updates' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1357,7 +1357,7 @@ jobs:
   geo-crash:
     name: Preventing crashing of geo properties during HNSW maintenance cycles
     if: ${{ github.event.inputs.test_to_run == 'geo-crash' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1377,7 +1377,7 @@ jobs:
         run: ./geo_crash.sh
   compaction-roaringset:
     name: Preventing panic on compaction of roaringsets
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'compaction-roaringset' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1398,7 +1398,7 @@ jobs:
         run: ./compaction_roaringset.sh
   multi-node-references:
     name: Large batches with many cross-refs on a multi-node cluster
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     if: ${{ github.event.inputs.test_to_run == 'multi-node-references' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1420,7 +1420,7 @@ jobs:
   multi-tenancy-concurrent-imports:
     name: Concurrent clients importing into multi-node cluster
     if: ${{ github.event.inputs.test_to_run == 'multi-tenancy-concurrent-imports' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubuntu-latest-8-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1442,7 +1442,7 @@ jobs:
     needs: [equal-to-1_24]
     if: ${{ (needs.equal-to-1_24.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate_v1_24' || github.event.inputs.test_to_run == '') }}
     name: Activate and deactivate tenants' shards (v1.24 only)
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1464,7 +1464,7 @@ jobs:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check ) && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate' || github.event.inputs.test_to_run == '') }}
     name: Activate and deactivate tenants' shards
-    runs-on: ubicloud-standard-4
+    runs-on: ubuntu-latest-4-cores
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1575,7 +1575,7 @@ jobs:
   # save it for future tests
   # compare-while-crashing:
   #   name: Compare REST and GraphQL while crashing
-  #   runs-on: ubicloud-standard-4
+  #   runs-on: ubuntu-latest-4-cores
   #   steps:
   #     - uses: actions/checkout@v3
   #     - name: Login to Docker Hub
