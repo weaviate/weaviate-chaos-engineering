@@ -40,8 +40,8 @@ else
 fi
 
 # PATCH objects with one node down, consistency level QUORUM
-echo "Killing node 3"
-docker compose -f $COMPOSE kill weaviate-node-3
+echo "Stopping node 3"
+docker compose -f $COMPOSE stop weaviate-node-3
 sleep 10
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name patcher -t patcher; then
   echo "All objects patched with consistency level QUORUM with one node down".
@@ -49,8 +49,8 @@ else
   exit 1
 fi
 
-# Restart dead node, read objects with consistency level QUORUM
-echo "Restart node 3"
+# Restart stopped node, read objects with consistency level QUORUM
+echo "Starting node 3"
 docker compose -f $COMPOSE up -d weaviate-node-3
 wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_down -t cluster_one_node_down; then
@@ -60,10 +60,10 @@ else
 fi
 
 # PUT objects with only one node remaining, consistency level ONE
-echo "Killing node 2"
-docker compose -f $COMPOSE kill weaviate-node-2
-echo "Killing node 3"
-docker compose -f $COMPOSE kill weaviate-node-3
+echo "Stopping node 2"
+docker compose -f $COMPOSE stop weaviate-node-2
+echo "Stopping node 3"
+docker compose -f $COMPOSE stop weaviate-node-3
 sleep 10
 if docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name updater -t updater; then
   echo "All objects updated with consistency level ONE with only weaviate-node-1 up".
