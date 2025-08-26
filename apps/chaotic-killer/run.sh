@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export PERSISTENCE_HNSW_DISABLE_SNAPSHOTS=false
+
 function wait_weaviate_until_schema() {
   while true; do
     RESP=$(curl -H 'content-type:application/json' http://localhost:8080/v1/schema)
