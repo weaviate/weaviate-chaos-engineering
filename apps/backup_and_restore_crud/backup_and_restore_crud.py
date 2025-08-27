@@ -140,6 +140,8 @@ def load_records(
                 class_name=class_name,
                 uuid=uuid.UUID(int=i),
             )
+
+        client.batch.wait_for_vector_indexing()
     logger.info(f"Finished writing {end-start} records")
 
 
