@@ -234,7 +234,7 @@ def check_shards_readonly(collection: weaviate.collections.Collection):
         raise Exception(f"shards are not READONLY at beginning: {status}")
 
 
-def wait_for_all_shards_ready(client: weaviate.WeaviateClient, timeout=600):
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient, timeout=1200):
     collection = client.collections.get(CLASS_NAME)
     interval = 3
     before = time.time()
