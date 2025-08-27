@@ -46,7 +46,7 @@ docker run --network host -t -v "$PWD/results:/app/results" -v "$PWD/datasets:/a
   -e "UPDATE_ITERATIONS=$UPDATE_ITERATIONS" \
   -e "REQUIRED_RECALL=$REQUIRED_RECALL" \
   -e "WEAVIATE_URL=localhost" \
-  rlmanriqueatweaviate/benchmarker:async /app/scripts/shell/update_stability.sh
+  semitechnologies/weaviate-benchmarker:v2.2.3 /app/scripts/shell/update_stability.sh
 
 echo "Stopping Weaviate..."
 docker compose -f $COMPOSE down
