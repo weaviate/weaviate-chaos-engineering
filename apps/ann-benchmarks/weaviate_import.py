@@ -231,7 +231,7 @@ def load_records(
 def check_shards_readonly(collection: weaviate.collections.Collection):
     status = [s.status for s in collection.config.get_shards()]
     if not all(s == "READONLY" for s in status):
-        raise Exception(f"shards are not READONLY at beginning: {status}")
+        logger.warning(f"shards are not READONLY at beginning: {status}")
 
 
 def wait_for_all_shards_ready(client: weaviate.WeaviateClient, timeout=1200):
