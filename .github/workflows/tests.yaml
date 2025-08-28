@@ -198,8 +198,8 @@ jobs:
         uses: fabriziocacicia/semver-compare-action@v0.1.0
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.33.0-dev"  # TODO: change to 1.33.0 when the version is released
-          operator: ">="          
+          second: "1.33.0"
+          operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -490,6 +490,7 @@ jobs:
         if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
+          REQUIRED_RECALL: 0.55
         run: ./ann_benchmark_quantization_aws.sh
       - name: Cleanup AWS resources
         if: always()
