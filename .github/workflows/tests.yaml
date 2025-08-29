@@ -2306,6 +2306,29 @@ jobs:
         run: |
           ./tombstones_cleanup_while_crash.sh
 
+  condensing-while-crash:
+    needs: [newer-or-equal-than-1_28]
+    if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'condensing-while-crash' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that condensing works while crashes happen
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.22'
+      - name: Run condensing-while-crash chaos tests
+        run: |
+          ./condensing_while_crash.sh
+
   hnsw-snapshotting-while-crash:
     needs: [newer-or-equal-than-1_31]
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'hnsw-snapshotting-while-crash' || github.event.inputs.test_to_run == '' ) }}
