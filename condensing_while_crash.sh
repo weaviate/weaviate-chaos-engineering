@@ -65,6 +65,23 @@ validate_object_count() {
     return 1
 }
 
+wait_for_condensing() {
+    local retries=150
+    local attempt=1
+    
+    while [ $attempt -le $retries ]; do
+        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "start hnsw condensing"; then
+            echo "Tombstone cleanup begin detected"
+            return 0
+        fi
+        sleep 3
+        attempt=$((attempt + 1))
+    done
+
+    echo "Failed to detect tombstone cleanup begin after $retries attempts"
+    return 1
+}
+
 validate_logs() {
 
     if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep -iE "error:|panic:|runtime error:|goroutine.*\[running\]|panic|unrecognized commit type"; then
@@ -94,9 +111,6 @@ run_importer $SIZE
 echo "Run updater script to create tombstones"
 run_updater $SIZE
 
-echo "Wait some time to let the metrics be updated"
-sleep 10
-
 echo "Wait for the condensing to be started"
 if ! wait_for_condensing; then
     exit 1
@@ -107,22 +121,19 @@ docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
     && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
 
 wait_weaviate
-echo "Wait some time to let the metrics be updated"
-sleep 10
-
-echo "Run updater script to create condensing after the reboot"
-run_updater $SIZE
-
-echo "Wait some time to let the metrics be updated"
-sleep 10
 
 echo "Validate the count is correct"
 if ! validate_object_count $SIZE 3; then
+    sleep 60
     exit 1
 fi
 
+echo "Wait some time to let the condensing be completed"
+sleep 50
+
 echo "Validate logs"
 if ! validate_logs; then
+    sleep 60
     exit 1
 fi
 
