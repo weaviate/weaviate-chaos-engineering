@@ -71,14 +71,14 @@ wait_for_condensing() {
     
     while [ $attempt -le $retries ]; do
         if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "start hnsw condensing"; then
-            echo "Tombstone cleanup begin detected"
+            echo "Condensing begin detected"
             return 0
         fi
         sleep 3
         attempt=$((attempt + 1))
     done
 
-    echo "Failed to detect tombstone cleanup begin after $retries attempts"
+    echo "Failed to detect condensing begin after $retries attempts"
     return 1
 }
 
@@ -111,16 +111,19 @@ run_importer $SIZE
 echo "Run updater script to create tombstones"
 run_updater $SIZE
 
-echo "Wait for the condensing to be started"
-if ! wait_for_condensing; then
-    exit 1
-fi
 
-echo "Restart the container"
-docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
-    && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
+for i in {1..10}; do
+    echo "Wait for the condensing to be started"
+    if ! wait_for_condensing; then
+        exit 1
+    fi
 
-wait_weaviate
+    echo "Restart the container"
+    docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
+        && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
+
+    wait_weaviate
+done
 
 echo "Validate the count is correct"
 if ! validate_object_count $SIZE 3; then
@@ -133,9 +136,10 @@ sleep 50
 
 echo "Validate logs"
 if ! validate_logs; then
-    sleep 60
     exit 1
 fi
+
+sleep 60
 
 echo "Passed!"
 shutdown
