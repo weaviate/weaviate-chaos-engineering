@@ -30,7 +30,7 @@ env:
 jobs:
   real-version-in-tag:
     name: "Retrieve the real version from the image tag"
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     env:
       WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
     outputs:
@@ -49,7 +49,7 @@ jobs:
   equal-to-1_24:
     name: "Check if the version is equal to 1.24"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -63,7 +63,7 @@ jobs:
   newer-or-equal-than-1_24:
     name: "Check if the version is newer than 1.24"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -77,7 +77,7 @@ jobs:
   newer-or-equal-than-1_25:
     name: "Check if the version is newer than 1.25"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -91,7 +91,7 @@ jobs:
   newer-or-equal-than-1_26:
     name: "Check if the version is newer than 1.26"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -105,7 +105,7 @@ jobs:
   newer-or-equal-than-1_28:
     name: "Check if the version is newer than 1.28"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -119,7 +119,7 @@ jobs:
   newer-or-equal-than-1_29:
     name: "Check if the version is newer than 1.29"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -133,7 +133,7 @@ jobs:
   newer-or-equal-than-1_30:
     name: "Check if the version is newer than 1.30"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -147,7 +147,7 @@ jobs:
   older-than-1_30:
     name: "Check if the version is older than 1.30"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -161,7 +161,7 @@ jobs:
   newer-or-equal-than-1_31:
     name: "Check if the version is newer than 1.31"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -175,7 +175,7 @@ jobs:
   newer-or-equal-than-1_32:
     name: "Check if the version is newer than 1.32"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -189,7 +189,7 @@ jobs:
   newer-or-equal-than-1_33:
     name: "Check if the version is newer than 1.33"
     needs: real-version-in-tag
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     outputs:
       check: ${{ steps.semver_compare.outputs.result }}
     steps:
@@ -203,7 +203,7 @@ jobs:
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v3
       - name: Login to Docker Hub
@@ -214,14 +214,14 @@ jobs:
       - name: Run chaos test
         run: ./filter_memory_leak.sh
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v2
       - uses: psf/black@stable
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-sift-aws' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -259,7 +259,7 @@ jobs:
   ann-benchmarks-glove-aws:
     name: "[bench AWS] Glove100 pq=false"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-glove-aws' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -297,7 +297,7 @@ jobs:
   ann-benchmarks-pq-sift-aws:
     name: "[bench AWS] SIFT1M pq=true"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-sift-aws' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -337,7 +337,7 @@ jobs:
     needs: [newer-or-equal-than-1_26]
     if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-sq-sift-aws' || github.event.inputs.test_to_run == '')}}
     name: "[bench AWS] SIFT1M sq=true"
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -376,7 +376,7 @@ jobs:
   ann-benchmarks-pq-glove-aws:
     name: "[bench AWS] Glove100 pq=true"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-glove-aws' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -416,7 +416,7 @@ jobs:
     needs: [newer-or-equal-than-1_26]
     if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'ann-benchmarks-sq-glove-aws' || github.event.inputs.test_to_run == '' ) }}
     name: "[bench AWS] Glove100 sq=true"
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -457,7 +457,7 @@ jobs:
     needs: [newer-or-equal-than-1_32]
     if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-rq-glove-aws' || github.event.inputs.test_to_run == '') }}
     name: "[bench AWS] Glove100 rq=true"
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       AWS_ACCESS_KEY_ID: ${{secrets.AWS_ACCESS_KEY}}
@@ -506,7 +506,7 @@ jobs:
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-sift-gcp' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -543,7 +543,7 @@ jobs:
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-sift-gcp' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -583,7 +583,7 @@ jobs:
     needs: [newer-or-equal-than-1_32]
     if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-rq-sift-gcp' || github.event.inputs.test_to_run == '') }}
     name: "[bench GCP] SIFT1M rq=true"
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: sift-128-euclidean
@@ -632,7 +632,7 @@ jobs:
     name: "[bench GCP] MULTIVECTOR3M"
     needs: [newer-or-equal-than-1_29]
     if: ${{ (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: lotte-recreation-reduced-vl-50000
@@ -671,7 +671,7 @@ jobs:
     name: "[bench GCP] MULTIVECTOR3M pq=true"
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-pq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: lotte-recreation-reduced-vl-50000
@@ -711,7 +711,7 @@ jobs:
     name: "[bench GCP] MULTIVECTOR3M sq=true"
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-sq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: lotte-recreation-reduced-vl-50000
@@ -751,7 +751,7 @@ jobs:
     name: "[bench GCP] MULTIVECTOR3M rq=true"
     needs: [newer-or-equal-than-1_32]
     if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-rq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: lotte-recreation-reduced-vl-50000
@@ -799,7 +799,7 @@ jobs:
     name: "[bench GCP] MULTIVECTOR MUVERA"
     needs: [newer-or-equal-than-1_31]
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-muvera-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: lotte-recreation-reduced-vl-50000
@@ -855,7 +855,7 @@ jobs:
     name: "[bench GCP] MULTIVECTOR MUVERA and RQ"
     needs: [newer-or-equal-than-1_32]
     if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-muvera-gcp-rq' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       DATASET: lotte-recreation-reduced-vl-50000
@@ -906,7 +906,7 @@ jobs:
   batch-import-many-classes:
     name: One class receives long and expensive batches, user tries to create and delete 100s of classes in parallel
     if: ${{ github.event.inputs.test_to_run == 'batch-import-many-classes' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -927,7 +927,7 @@ jobs:
   upgrade-journey:
     name: Rolling updates in single-node setup from min to target version
     if: ${{ github.event.inputs.test_to_run == 'upgrade-journey' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -955,7 +955,7 @@ jobs:
   upgrade-journey-cluster:
     name: Rolling updates in multi-node setup from min to target version
     if: ${{ github.event.inputs.test_to_run == 'upgrade-journey-cluster' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1069,7 +1069,7 @@ jobs:
   segfault-on-batch-ref:
     name: Segfault on batch ref
     if: ${{ github.event.inputs.test_to_run == 'segfault-on-batch-ref' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1131,7 +1131,7 @@ jobs:
         run: ./import_while_crashing_no_vector.sh
   segfault-filtered-search:
     name: Segfault on filtered vector search (race with hash bucket compaction)
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'segfault-filtered-search' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1215,7 +1215,7 @@ jobs:
         run: ./backup_and_restore_version_compatibility.sh
   compare-recall:
     name: Compare Recall after import to after restart
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'compare-recall' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1236,7 +1236,7 @@ jobs:
         run: ./compare_recall_after_restart.sh
   concurrent-read-write:
     name: Concurrent inverted index read/write
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'concurrent-read-write' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1257,7 +1257,7 @@ jobs:
         run: ./concurrent_inverted_index_read_write.sh
   consecutive-create-update:
     name: Consecutive create and update operations
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'consecutive-create-update' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1342,7 +1342,7 @@ jobs:
   deletes-with_node-out-of-sync:
     # Fixed in 1.24.18 and 1.25.4
     name: Delete objects with CL ONE on a node out of sync
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'deletes-with_node-out-of-sync' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1486,7 +1486,7 @@ jobs:
         run: ./multi_tenancy_activate_deactivate.sh
   goroutine_leak_class_delete:
     name: Check for degraded performance from goroutine leak on class delete
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'goroutine_leak_class_delete' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1507,7 +1507,7 @@ jobs:
         run: ./goroutine_leak_on_class_delete.sh
   bm25_corruption:
     name: Validate that the BM25 (and other indexes) index does not corrupt when crashes occur during batch delete
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'bm25_corruption' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1529,7 +1529,7 @@ jobs:
   backup_and_flush:
     # https://github.com/weaviate/weaviate/issues/4418
     name: Test that flushing is reestablished after a backup is performed
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'backup_and_flush' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1551,7 +1551,7 @@ jobs:
   backup_and_restore_out_of_sync:
     # https://github.com/weaviate/weaviate/pull/4541
     name: Test that restoring a backup without data presence ensures schema consistency across nodes
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'backup_and_restore_out_of_sync' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1591,7 +1591,7 @@ jobs:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-single-node-cluster' || github.event.inputs.test_to_run == '') }}
     name: Upgrade journey for RAFT single node cluster
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1614,7 +1614,7 @@ jobs:
     needs: [newer-or-equal-than-1_25, older-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ((needs.older-than-1_30.outputs.check == 'true')) && ( github.event.inputs.test_to_run == 'upgrade-journey-raft' || github.event.inputs.test_to_run == '')}}
     name: Upgrade to Raft journey e2e test
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       WEAVIATE_NON_RAFT_VERSION: 1.24.15
@@ -1727,7 +1727,7 @@ jobs:
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-1_30' || github.event.inputs.test_to_run == '')}}
     name: Upgrade to Raft journey e2e test v1.30
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       WEAVIATE_NON_RAFT_VERSION: 1.24.15
@@ -1853,7 +1853,7 @@ jobs:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-metadata-only-voters' || github.event.inputs.test_to_run == '') }}
     name: Upgrade to Raft journey e2e test with metadata only voters
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       WEAVIATE_RAFT_VERSION_1: 1.25.0
@@ -1910,7 +1910,7 @@ jobs:
     needs: [real-version-in-tag, newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
     name: RBAC upgrade journey e2e test
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2121,7 +2121,7 @@ jobs:
     needs: [newer-or-equal-than-1_26]
     if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'async-repair' || github.event.inputs.test_to_run == '') }}
     name: Chaos pipeline to ensure asynchronous replication repairs what read-repair can't yet
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2141,7 +2141,7 @@ jobs:
         run: ./async_repair.sh
   update-stability:
     name: Recall Stability on object updates
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: ${{ github.event.inputs.test_to_run == 'update-stability' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -2172,7 +2172,7 @@ jobs:
     needs: [newer-or-equal-than-1_24]
     if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'debug-reindexing-endpoint-journey-tests' || github.event.inputs.test_to_run == '' )}}
     name: Debug reindexing endpoint journey tests
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2194,7 +2194,7 @@ jobs:
     needs: [newer-or-equal-than-1_26]
     if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && (github.event.inputs.test_to_run == 'upgrade-journey-object-nested-properties' || github.event.inputs.test_to_run == '' )}}
     name: Upgrade journey nested properties
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2216,7 +2216,7 @@ jobs:
     needs: [newer-or-equal-than-1_24]
     if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'compaction-optimization' || github.event.inputs.test_to_run == '' ) }}
     name: Check that compaction doesn't get stuck
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2238,7 +2238,7 @@ jobs:
     needs: [newer-or-equal-than-1_28]
     name: Downgrade journey Raft schema - single node
     if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'downgrade-journey-raft-schema' || github.event.inputs.test_to_run == '' ) }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2262,7 +2262,7 @@ jobs:
     needs: [newer-or-equal-than-1_28]
     name: Downgrade journey Raft schema - cluster
     if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'downgrade-journey-raft-schema-cluster' || github.event.inputs.test_to_run == '' ) }}
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2287,7 +2287,7 @@ jobs:
     needs: [newer-or-equal-than-1_28]
     if: ${{ (needs.newer-or-equal-than-1_28.outputs.check == 'true') && (github.event.inputs.test_to_run == 'tombstones-cleanup-while-crash' || github.event.inputs.test_to_run == '' ) }}
     name: Check that tombstone cleanup works while crashes happen
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -2310,7 +2310,7 @@ jobs:
     needs: [newer-or-equal-than-1_31]
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'hnsw-snapshotting-while-crash' || github.event.inputs.test_to_run == '' ) }}
     name: Check that HNSW snapshotting works while crashes happen
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}

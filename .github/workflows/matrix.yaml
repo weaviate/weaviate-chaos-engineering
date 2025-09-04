@@ -26,11 +26,11 @@ concurrency:
 
 jobs:
   checkout:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v2
   weaviate-version-information:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     env:
       weaviate_version: "${{inputs.weaviate_version || '1.27.2'}}"
     outputs:
@@ -59,7 +59,7 @@ jobs:
   cleanup-cancelled-instances:
     needs: [run-with-sync-indexing]
     if: always() && (cancelled() || failure())
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v3
       - id: 'gcs_auth'
@@ -82,7 +82,7 @@ jobs:
   send-slack-message-on-failure:
     needs: [weaviate-version-information, run-with-sync-indexing]
     if: failure() && github.event_name == 'schedule'
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     env:
       SLACK_CHANNEL: 'C074U2W8FU3'
     steps:
@@ -99,7 +99,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   notify-results-to-weaviate-qa:
     needs: [run-with-sync-indexing]
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: always()
     steps:
       - name: Generate GitHub App Token
@@ -138,7 +138,7 @@ jobs:
             }'
 
   notify-in-progress-to-weaviate-qa:
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     if: always()
     steps:
       - name: Generate GitHub App Token
