@@ -16,6 +16,7 @@ docker compose -f $COMPOSE up -d
 
 wait_weaviate
 
+
 echo "Run import script in foreground..."
 if ! docker run \
   -e 'DIMENSIONS=48' \
