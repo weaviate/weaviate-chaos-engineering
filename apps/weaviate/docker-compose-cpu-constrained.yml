@@ -32,3 +32,9 @@ services:
           # used in a chaos pipeline that tries to reproduce degrading
           # performance because of a goroutine leak
           cpus: '1'
+    networks:
+      - weaviate-cpu-constrained-network
+
+networks:
+  weaviate-cpu-constrained-network:
+    driver: bridge

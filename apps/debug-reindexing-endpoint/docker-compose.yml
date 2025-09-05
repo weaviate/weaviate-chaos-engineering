@@ -7,6 +7,9 @@ services:
     environment:
       ASYNC_INDEXING: 'true'
       GRPC_MAX_MESSAGE_SIZE: '12000000'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-replication-network
 
   weaviate-node-2: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -16,6 +19,9 @@ services:
     environment:
       ASYNC_INDEXING: 'true'
       GRPC_MAX_MESSAGE_SIZE: '12000000'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-replication-network
 
   weaviate-node-3: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -25,4 +31,10 @@ services:
     environment:
       ASYNC_INDEXING: 'true'
       GRPC_MAX_MESSAGE_SIZE: '12000000'
-    
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-replication-network
+
+networks:
+  weaviate-replication-network:
+    driver: bridge

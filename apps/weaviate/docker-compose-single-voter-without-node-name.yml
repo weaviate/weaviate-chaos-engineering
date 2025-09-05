@@ -27,3 +27,9 @@ services:
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
       RAFT_SNAPSHOT_THRESHOLD: 1
+    networks:
+      - weaviate-single-voter-without-node-name-network
+
+networks:
+  weaviate-single-voter-without-node-name-network:
+    driver: bridge

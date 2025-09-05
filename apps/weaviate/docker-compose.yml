@@ -37,4 +37,9 @@ services:
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-7200}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-true}'
       LOG_LEVEL: '${LOG_LEVEL:-debug}'
-...
+    networks:
+      - weaviate-network
+
+networks:
+  weaviate-network:
+    driver: bridge

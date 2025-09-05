@@ -12,6 +12,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-replication-network
     depends_on:
       - backup-s3
 
@@ -27,6 +30,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-replication-network
     depends_on:
       - backup-s3
 
@@ -42,6 +48,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-replication-network
     depends_on:
       - backup-s3
 
@@ -56,6 +65,8 @@ services:
       MINIO_ROOT_USER: 'aws_access_key'
       MINIO_ROOT_PASSWORD: 'aws_secret_key'
     command: server /data
+    networks:
+      - weaviate-replication-network
 
   create-s3-bucket:
     image: minio/mc
@@ -70,6 +81,8 @@ services:
       /usr/bin/mc policy set public chaos/weaviate-backups;
       exit 0;
       "
+    networks:
+      - weaviate-replication-network
 
   remove-s3-bucket:
     image: minio/mc
@@ -82,6 +95,8 @@ services:
       /usr/bin/mc rb --force chaos/weaviate-backups;
       exit 0;
       "
+    networks:
+      - weaviate-replication-network
 
   importer-schema-node-1:
     build: ./../replicated-import/
@@ -92,7 +107,6 @@ services:
     environment:
       - CONFIG_REPLICATION_FACTOR=2
       - CONFIG_HOST=http://localhost:8080
-
   importer-data-node-1:
     build: ./../replicated-import/
     container_name: importer-data-node-1
@@ -104,7 +118,6 @@ services:
       - CONFIG_OBJECT_COUNT=500_000
       - CONFIG_BATCH_SIZE=1_000
       - CONFIG_UUID_OFFSET=0
-
   importer-data-node-2:
     build: ./../replicated-import/
     container_name: importer-data-node-2
@@ -116,7 +129,6 @@ services:
       - CONFIG_OBJECT_COUNT=500_000
       - CONFIG_BATCH_SIZE=1_000
       - CONFIG_UUID_OFFSET=500_000
-
   backup-loop-node-1:
     build: .
     container_name: backup-loop-node-1
@@ -126,3 +138,6 @@ services:
     environment:
       - CONFIG_HOST=http://localhost:8080
       - CONFIG_BACKUP_BACKEND=s3
+networks:
+  weaviate-replication-network:
+    driver: bridge

@@ -34,6 +34,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-backup-network
 
   # Mutually exclusive with weaviate-node-2
   # Used for single-node BRO version compat
@@ -67,6 +70,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-backup-network
 
   # Mutually exclusive with weaviate-backup-node
   # Used for cluster backup scenarios
@@ -105,6 +111,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
+      FAST_FAILURE_DETECTION: 'true'
+    networks:
+      - weaviate-backup-network
 
   backup-s3:
     image: minio/minio
@@ -116,6 +125,8 @@ services:
       MINIO_ROOT_USER: 'aws_access_key'
       MINIO_ROOT_PASSWORD: 'aws_secret_key'
     command: server /data
+    networks:
+      - weaviate-backup-network
 
   create-s3-bucket:
     image: minio/mc
@@ -128,6 +139,8 @@ services:
       /usr/bin/mc policy set public chaos/weaviate-backups;
       exit 0;
       "
+    networks:
+      - weaviate-backup-network
 
   remove-s3-bucket:
     image: minio/mc
@@ -139,4 +152,9 @@ services:
       /usr/bin/mc rb --force chaos/weaviate-backups;
       exit 0;
       "
-...
+    networks:
+      - weaviate-backup-network
+
+networks:
+  weaviate-backup-network:
+    driver: bridge
