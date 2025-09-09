@@ -61,7 +61,7 @@ jobs:
     if: always() && (cancelled() || failure())
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - id: 'gcs_auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
