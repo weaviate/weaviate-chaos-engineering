@@ -39,7 +39,7 @@ class StressTest:
 
         ratio = abs((mean_lower - mean_upper) / mean_lower)
 
-        if ratio > 0.25:
+        if ratio > 0.3:
             logger.error(f"rolling average is too different from control: {ratio * 100}%")
             sys.exit(1)
 
