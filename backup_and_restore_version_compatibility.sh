@@ -41,9 +41,11 @@ cd apps/backup_and_restore_version_compatibility/ && docker build -f Dockerfile_
     -t generate_version_pairs --build-arg weaviate_version=${WEAVIATE_VERSION} .
 cd -
 
-pair_string=$(docker run --rm generate_version_pairs)
-if [[ $pair_string =~ 'failed' ]]; then
-  echo "ERROR: ${pair_string}"
+pair_string=$(docker run --rm generate_version_pairs 2>&1)
+exit_code=$?
+if [ $exit_code -ne 0 ]; then
+  echo "ERROR: Failed to generate version pairs (exit code: $exit_code)"
+  echo "Output: ${pair_string}"
   exit 1
 fi
 
