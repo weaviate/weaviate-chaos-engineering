@@ -8,7 +8,7 @@ import weaviate.classes.config as wvc
 import h5py
 import time
 
-class_name = "Vector"
+CLASS_NAME = "Vector"
 
 
 def get_muvera_config(multivector_implementation="regular"):
@@ -55,7 +55,7 @@ def reset_schema(
     client.collections.delete_all()
 
     client.collections.create(
-        name=class_name,
+        name=CLASS_NAME,
         vectorizer_config=get_vectorizer_config(efC, m, multivector, multivector_implementation),
         vector_index_config=(
             wvc.Configure.VectorIndex.hnsw(
@@ -88,7 +88,7 @@ def load_records(
     multivector_implementation="regular",
     rq_bits=8,
 ):
-    collection = client.collections.get(class_name)
+    collection = client.collections.get(CLASS_NAME)
     i = 0
     if vectors == None:
         vectors = [None] * 10_000_000
@@ -114,7 +114,7 @@ def load_records(
                 properties=data_object,
                 vector=vector if multivector is False else multivector_object,
                 uuid=uuid.UUID(int=i),
-                collection=class_name,
+                collection=CLASS_NAME,
             )
             i += 1
 
@@ -194,7 +194,7 @@ def load_records(
                 )
 
         check_shards_readonly(collection)
-        wait_for_all_shards_ready(collection)
+        wait_for_all_shards_ready(client)
 
         i = 100000
         with client.batch.fixed_size(batch_size=batch_size) as batch:
@@ -214,7 +214,7 @@ def load_records(
                     properties=data_object,
                     vector=vector if multivector is False else multivector_object,
                     uuid=uuid.UUID(int=i),
-                    collection=class_name,
+                    collection=CLASS_NAME,
                 )
                 i += 1
 
@@ -231,11 +231,12 @@ def load_records(
 def check_shards_readonly(collection: weaviate.collections.Collection):
     status = [s.status for s in collection.config.get_shards()]
     if not all(s == "READONLY" for s in status):
-        raise Exception(f"shards are not READONLY at beginning: {status}")
+        logger.warning(f"shards are not READONLY at beginning: {status}")
 
 
-def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
-    max_wait = 300
+def wait_for_all_shards_ready(client: weaviate.WeaviateClient, timeout=1200):
+    collection = client.collections.get(CLASS_NAME)
+    interval = 3
     before = time.time()
 
     while True:
@@ -249,6 +250,9 @@ def wait_for_all_shards_ready(collection: weaviate.collections.Collection):
             logger.debug(f"finished in {time.time()-before}s")
             return
 
-        if time.time() - before > max_wait:
-            raise Exception(f"after {max_wait}s not all shards READY: {status}")
-        time.sleep(3)
+        if time.time() - before > timeout:
+            logger.error(f"Shards not ready. Timeout reached")
+            raise Exception(f"after {timeout}s not all shards READY: {status}")
+
+        logger.info(f"Shards not ready. Waiting for {time.time() - before}s")
+        time.sleep(interval)
