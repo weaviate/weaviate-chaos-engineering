@@ -21,7 +21,7 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 
 echo "Done generating."
 
-export COMPOSE="apps/weaviate/docker-compose-replication_single_voter.yml"
+export COMPOSE="apps/weaviate/docker-compose-replication_single_low_network_pressure.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
