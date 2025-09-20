@@ -9,6 +9,9 @@ on:
       lsm_access_strategy:
         required: true
         type: string
+      async_indexing:
+        required: true
+        type: string
     secrets:
       AWS_ACCESS_KEY:
         required: true
@@ -26,6 +29,7 @@ on:
 env:
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
   DISABLE_RECOVERY_ON_PANIC: true
+  ASYNC_INDEXING: ${{ inputs.async_indexing }}
 
 jobs:
   real-version-in-tag:
@@ -934,6 +938,7 @@ jobs:
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.22.0
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ASYNC_INDEXING: ${{inputs.async_indexing}}
     steps:
       - uses: actions/checkout@v5
       # - name: Polar Signals Continuous Profiling
