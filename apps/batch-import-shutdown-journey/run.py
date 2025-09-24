@@ -70,7 +70,7 @@ def random_vector() -> list[float]:
 def main() -> None:
     collection = "BatchImportShutdownJourney"
     how_many = 300000
-    with weaviate.connect_to_local(host="host.docker.internal") as client:
+    with weaviate.connect_to_local() as client:
         collection = setup(client, collection)
         import_(client, collection.name, how_many)
         verify(client, collection.name, how_many)
