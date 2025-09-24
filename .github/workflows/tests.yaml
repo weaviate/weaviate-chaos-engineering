@@ -2389,3 +2389,5 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Run chaos test
+        run: ./batch_import_shutdown_journey.sh
