@@ -1,0 +1,2 @@
+loguru==0.6.0
+weaviate-client @ git+https://github.com/weaviate/weaviate-python-client.git@feat/server-side-batching
