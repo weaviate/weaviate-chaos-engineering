@@ -32,7 +32,21 @@ group_id=$(aws ec2 create-security-group --group-name "benchmark-run-$run_id" --
 # Save group_id for cleanup
 echo "$group_id" > .cleanup_info/group_id
 
-aws ec2 authorize-security-group-ingress --ip-permissions '[ { "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22, "IpRanges": [ { "CidrIp": "0.0.0.0/0" } ] } ]' --group-id $group_id --region $region | jq
+# Determine public IP preferring IPv4, with IPv6 fallback
+my_ip_v4=$(curl -4 -s https://ifconfig.me)
+if [[ -n "$my_ip_v4" && "$my_ip_v4" != "" ]]; then
+  # Authorize IPv4 CIDR /32
+  aws ec2 authorize-security-group-ingress --ip-permissions "[ { \"IpProtocol\": \"tcp\", \"FromPort\": 22, \"ToPort\": 22, \"IpRanges\": [ { \"CidrIp\": \"${my_ip_v4}/32\" } ] } ]" --group-id $group_id --region $region | jq
+else
+  # Fallback to IPv6 if runner only has IPv6
+  my_ip_v6=$(curl -6 -s https://ifconfig.me)
+  if [[ -z "$my_ip_v6" || "$my_ip_v6" == "" ]]; then
+    echo "Unable to determine public IP (neither IPv4 nor IPv6)"
+    exit 1
+  fi
+  # Authorize IPv6 CIDR /128
+  aws ec2 authorize-security-group-ingress --ip-permissions "[ { \"IpProtocol\": \"tcp\", \"FromPort\": 22, \"ToPort\": 22, \"Ipv6Ranges\": [ { \"CidrIpv6\": \"${my_ip_v6}/128\" } ] } ]" --group-id $group_id --region $region | jq
+fi
 
 ami=$(aws ec2 describe-images --region $region --owner amazon --filter "Name=name,Values=ubuntu/images/hvm-ssd/ubuntu*22.04*${ARCH}*" | jq -r '.Images[0].ImageId')
 
