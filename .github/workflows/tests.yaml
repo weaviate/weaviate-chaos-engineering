@@ -1619,8 +1619,13 @@ jobs:
     env:
       WEAVIATE_NON_RAFT_VERSION: 1.24.15
       WEAVIATE_RAFT_VERSION_1: 1.25.0
-      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      PERSISTENCE_MAX_REUSE_WAL_SIZE: 0  # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      VALUES_OVERRIDE: |
+        env:
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          RAFT_TIMEOUTS_MULTIPLIER: 10
+          MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1633,14 +1638,15 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'setup'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}' 
+          values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '--set podManagementPolicy=OrderedReady' 
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1650,28 +1656,28 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
       - name: Weaviate v1.25.0 - check data after upgrade to Raft version
         run: |
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate preview image - check old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1690,28 +1696,29 @@ jobs:
             echo "Schema V1 succesfully synchronized"
           fi
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady  --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '--set podManagementPolicy=OrderedReady'
           delete-sts: 'true'
       - name: Weaviate v1.24.x - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.PERSISTENCE_MAX_REUSE_WAL_SIZE=${{env.PERSISTENCE_MAX_REUSE_WAL_SIZE}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
       - name: Weaviate preview image - check additional and old data
         run: |
@@ -1722,7 +1729,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          path: |
+            apps/upgrade-journey-raft/logs/
+            /tmp/weaviate*
   upgrade-journey-raft-1_30:
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-1_30' || github.event.inputs.test_to_run == '')}}
@@ -1733,7 +1742,13 @@ jobs:
       WEAVIATE_NON_RAFT_VERSION: 1.24.15
       WEAVIATE_RAFT_VERSION_1: 1.25.0
       WEAVIATE_RAFT_VERSION_1_29: 1.29.0
-      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      VALUES_OVERRIDE: |
+        env:
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          RAFT_TIMEOUTS_MULTIPLIER: 10
+          MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1746,14 +1761,15 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'setup'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '--set podManagementPolicy=OrderedReady'
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1763,28 +1779,28 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
       - name: Weaviate v1.25.0 - check data after upgrade to Raft version
         run: |
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1_29}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate v1.29.0 image - check old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1803,42 +1819,43 @@ jobs:
             echo "Schema V1 succesfully synchronized"
           fi
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set podManagementPolicy=OrderedReady  --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '--set podManagementPolicy=OrderedReady'
           delete-sts: 'true'
       - name: Weaviate v1.24.x - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from none-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1_29}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
       - name: Weaviate preview image - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate preview image - upgrade from v1.29.0 to preview image (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate preview image - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1848,7 +1865,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          path: |
+            apps/upgrade-journey-raft/logs/
+            /tmp/weaviate*
   upgrade-journey-raft-metadata-only-voters:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-metadata-only-voters' || github.event.inputs.test_to_run == '') }}
@@ -1857,7 +1876,14 @@ jobs:
     timeout-minutes: 60
     env:
       WEAVIATE_RAFT_VERSION_1: 1.25.0
-      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      VALUES_OVERRIDE: |
+        env:
+          RAFT_METADATA_ONLY_VOTERS: true
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          RAFT_TIMEOUTS_MULTIPLIER: 10
+          MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1870,14 +1896,14 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.25 with metadata only voters setting - setup K8s 6-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'setup'
           workers: '1'
           replicas: '5'
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate v1.25 with metadata only voters setting - import data and additional data
         run: |
           cd apps/upgrade-journey-raft
@@ -1888,14 +1914,14 @@ jobs:
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
           replicas: '5'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
-          values-inline: '--set env.RAFT_METADATA_ONLY_VOTERS=true --set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate preview image with metadata only voters setting - check if data has been saved only in non-voter nodes
         run: |
           cd apps/upgrade-journey-raft
@@ -1913,10 +1939,15 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       WEAVIATE_API_KEY: "admin-key"
       WEAVIATE_API_KEY_CUSTOM: "custom-key"
       RBAC_CONFIG: /tmp/rbac_config.yaml
+      VALUES_OVERRIDE: |
+        env:
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+          RAFT_SNAPSHOT_THRESHOLD: 2
+          RAFT_TIMEOUTS_MULTIPLIER: 10
+          MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1965,7 +1996,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - setup K8s 3-node cluster with low RAFT snapshot threshold
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'setup'
           workers: '1'
@@ -1974,7 +2005,7 @@ jobs:
           modules: 'text2vec-contextionary'
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - create roles
         run: |
           cd apps/rbac-upgrade-journey
@@ -2012,7 +2043,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{env.WEAVIATE_VERSION}} - upgrade K8s cluster and enable dynamic user management
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2021,7 +2052,7 @@ jobs:
           modules: 'text2vec-contextionary'
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check data after upgrade
         run: |
           cd apps/upgrade-journey-raft
@@ -2092,7 +2123,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - downgrade back to ${{ env.WEAVIATE_INITIAL_VERSION}}
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2101,7 +2132,7 @@ jobs:
           modules: 'text2vec-contextionary'
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.RAFT_SNAPSHOT_THRESHOLD=2'
+          values-override: ${{env.VALUES_OVERRIDE}}
       - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
@@ -2115,7 +2146,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          path: |
+            apps/upgrade-journey-raft/logs/
+            /tmp/weaviate*
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     needs: [newer-or-equal-than-1_26]
