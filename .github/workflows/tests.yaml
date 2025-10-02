@@ -1624,7 +1624,7 @@ jobs:
         env:
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
-          RAFT_TIMEOUTS_MULTIPLIER: 10
+          RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
@@ -1638,7 +1638,7 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'setup'
           workers: '1'
@@ -1656,7 +1656,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1670,7 +1670,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1696,7 +1696,7 @@ jobs:
             echo "Schema V1 succesfully synchronized"
           fi
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1711,7 +1711,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1747,7 +1747,7 @@ jobs:
         env:
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
-          RAFT_TIMEOUTS_MULTIPLIER: 10
+          RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
@@ -1761,7 +1761,7 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'setup'
           workers: '1'
@@ -1779,7 +1779,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1793,7 +1793,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1819,7 +1819,7 @@ jobs:
             echo "Schema V1 succesfully synchronized"
           fi
       - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1834,7 +1834,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from none-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1848,7 +1848,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate preview image - upgrade from v1.29.0 to preview image (rolling update)
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1882,7 +1882,7 @@ jobs:
           RAFT_METADATA_ONLY_VOTERS: true
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
-          RAFT_TIMEOUTS_MULTIPLIER: 10
+          RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
@@ -1896,7 +1896,7 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.25 with metadata only voters setting - setup K8s 6-node cluster
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'setup'
           workers: '1'
@@ -1914,7 +1914,7 @@ jobs:
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1946,7 +1946,7 @@ jobs:
         env:
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
           RAFT_SNAPSHOT_THRESHOLD: 2
-          RAFT_TIMEOUTS_MULTIPLIER: 10
+          RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
     steps:
       - uses: actions/checkout@v5
@@ -1996,7 +1996,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - setup K8s 3-node cluster with low RAFT snapshot threshold
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'setup'
           workers: '1'
@@ -2043,7 +2043,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{env.WEAVIATE_VERSION}} - upgrade K8s cluster and enable dynamic user management
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2123,7 +2123,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - downgrade back to ${{ env.WEAVIATE_INITIAL_VERSION}}
-        uses: weaviate/weaviate-local-k8s@jose/fix-raft-sync
+        uses: weaviate/weaviate-local-k8s@v2
         with:
           operation: 'upgrade'
           workers: '1'
