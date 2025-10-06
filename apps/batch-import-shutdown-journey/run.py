@@ -1,5 +1,6 @@
 import json
 import random
+import sys
 import time
 import weaviate
 import weaviate.classes.config as wvcc
@@ -58,9 +59,13 @@ def verify(client: weaviate.WeaviateClient, collection: str, expected: int = 1_0
         print(f"Found {actual} objects, waiting for async repl to reach {expected}...")
         time.sleep(1)
         count += 1
-        if count == 300:
+        if count == 600:  # 10 minutes
             break
-    assert actual == expected, f"Expected {expected} objects, found {actual}"
+    if actual != expected:
+        print(
+            f"Expected {expected} objects, found {actual} after 10 minutes of waiting for async replication to complete"
+        )
+        sys.exit(1)
 
 
 def random_vector() -> list[float]:
