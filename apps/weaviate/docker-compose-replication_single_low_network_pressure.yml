@@ -16,7 +16,7 @@ services:
     - 50051:50051
     restart: on-failure:0
     volumes:
-      - "$PWD/apps/weaviate/data-node-1:/var/lib/weaviate"
+      - replication_single_low_network_pressure_data_node_1:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -54,7 +54,7 @@ services:
     - 50052:50051
     restart: on-failure:0
     volumes:
-      - "$PWD/apps/weaviate/data-node-2:/var/lib/weaviate"
+      - replication_single_low_network_pressure_data_node_2:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -93,7 +93,7 @@ services:
     - 50053:50051
     restart: on-failure:0
     volumes:
-      - "$PWD/apps/weaviate/data-node-3:/var/lib/weaviate"
+      - replication_single_low_network_pressure_data_node_3:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -119,3 +119,11 @@ services:
 networks:
   replication_single_low_network_pressure:
     name: weaviate_replication_single_low_network_pressure
+
+volumes:
+  replication_single_low_network_pressure_data_node_1:
+    name: weaviate_replication_single_low_network_pressure_data_node_1
+  replication_single_low_network_pressure_data_node_2:
+    name: weaviate_replication_single_low_network_pressure_data_node_2
+  replication_single_low_network_pressure_data_node_3:
+    name: weaviate_replication_single_low_network_pressure_data_node_3
