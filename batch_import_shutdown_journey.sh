@@ -16,3 +16,7 @@ kubectl rollout restart statefulset/weaviate -n weaviate
 
 echo "Following the logs of the batch import journey"
 docker logs -f "$container_id"
+
+exit_code=$(docker inspect "$container_id" --format='{{.State.ExitCode}}')
+echo "Container exited with code $exit_code"
+exit "$exit_code"
