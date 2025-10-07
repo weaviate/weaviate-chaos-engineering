@@ -74,6 +74,8 @@ fi
 # Restart dead nodes, read objects with consistency level ALL
 docker compose -f $COMPOSE up -d weaviate-node-2
 wait_weaviate 8081
+# sleep to avoid any races in joining the cluster
+sleep 3
 docker compose -f $COMPOSE up -d weaviate-node-3
 wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_remaining -t cluster_one_node_remaining; then
