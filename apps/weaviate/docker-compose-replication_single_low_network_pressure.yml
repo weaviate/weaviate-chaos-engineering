@@ -16,7 +16,7 @@ services:
     - 50051:50051
     restart: on-failure:0
     volumes:
-      - "$PWD/apps/weaviate/data-node-1:/var/lib/weaviate"
+      - replication_single_low_network_pressure_data_node_1:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -29,12 +29,14 @@ services:
       RAFT_JOIN: 'node1'
       RAFT_BOOTSTRAP_EXPECT: 1
       RAFT_TIMEOUTS_MULTIPLIER: 10
-      MEMBERLIST_FAST_FAILURE_DETECTION: true
+      MEMBERLIST_FAST_FAILURE_DETECTION: 'true'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      - replication_single_low_network_pressure
 
   weaviate-node-2:
     init: true
@@ -52,7 +54,7 @@ services:
     - 50052:50051
     restart: on-failure:0
     volumes:
-      - "$PWD/apps/weaviate/data-node-2:/var/lib/weaviate"
+      - replication_single_low_network_pressure_data_node_2:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -66,12 +68,14 @@ services:
       RAFT_JOIN: 'node1'
       RAFT_BOOTSTRAP_EXPECT: 1
       RAFT_TIMEOUTS_MULTIPLIER: 10
-      MEMBERLIST_FAST_FAILURE_DETECTION: true
+      MEMBERLIST_FAST_FAILURE_DETECTION: 'true'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      - replication_single_low_network_pressure
 
   weaviate-node-3:
     init: true
@@ -89,7 +93,7 @@ services:
     - 50053:50051
     restart: on-failure:0
     volumes:
-      - "$PWD/apps/weaviate/data-node-3:/var/lib/weaviate"
+      - replication_single_low_network_pressure_data_node_3:/var/lib/weaviate
     environment:
       LOG_LEVEL: 'debug'
       QUERY_DEFAULTS_LIMIT: 25
@@ -103,9 +107,23 @@ services:
       RAFT_JOIN: 'node1'
       RAFT_BOOTSTRAP_EXPECT: 1
       RAFT_TIMEOUTS_MULTIPLIER: 10
-      MEMBERLIST_FAST_FAILURE_DETECTION: true
+      MEMBERLIST_FAST_FAILURE_DETECTION: 'true'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
       DISABLE_TELEMETRY: 'true'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      - replication_single_low_network_pressure
+
+networks:
+  replication_single_low_network_pressure:
+    name: weaviate_replication_single_low_network_pressure
+
+volumes:
+  replication_single_low_network_pressure_data_node_1:
+    name: weaviate_replication_single_low_network_pressure_data_node_1
+  replication_single_low_network_pressure_data_node_2:
+    name: weaviate_replication_single_low_network_pressure_data_node_2
+  replication_single_low_network_pressure_data_node_3:
+    name: weaviate_replication_single_low_network_pressure_data_node_3
