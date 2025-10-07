@@ -51,7 +51,7 @@ fi
 
 # Restart dead node, read objects with consistency level QUORUM
 echo "Restart node 3"
-docker compose -f $COMPOSE up -d weaviate-node-3
+docker compose -f $COMPOSE up -d --no-recreate  weaviate-node-3
 wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_down -t cluster_one_node_down; then
   echo "All objects read with consistency level QUORUM after weaviate-node-3 restarted".
@@ -72,11 +72,11 @@ else
 fi
 
 # Restart dead nodes, read objects with consistency level ALL
-docker compose -f $COMPOSE up -d weaviate-node-2
+docker compose -f $COMPOSE up -d --no-recreate weaviate-node-2
 wait_weaviate 8081
 # sleep to avoid any races in joining the cluster
 sleep 3
-docker compose -f $COMPOSE up -d weaviate-node-3
+docker compose -f $COMPOSE up -d --no-recreate weaviate-node-3
 wait_weaviate 8082
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_remaining -t cluster_one_node_remaining; then
   echo "All objects read with consistency level ALL after weaviate-node-2 and weaviate-node-3 restarted".
