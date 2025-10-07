@@ -44,7 +44,11 @@ def import_(client: weaviate.WeaviateClient, collection: str, how_many: int = 1_
 
     for err in client.batch.failed_objects:
         print(err.message)
-    assert len(client.batch.failed_objects) == 0, "Expected there to be no errors when importing"
+    if len(client.batch.failed_objects) > 0:
+        print(
+            f"Expected there to be no errors when importing but there were {len(client.batch.failed_objects)}. Check above logs for details"
+        )
+        sys.exit(1)
     client.batch.wait_for_vector_indexing()
     with open("uuids.json", "w") as f:
         json.dump(uuids, f)
