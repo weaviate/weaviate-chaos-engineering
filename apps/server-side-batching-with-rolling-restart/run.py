@@ -61,17 +61,17 @@ def verify(client: weaviate.WeaviateClient, collection: str, expected: int = 1_0
         print(f"Found {actual} objects, waiting for async repl to reach {expected}...")
         time.sleep(1)
         count += 1
-        if count == 600:  # 10 minutes
+        if count == 300:  # 5 minutes
             break
     if actual != expected:
         print(
-            f"Expected {expected} objects, found {actual} after 10 minutes of waiting for async replication to complete"
+            f"Expected {expected} objects, found {actual} after 5 minutes of waiting for async replication to complete"
         )
         actual_ids = []
         for obj in c.iterator():
             actual_ids.append(int(obj.properties["title"].split(" ")[1]))  # pyright: ignore
         expected_ids = list(range(expected))
-        print(f"Missing IDs: {sorted(list(set(expected_ids) - set(actual_ids)))}")
+        print(f"Missing IDs: {sorted(list(set(expected_ids).difference(actual_ids)))}")
         sys.exit(1)
 
 
