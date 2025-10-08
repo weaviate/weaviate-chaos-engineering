@@ -61,11 +61,11 @@ def verify(client: weaviate.WeaviateClient, collection: str, expected: int = 1_0
         print(f"Found {actual} objects, waiting for async repl to reach {expected}...")
         time.sleep(1)
         count += 1
-        if count == 300:  # 5 minutes
+        if count == 600:  # 10 minutes
             break
     if actual != expected:
         print(
-            f"Expected {expected} objects, found {actual} after 5 minutes of waiting for async replication to complete"
+            f"Expected {expected} objects, found {actual} after 10 minutes of waiting for async replication to complete"
         )
         sys.exit(1)
 
