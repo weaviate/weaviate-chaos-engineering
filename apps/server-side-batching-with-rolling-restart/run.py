@@ -39,8 +39,6 @@ def import_(client: weaviate.WeaviateClient, collection: str, how_many: int = 1_
                 vector=random_vector(),
             )
             uuids[str(uuid)] = i
-            if batch.number_errors > 0:
-                print(f"There are some errors {batch.number_errors}")
 
     for err in client.batch.failed_objects:
         print(err.message)
@@ -79,7 +77,7 @@ def random_vector() -> list[float]:
 def main() -> None:
     collection = "BatchImportShutdownJourney"
     how_many = 200000
-    with weaviate.connect_to_local() as client:
+    with weaviate.connect_to_local(host="host.docker.internal") as client:
         collection = setup(client, collection)
         import_(client, collection.name, how_many)
         verify(client, collection.name, how_many)
