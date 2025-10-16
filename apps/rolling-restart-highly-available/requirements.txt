@@ -1,0 +1,4 @@
+weaviate-client>=4.16.0
+weaviate-cli @ git+https://github.com/weaviate/weaviate-cli.git@improve-batch-logic
+loguru==0.7.2
+requests==2.31.0

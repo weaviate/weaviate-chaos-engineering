@@ -2384,3 +2384,74 @@ jobs:
       - name: Run hnsw-snapshotting-while-crash chaos tests
         run: |
           ./hnsw_snapshotting_while_crash.sh
+
+  rolling-restart-highly-available:
+    needs: [newer-or-equal-than-1_31]
+    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rolling-restart-highly-available' || github.event.inputs.test_to_run == '')}}
+    name: Rolling restart highly available
+    runs-on: ubicloud-standard-8
+    timeout-minutes: 60
+    env:
+      OBJECTS_PER_CLASS: 50000
+      BATCH_SIZE: 1000
+      # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      VALUES_OVERRIDE: |
+        env:
+          ASYNC_INDEXING: true
+          ASYNC_REPLICATION_FREQUENCY: "10s"
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          RAFT_TIMEOUTS_MULTIPLIER: 5
+          MEMBERLIST_FAST_FAILURE_DETECTION: true
+    steps:
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@v2
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Install python dependencies
+        run: |
+          cd apps/rolling-restart-highly-available
+          pip3 install -r requirements.txt
+      - name: Weaviate - setup K8s 3-node cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          modules: 'text2vec-transformers-model2vec'
+          values-override: ${{env.VALUES_OVERRIDE}}
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
+      - name: Weaviate - create collections and ingest data in the background
+        run: |
+          cd apps/rolling-restart-highly-available
+          python3 ingest_and_benchmark_qps.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rolling-restart-highly-available-${{ inputs.lsm_access_strategy }}-logs
+          path: |
+            apps/rolling-restart-highly-available/benchmark_results*
+            /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: |
+          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log; then
+            echo "::error::Found panic in weaviate logs"
+            echo "Panic context:"
+            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
+            exit 1
+          fi
