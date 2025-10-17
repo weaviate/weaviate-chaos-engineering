@@ -89,6 +89,7 @@ jobs:
       - name: Send Slack message
         uses: slackapi/slack-github-action@v2.1.1
         with:
+          webhook-type: webhook-trigger
           # This data has been defined as a Workflow in the slack channel chaos-pipeline
           payload: |
             {
