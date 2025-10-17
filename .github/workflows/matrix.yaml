@@ -40,7 +40,7 @@ jobs:
         run: |
           echo "Running chaos pipelines against Weaviate version: $weaviate_version" >> $GITHUB_STEP_SUMMARY
           echo "weaviate_version=${{ env.weaviate_version }}" >> $GITHUB_OUTPUT
-  run-with-sync-indexing:
+  run-with-async-indexing:
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +49,7 @@ jobs:
     with:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
       weaviate_version: ${{ github.event_name == 'schedule' && 'nightly' || inputs.weaviate_version || '1.27.2' }}
+      async_indexing: "true"
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
@@ -57,7 +58,7 @@ jobs:
       GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
   cleanup-cancelled-instances:
-    needs: [run-with-sync-indexing]
+    needs: [run-with-async-indexing]
     if: always() && (cancelled() || failure())
     runs-on: ubicloud-standard-2
     steps:
@@ -80,7 +81,7 @@ jobs:
       - name: Cleanup cancelled AWS resources
         run: ./cleanup_cancelled_aws_resources.sh
   send-slack-message-on-failure:
-    needs: [weaviate-version-information, run-with-sync-indexing]
+    needs: [weaviate-version-information, run-with-async-indexing]
     if: failure() && github.event_name == 'schedule'
     runs-on: ubicloud-standard-2
     env:
@@ -99,7 +100,7 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   notify-results-to-weaviate-qa:
-    needs: [run-with-sync-indexing]
+    needs: [run-with-async-indexing]
     runs-on: ubicloud-standard-2
     if: always()
     steps:
@@ -114,7 +115,7 @@ jobs:
         if: inputs.issue_number != ''
         id: test_result
         run: |
-          if [ "${{ needs.run-with-sync-indexing.result }}" == "success" ]; then
+          if [ "${{ needs.run-with-async-indexing.result }}" == "success" ]; then
             echo "status=Passed" >> $GITHUB_OUTPUT
           else
             echo "status=Failed" >> $GITHUB_OUTPUT
