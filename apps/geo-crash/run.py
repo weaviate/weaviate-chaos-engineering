@@ -81,6 +81,7 @@ def load_records(client: weaviate.Client, start=0, end=100_000):
                 class_name="GeoClass",
                 uuid=uuid.UUID(int=i),
             )
+            batch.wait_for_vector_indexing()
     logger.info(f"Finished writing {end-start} records")
 
 

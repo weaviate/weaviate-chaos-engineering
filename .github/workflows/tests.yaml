@@ -9,6 +9,9 @@ on:
       lsm_access_strategy:
         required: true
         type: string
+      async_indexing:
+        required: true
+        type: string
     secrets:
       AWS_ACCESS_KEY:
         required: true
@@ -26,6 +29,7 @@ on:
 env:
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
   DISABLE_RECOVERY_ON_PANIC: true
+  ASYNC_INDEXING: ${{ inputs.async_indexing }}
 
 jobs:
   real-version-in-tag:
@@ -934,6 +938,7 @@ jobs:
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.22.0
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
       - uses: actions/checkout@v5
       # - name: Polar Signals Continuous Profiling
@@ -1363,6 +1368,7 @@ jobs:
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      ASYNC_INDEXING: 'false' # This test is not compatible with async indexing
     steps:
       - uses: actions/checkout@v5
       # - name: Polar Signals Continuous Profiling
@@ -1620,12 +1626,15 @@ jobs:
       WEAVIATE_NON_RAFT_VERSION: 1.24.15
       WEAVIATE_RAFT_VERSION_1: 1.25.0
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      # Disable async indexing because it was refactor and added in 1.29+
+      ASYNC_INDEXING: false
       VALUES_OVERRIDE: |
         env:
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
+          ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1743,12 +1752,15 @@ jobs:
       WEAVIATE_RAFT_VERSION_1: 1.25.0
       WEAVIATE_RAFT_VERSION_1_29: 1.29.0
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      # Disable async indexing because it was refactor and added in 1.29+
+      ASYNC_INDEXING: false
       VALUES_OVERRIDE: |
         env:
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
+          ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1877,6 +1889,8 @@ jobs:
     env:
       WEAVIATE_RAFT_VERSION_1: 1.25.0
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
+      # Disable async indexing because it was refactor and added in 1.29+
+      ASYNC_INDEXING: false
       VALUES_OVERRIDE: |
         env:
           RAFT_METADATA_ONLY_VOTERS: true
@@ -1884,6 +1898,7 @@ jobs:
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
+          ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -1948,6 +1963,7 @@ jobs:
           RAFT_SNAPSHOT_THRESHOLD: 2
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
+          ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
