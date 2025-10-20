@@ -2367,8 +2367,8 @@ jobs:
           ./hnsw_snapshotting_while_crash.sh
   
   server-side-batching-with-rolling-restart:
-    needs: [equal-to-1_34_0_dev]
-    if: ${{ (needs.equal-to-1_34_0_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
+    needs: [equal-to-1_34_0_rc_0]
+    if: ${{ (needs.equal-to-1_34_0_rc_0.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
