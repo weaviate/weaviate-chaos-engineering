@@ -76,7 +76,7 @@ def verify(client: weaviate.WeaviateClient, collection: str, expected: int = 1_0
 
 
 def random_vector() -> list[float]:
-    return [random.uniform(0, 1) for _ in range(128)]
+    return [random.uniform(0, 1) for _ in range(512)]
 
 
 def main() -> None:
