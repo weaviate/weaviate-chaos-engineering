@@ -64,6 +64,8 @@ new_size=15
 docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml down
 PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS=1 PERSISTENCE_LSM_MAX_SEGMENT_SIZE="${new_size}MB" docker compose -f $COMPOSE up -d
 
+wait_weaviate
+
 echo "Checking segment levels after max LSM segment increased to ${new_size}MB..."
 # Wait for the compaction to occurr by checking the number of segments every 3 seconds.
 # If the number of segments is decreasing, it means the compaction is ongoing. If the number of segments

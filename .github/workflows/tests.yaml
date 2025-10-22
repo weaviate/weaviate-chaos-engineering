@@ -1071,6 +1071,27 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Run chaos test
         run: ./counting_while_compacting.sh
+  compaction-and-cleanup:
+    name: Compaction and cleanup
+    if: ${{ github.event.inputs.test_to_run == 'compaction-and-cleanup' || github.event.inputs.test_to_run == '' }}
+    runs-on: ubicloud-standard-8
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./compaction_and_cleanup.sh
   segfault-on-batch-ref:
     name: Segfault on batch ref
     if: ${{ github.event.inputs.test_to_run == 'segfault-on-batch-ref' || github.event.inputs.test_to_run == '' }}
