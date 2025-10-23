@@ -17,8 +17,9 @@ function logs() {
 
 function wait_weaviate() {
   local port="${1:-8080}" # Set default port to 8080 if $1 is not provided
+  local timeout="${2:-120}" # Set default timeout to 120 seconds if $2 is not provided
   echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
+  for _ in {1..$timeout}; do
     if curl -sf -o /dev/null localhost:$port/v1/.well-known/ready; then
       echo "Weaviate is ready"
       return 0
@@ -27,7 +28,7 @@ function wait_weaviate() {
     echo "Weaviate is not ready on $port, trying again in 1s"
     sleep 1
   done
-  echo "ERROR: Weaviate is not ready in port ${port} after 120s"  
+  echo "ERROR: Weaviate is not ready in port ${port} after ${timeout}s"
   exit 1
 }
 
