@@ -15,10 +15,43 @@ function logs() {
   done
 }
 
+function report_container_state() {
+  echo "======================================"
+  echo "Docker Container Status Report"
+  echo "======================================"
+
+  if [ -n "$COMPOSE" ] && [ -f "$COMPOSE" ]; then
+    echo "Checking containers for compose file: $COMPOSE"
+    docker compose -f "$COMPOSE" ps -a
+  else
+    echo "No COMPOSE file specified or file not found"
+  fi
+
+  echo ""
+  echo "All running Docker containers:"
+  docker ps -a
+
+  echo ""
+  echo "Container resource usage:"
+  docker stats --no-stream --no-trunc
+
+  echo ""
+  echo "Docker inspect for running containers:"
+  running_containers=$(docker ps -q)
+  if [ -n "$running_containers" ]; then
+    docker inspect $running_containers
+  else
+    echo "No running containers to inspect"
+  fi
+
+  echo "======================================"
+}
+
 function wait_weaviate() {
   local port="${1:-8080}" # Set default port to 8080 if $1 is not provided
+  local timeout="${2:-120}" # Set default timeout to 120 seconds if $2 is not provided
   echo "Wait for Weaviate to be ready"
-  for _ in {1..120}; do
+  for ((i=1; i<=timeout; i++)); do
     if curl -sf -o /dev/null localhost:$port/v1/.well-known/ready; then
       echo "Weaviate is ready"
       return 0
@@ -27,7 +60,7 @@ function wait_weaviate() {
     echo "Weaviate is not ready on $port, trying again in 1s"
     sleep 1
   done
-  echo "ERROR: Weaviate is not ready in port ${port} after 120s"  
+  echo "ERROR: Weaviate is not ready in port ${port} after ${timeout}s"
   exit 1
 }
 
@@ -46,9 +79,9 @@ function shutdown() {
   rm -rf workdir
 }
 
-trap 'logs; shutdown; exit 1' SIGINT ERR
+trap 'logs; report_container_state; shutdown; exit 1' SIGINT ERR
 
-trap '[[ $? -eq 1 ]] && logs; shutdown' EXIT
+trap 'exit_code=$?; if [[ $exit_code -eq 1 ]]; then logs; report_container_state; fi; shutdown' EXIT
 
 
 function wait_for_indexing() {

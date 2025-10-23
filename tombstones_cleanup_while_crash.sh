@@ -138,7 +138,7 @@ echo "Restart the container"
 docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
     && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
 
-wait_weaviate
+wait_weaviate 8080 300
 echo "Wait some time to let the metrics be updated"
 sleep 10
 
