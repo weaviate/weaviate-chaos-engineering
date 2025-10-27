@@ -1756,7 +1756,7 @@ jobs:
           python3 additional_checks.py
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
           path: |
@@ -1895,7 +1895,7 @@ jobs:
           python3 additional_checks.py
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
           path: |
@@ -1964,7 +1964,7 @@ jobs:
           ./scripts/metadata_only_voters_check.sh
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
           path: apps/upgrade-journey-raft/logs/
@@ -2180,7 +2180,7 @@ jobs:
           python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs
           path: |
