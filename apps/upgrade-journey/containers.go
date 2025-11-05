@@ -18,6 +18,12 @@ import (
 
 var counter int
 
+type stdoutLogConsumer struct{}
+
+func (lc *stdoutLogConsumer) Accept(l testcontainers.Log) {
+	fmt.Print(string(l.Content))
+}
+
 type cluster struct {
 	nodeCount   int
 	networkName string
@@ -101,6 +107,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 		return nil, err
 	}
 
+	containerLogger := stdoutLogConsumer{}
 	image := fmt.Sprintf("semitechnologies/weaviate:%s", version)
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		Logger: log.Default(),
@@ -131,6 +138,12 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 			Mounts: testcontainers.Mounts(testcontainers.BindMount(
 				c.volumePath(nodeId), "/var/lib/weaviate",
 			)),
+			LogConsumerCfg: &testcontainers.LogConsumerConfig{
+				Opts: []testcontainers.LogProductionOption{
+					testcontainers.WithLogProductionTimeout(10 * time.Second),
+				},
+				Consumers: []testcontainers.LogConsumer{&containerLogger},
+			},
 			WaitingFor: wait.
 				ForHTTP("/v1/.well-known/ready").
 				WithPort(nat.Port("8080")).
