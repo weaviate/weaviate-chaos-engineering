@@ -931,7 +931,7 @@ jobs:
   upgrade-journey:
     name: Rolling updates in single-node setup from min to target version
     if: ${{ github.event.inputs.test_to_run == 'upgrade-journey' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-2
+    runs-on: ubicloud-standard-4
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -960,7 +960,7 @@ jobs:
   upgrade-journey-cluster:
     name: Rolling updates in multi-node setup from min to target version
     if: ${{ github.event.inputs.test_to_run == 'upgrade-journey-cluster' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-2
+    runs-on: ubicloud-standard-4
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
