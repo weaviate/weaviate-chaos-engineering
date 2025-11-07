@@ -215,6 +215,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./filter_memory_leak.sh
   lint:
@@ -926,6 +928,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./batch_import_many_classes.sh
   upgrade-journey:
@@ -937,7 +941,6 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.22.0
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
       - uses: actions/checkout@v5
@@ -955,7 +958,11 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: ./upgrade_journey.sh
   upgrade-journey-cluster:
     name: Rolling updates in multi-node setup from min to target version
@@ -966,7 +973,6 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       NUM_NODES: 3
       MINIMUM_WEAVIATE_VERSION: 1.22.0
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
       # - name: Polar Signals Continuous Profiling
@@ -983,11 +989,15 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: ./upgrade_journey.sh
-  replicated-imports-with-choas-killing:
+  replicated-imports-with-chaos-killing:
     name: Replicated imports with chaos killing
-    if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-choas-killing' || github.event.inputs.test_to_run == '' }}
+    if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-chaos-killing' || github.event.inputs.test_to_run == '' }}
     runs-on: ubicloud-standard-8
     timeout-minutes: 60
     env:
@@ -1004,6 +1014,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       #- name: Setup tmate session
       #uses: mxschmitt/action-tmate@v3
       - name: Run chaos test
@@ -1027,6 +1039,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./replication_importing_with_backup.sh
   replication-tunable-consistency:
@@ -1048,6 +1062,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./replication_tunable_consistency.sh
   counting-while-compacting:
@@ -1069,6 +1085,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./counting_while_compacting.sh
   compaction-and-cleanup:
@@ -1090,6 +1108,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./compaction_and_cleanup.sh
   segfault-on-batch-ref:
@@ -1111,6 +1131,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./segfault_batch_ref.sh
   import-with-kills:
@@ -1132,6 +1154,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./import_while_crashing.sh
   heavy-imports-crashing:
@@ -1153,6 +1177,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./import_while_crashing_no_vector.sh
   segfault-filtered-search:
@@ -1174,6 +1200,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./segfault_filtered_vector_search.sh
   backup-restore-crud:
@@ -1195,6 +1223,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_crud.sh
   backup-restore-crud-multi-node:
@@ -1216,6 +1246,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_multi_node_crud.sh
   backup-restore-version-compat:
@@ -1237,6 +1269,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_version_compatibility.sh
   compare-recall:
@@ -1258,6 +1292,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./compare_recall_after_restart.sh
   concurrent-read-write:
@@ -1279,6 +1315,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./concurrent_inverted_index_read_write.sh
   consecutive-create-update:
@@ -1300,6 +1338,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./consecutive_create_and_update_operations.sh
   batch-insert-mismatch:
@@ -1321,6 +1361,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./consecutive_create_and_update_operations.sh
   rest-patch-restart:
@@ -1342,6 +1384,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./rest_patch_stops_working_after_restart.sh
   delete-recreate-updates:
@@ -1363,6 +1407,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./delete_and_recreate_class.sh
   deletes-with_node-out-of-sync:
@@ -1380,6 +1426,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./deletes_with_node_out_of_sync.sh
   geo-crash:
@@ -1402,6 +1450,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./geo_crash.sh
   compaction-roaringset:
@@ -1423,6 +1473,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./compaction_roaringset.sh
   multi-node-references:
@@ -1444,6 +1496,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./multi_node_ref_imports.sh
   multi-tenancy-concurrent-imports:
@@ -1465,6 +1519,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./multi_tenancy_concurrent_importing.sh
   multi_tenancy_activate_deactivate_v1_24:
@@ -1487,6 +1543,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./multi_tenancy_activate_deactivate_v1_24.sh
   multi_tenancy_activate_deactivate:
@@ -1509,6 +1567,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./multi_tenancy_activate_deactivate.sh
   goroutine_leak_class_delete:
@@ -1530,6 +1590,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./goroutine_leak_on_class_delete.sh
   bm25_corruption:
@@ -1551,6 +1613,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./bm25_corruption.sh
   backup_and_flush:
@@ -1573,6 +1637,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_flush.sh
   backup_and_restore_out_of_sync:
@@ -1595,6 +1661,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_multi_node_out_of_sync.sh
   # Commented only because this chaos pipeline was able to interrupt save operation
@@ -1635,6 +1703,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./upgrade_single_node_journey.sh
   upgrade-journey-raft:
@@ -1663,6 +1733,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Install python dependencies
         run: |
           cd apps/upgrade-journey-raft
@@ -1789,6 +1861,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Install python dependencies
         run: |
           cd apps/upgrade-journey-raft
@@ -1927,6 +2001,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Install python dependencies
         run: |
           cd apps/upgrade-journey-raft
@@ -1992,6 +2068,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       # Get previous minor version for standard upgrade/downgrade
       # BEAWARE: This action sets up its own Python environment, so we need to install dependencies again.
       # Run it before installing dependencies.
@@ -2207,6 +2285,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./async_repair.sh
   update-stability:
@@ -2236,6 +2316,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./update_stability.sh
   debug-reindexing-endpoint-journey-tests:
@@ -2253,6 +2335,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2275,6 +2359,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2297,6 +2383,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2314,7 +2402,6 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       MINIMUM_WEAVIATE_VERSION: 1.25.0
       NUM_NODES: 1
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
       - name: Set up Go
@@ -2326,7 +2413,11 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: ./downgrade_journey_raft_schema.sh
   downgrade-journey-raft-schema-cluster:
     needs: [newer-or-equal-than-1_28]
@@ -2338,7 +2429,6 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       MINIMUM_WEAVIATE_VERSION: 1.25.0
       NUM_NODES: 3
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
       - name: Set up Go
@@ -2350,7 +2440,11 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: ./downgrade_journey_raft_schema.sh
 
   tombstones-cleanup-while-crash:
@@ -2368,6 +2462,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2391,6 +2487,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2414,6 +2512,8 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
