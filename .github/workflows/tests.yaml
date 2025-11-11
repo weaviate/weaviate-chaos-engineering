@@ -519,7 +519,7 @@ jobs:
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.999
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 20GB
+      BOOT_DISK_SIZE: 50GB
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -556,7 +556,7 @@ jobs:
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.992
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 20GB
+      BOOT_DISK_SIZE: 50GB
       QUANTIZATION: pq
     steps:
       - uses: actions/checkout@v5
@@ -596,7 +596,7 @@ jobs:
       DISTANCE: l2-squared
       REQUIRED_RECALL: 0.992
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 20GB
+      BOOT_DISK_SIZE: 50GB
       QUANTIZATION: rq
     steps:
       - uses: actions/checkout@v5
@@ -645,7 +645,7 @@ jobs:
       DISTANCE: dot
       REQUIRED_RECALL: 0.992
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 20GB
+      BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
     steps:
       - uses: actions/checkout@v5
@@ -684,7 +684,7 @@ jobs:
       DISTANCE: dot
       REQUIRED_RECALL: 0.99
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 40GB
+      BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
       QUANTIZATION: pq
     steps:
@@ -724,7 +724,7 @@ jobs:
       DISTANCE: dot
       REQUIRED_RECALL: 0.990
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 40GB
+      BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
       QUANTIZATION: sq
     steps:
@@ -764,7 +764,7 @@ jobs:
       DISTANCE: dot
       REQUIRED_RECALL: 0.95
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 40GB
+      BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
       QUANTIZATION: rq
     steps:
@@ -812,7 +812,7 @@ jobs:
       DISTANCE: dot
       REQUIRED_RECALL: 0.80
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 20GB
+      BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
@@ -868,7 +868,7 @@ jobs:
       DISTANCE: dot
       REQUIRED_RECALL: 0.80
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-      BOOT_DISK_SIZE: 20GB
+      BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
