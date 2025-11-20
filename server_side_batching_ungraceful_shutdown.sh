@@ -6,6 +6,11 @@ echo "Building all required containers"
 ( cd apps/server-side-batching-with-rolling-restart/ && docker build -t server_side_batching_with_rolling_restart . )
 ( cd apps/chaotic-killer/ && docker build -t killer . )
 
+export COMPOSE="apps/weaviate/docker-compose.yml"
+
+echo "Starting Weaviate..."
+docker compose -f $COMPOSE up -d
+
 wait_weaviate
 
 echo "Starting the chaos script to kill Weaviate periodically (in the background)"
