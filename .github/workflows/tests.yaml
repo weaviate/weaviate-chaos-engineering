@@ -2563,8 +2563,8 @@ jobs:
         run: ./server_side_batching_with_rolling_restart.sh
   server-side-batching-ungraceful-shutdown:
     needs: [newer-or-equal-than-1_34]
-    if: ${{ (needs.newer-or-equal-than-1_34.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
-    name: Check that server-side batching works when there is a rolling restart
+    if: ${{ (needs.newer-or-equal-than-1_34.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-ungraceful-shutdown' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that server-side batching works when the pods are being killed
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
