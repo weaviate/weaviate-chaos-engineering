@@ -2572,6 +2572,14 @@ jobs:
     name: Module conflicting vectorizer settings
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
+  server-side-batching-ungraceful-shutdown:
+    needs: [newer-or-equal-than-1_34]
+    if: ${{ (needs.newer-or-equal-than-1_34.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that server-side batching works when there is a rolling restart
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -2598,3 +2606,13 @@ jobs:
           path: |
             apps/module-conflicting-vectorizer-settings/logs/
             /tmp/weaviate*
+      - name: Spin-up 3 node cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Run chaos test
+        run: ./server_side_batching_ungraceful_shutdown.sh
