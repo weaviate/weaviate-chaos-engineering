@@ -15,6 +15,12 @@ docker compose -f $COMPOSE up -d
 
 wait_weaviate
 
+echo "Start the journey"
+container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart python3 run.py)
+
+echo "Wait a bit to let the import start"
+shuf -i 1-10 -n 1 | xargs sleep # wait a bit before performing rolling restart
+
 echo "Starting the chaos script to kill Weaviate periodically (in the background)"
 docker run \
   --network host \
@@ -24,12 +30,6 @@ docker run \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --name killer \
   killer
-
-echo "Start the journey"
-container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart python3 run.py)
-
-echo "Wait a bit to let the import start"
-shuf -i 1-10 -n 1 | xargs sleep # wait a bit before performing rolling restart
 
 echo "Following the logs of the journey"
 docker logs -f "$container_id"
