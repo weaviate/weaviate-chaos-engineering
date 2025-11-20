@@ -204,6 +204,20 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.33.0"
           operator: ">="
+  newer-or-equal-than-1_34:
+    name: "Check if the version is newer than 1.34"
+    needs: real-version-in-tag
+    runs-on: ubicloud-standard-2
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.2.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.34.0"
+          operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -2521,3 +2535,29 @@ jobs:
       - name: Run hnsw-snapshotting-while-crash chaos tests
         run: |
           ./hnsw_snapshotting_while_crash.sh
+  
+  server-side-batching-with-rolling-restart:
+    needs: [newer-or-equal-than-1_34]
+    if: ${{ (needs.newer-or-equal-than-1_34.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that server-side batching works when there is a rolling restart
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Spin-up 3 node cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Run chaos test
+        run: ./server_side_batching_with_rolling_restart.sh
