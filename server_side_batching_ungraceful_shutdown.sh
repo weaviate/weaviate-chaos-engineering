@@ -2,6 +2,8 @@
 
 set -e
 
+source common.sh
+
 echo "Building all required containers"
 ( cd apps/server-side-batching-with-rolling-restart/ && docker build -t server_side_batching_with_rolling_restart . )
 ( cd apps/chaotic-killer/ && docker build -t killer . )
