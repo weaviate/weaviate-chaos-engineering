@@ -655,7 +655,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl-50000
+      DATASET: lotte-recreation-reduced-vl-10000
       DISTANCE: dot
       REQUIRED_RECALL: 0.992
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -694,7 +694,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl-50000
+      DATASET: lotte-recreation-reduced-vl-10000
       DISTANCE: dot
       REQUIRED_RECALL: 0.99
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -734,7 +734,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl-50000
+      DATASET: lotte-recreation-reduced-vl-10000
       DISTANCE: dot
       REQUIRED_RECALL: 0.990
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -774,7 +774,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl-50000
+      DATASET: lotte-recreation-reduced-vl-10000
       DISTANCE: dot
       REQUIRED_RECALL: 0.95
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -822,7 +822,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl-50000
+      DATASET: lotte-recreation-reduced-vl-10000
       DISTANCE: dot
       REQUIRED_RECALL: 0.80
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -878,7 +878,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
-      DATASET: lotte-recreation-reduced-vl-50000
+      DATASET: lotte-recreation-reduced-vl-10000
       DISTANCE: dot
       REQUIRED_RECALL: 0.80
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
