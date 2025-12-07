@@ -1196,6 +1196,7 @@ jobs:
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      PERSISTENCE_MAX_REUSE_WAL_SIZE: 100  # make smaller so the amount of missing objects is smaller
     steps:
       - uses: actions/checkout@v5
       # - name: Polar Signals Continuous Profiling
