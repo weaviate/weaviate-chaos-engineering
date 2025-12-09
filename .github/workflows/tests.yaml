@@ -217,21 +217,7 @@ jobs:
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.34.0"
-          operator: ">="
-  newer-or-equal-than-1_35:
-    name: "Check if the version is newer or equal than 1.35"
-    needs: real-version-in-tag
-    runs-on: ubicloud-standard-2
-    outputs:
-      check: ${{ steps.semver_compare.outputs.result }}
-    steps:
-      - name: Semver Compare
-        id: semver_compare
-        uses: fabriziocacicia/semver-compare-action@v0.2.0
-        with:
-          first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.34.999"
-          operator: ">"
+          operator: ">="  
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -1776,7 +1762,7 @@ jobs:
       - name: Run chaos test
         run: ./upgrade_single_node_journey.sh
   upgrade-journey-raft:
-    needs: [newer-or-equal-than-1_25, older-than-1_30, newer-or-equal-than-1_35]
+    needs: [newer-or-equal-than-1_25, older-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ((needs.older-than-1_30.outputs.check == 'true')) && ( github.event.inputs.test_to_run == 'upgrade-journey-raft' || github.event.inputs.test_to_run == '')}}
     name: Upgrade to Raft journey e2e test
     runs-on: ubicloud-standard-2
@@ -1857,37 +1843,6 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_run.py
           python3 additional_checks.py
-      - name: Weaviate preview image - sync with schema V1
-        env:
-          IS_NEWER_OR_EQUAL_1_35: ${{ needs.newer-or-equal-than-1_35.outputs.check }}
-        run: |
-          if [ "$IS_NEWER_OR_EQUAL_1_35" = "true" ]; then
-            echo "Skipping schema-v1 synchronization (endpoint deprecated in v1.35+)"
-          else
-            if [ "$(curl -X POST -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
-              echo "Synchronization of schema V1 failed"
-              exit 1
-            else
-              echo "Schema V1 succesfully synchronized"
-            fi
-          fi
-      - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-        if: ${{ needs.newer-or-equal-than-1_35.outputs.check != 'true' }}
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'upgrade'
-          workers: '1'
-          replicas: '3'
-          weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
-          modules: 'text2vec-contextionary'
-          values-override: ${{env.VALUES_OVERRIDE}}
-          values-inline: '--set podManagementPolicy=OrderedReady'
-          delete-sts: 'true'
-      - name: Weaviate v1.24.x - check additional and old data
-        if: ${{ needs.newer-or-equal-than-1_35.outputs.check != 'true' }}
-        run: |
-          cd apps/upgrade-journey-raft
-          python3 additional_checks.py
       - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1911,7 +1866,7 @@ jobs:
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
   upgrade-journey-raft-1_30:
-    needs: [newer-or-equal-than-1_30, newer-or-equal-than-1_35]
+    needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-1_30' || github.event.inputs.test_to_run == '')}}
     name: Upgrade to Raft journey e2e test v1.30
     runs-on: ubicloud-standard-2
@@ -1992,37 +1947,6 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_run.py
-          python3 additional_checks.py
-      - name: Weaviate v1.29.0 image - sync with schema V1
-        env:
-          IS_NEWER_OR_EQUAL_1_35: ${{ needs.newer-or-equal-than-1_35.outputs.check }}
-        run: |
-          if [ "$IS_NEWER_OR_EQUAL_1_35" = "true" ]; then
-            echo "Skipping schema-v1 synchronization (endpoint deprecated in v1.35+)"
-          else
-            if [ "$(curl -X POST -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
-              echo "Synchronization of schema V1 failed"
-              exit 1
-            else
-              echo "Schema V1 succesfully synchronized"
-            fi
-          fi
-      - name: Weaviate v1.24.x - downgrade from Raft to none-raft version
-        if: ${{ needs.newer-or-equal-than-1_35.outputs.check != 'true' }}
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'upgrade'
-          workers: '1'
-          replicas: '3'
-          weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
-          modules: 'text2vec-contextionary'
-          values-override: ${{env.VALUES_OVERRIDE}}
-          values-inline: '--set podManagementPolicy=OrderedReady'
-          delete-sts: 'true'
-      - name: Weaviate v1.24.x - check additional and old data
-        if: ${{ needs.newer-or-equal-than-1_35.outputs.check != 'true' }}
-        run: |
-          cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from none-raft to Raft version
         uses: weaviate/weaviate-local-k8s@v2
@@ -2129,7 +2053,7 @@ jobs:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
           path: apps/upgrade-journey-raft/logs/
   rbac-upgrade-journey:
-    needs: [real-version-in-tag, newer-or-equal-than-1_30, newer-or-equal-than-1_35]
+    needs: [real-version-in-tag, newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
     name: RBAC upgrade journey e2e test
     runs-on: ubicloud-standard-2
@@ -2269,21 +2193,7 @@ jobs:
         run: |
           cd apps/rbac-upgrade-journey
           python3 additional_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-          python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
-      - name: Weaviate ${{ env.WEAVIATE_VERSION}} - sync with schema V1
-        env:
-          IS_NEWER_OR_EQUAL_1_35: ${{ needs.newer-or-equal-than-1_35.outputs.check }}
-        run: |
-          if [ "$IS_NEWER_OR_EQUAL_1_35" = "true" ]; then
-            echo "Skipping schema-v1 synchronization (endpoint deprecated in v1.35+)"
-          else
-            if [ "$(curl -X POST -H "Authorization: Bearer ${{ env.WEAVIATE_API_KEY}}" -s -o /dev/null -w "%{http_code}" localhost:8080/v1/cluster/schema-v1)" != "200" ]; then
-              echo "Synchronization of schema V1 failed"
-              exit 1
-            else
-              echo "Schema V1 succesfully synchronized"
-            fi
-          fi
+          python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}   
       - name: Weaviate ${{env.WEAVIATE_VERSION}} - create users and check that they exist
         run: |
           cd apps/rbac-upgrade-journey
