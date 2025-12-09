@@ -28,7 +28,7 @@ jobs:
   checkout:
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
   weaviate-version-information:
     runs-on: ubicloud-standard-2
     env:
@@ -62,7 +62,7 @@ jobs:
     if: always() && (cancelled() || failure())
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: 'gcs_auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v3'
