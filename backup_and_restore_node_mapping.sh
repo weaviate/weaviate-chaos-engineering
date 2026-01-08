@@ -4,11 +4,6 @@ source common.sh
 
 set -e
 
-echo "Cleaning data directories to remove old cluster state..."
-mkdir -p apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
-rm -rf apps/weaviate/data-node-1/* apps/weaviate/data-node-2/* apps/weaviate/data-node-3/* 2>/dev/null || true
-echo "Data directories cleaned. Starting fresh cluster with renamed nodes..."
-
 echo "Building all required containers"
 ( cd apps/backup_and_restore_node_mapping/ && docker build -t backup_and_restore_node_mapping \
   --build-arg backend="s3" --build-arg expected_shard_count=3 . )
@@ -58,9 +53,14 @@ echo "=== PHASE 2: Starting cluster with renamed nodes (new_node1, new_node2, ne
 echo "Starting Weaviate with renamed nodes..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
 
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+echo "Waiting for nodes to be ready (allowing time for cluster formation)..."
+wait_weaviate 8080 180
+wait_weaviate 8081 180
+wait_weaviate 8082 180
+
+# Give cluster additional time to fully form after all nodes are ready
+echo "Waiting for cluster to fully form..."
+sleep 10
 
 echo "Run restore phase with node mapping"
 docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_node_mapping python3 backup_and_restore_node_mapping.py restore
@@ -72,9 +72,14 @@ echo "=== PHASE 3: Restart cluster and verify data persists ==="
 echo "Starting cluster again to verify data persisted..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
 
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+echo "Waiting for nodes to be ready after restart..."
+wait_weaviate 8080 180
+wait_weaviate 8081 180
+wait_weaviate 8082 180
+
+# Give cluster additional time to fully form after all nodes are ready
+echo "Waiting for cluster to fully form..."
+sleep 10
 
 echo "Verify data still exists after restart (without restore)"
 docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_node_mapping python3 backup_and_restore_node_mapping.py verify
