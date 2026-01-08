@@ -32,25 +32,26 @@ docker compose -f $COMPOSE up create-s3-bucket
 echo "Run backup phase"
 docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_node_mapping python3 backup_and_restore_node_mapping.py backup
 
-echo "Stopping cluster with original node names..."
-docker compose -f $COMPOSE down --remove-orphans
-
+echo "Stopping and completely destroying cluster with original node names..."
+docker compose -f $COMPOSE down --remove-orphans --volumes
 
 
 # Clean data directories to remove old cluster state before starting with new node names
 # This is critical: the old cluster state (node1, node2, node3) conflicts with new names (new_node1, new_node2, new_node3)
 # The backup is stored in S3, so we can safely clean local data - restore will pull from S3
 echo "Cleaning data directories to remove old cluster state..."
+# Remove entire directories and recreate them to ensure complete cleanup (including hidden files)
+rm -rf apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
 mkdir -p apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
-rm -rf apps/weaviate/data-node-1/* apps/weaviate/data-node-2/* apps/weaviate/data-node-3/* 2>/dev/null || true
 
 # Verify data directories are empty
 echo "Verifying data directories are empty..."
 for node_dir in apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3; do
-    file_count=$(find "$node_dir" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)
+    file_count=$(find "$node_dir" -mindepth 1 2>/dev/null | wc -l)
     if [ "$file_count" -gt 0 ]; then
         echo "ERROR: $node_dir is not empty! Found $file_count items:"
         ls -la "$node_dir" | head -10
+        find "$node_dir" -mindepth 1 | head -10
         exit 1
     fi
 done
