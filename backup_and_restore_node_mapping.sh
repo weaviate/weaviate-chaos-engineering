@@ -35,8 +35,7 @@ docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_no
 echo "Stopping cluster with original node names..."
 docker compose -f $COMPOSE down --remove-orphans
 
-# Wait a moment to ensure containers are fully stopped
-sleep 3
+
 
 # Clean data directories to remove old cluster state before starting with new node names
 # This is critical: the old cluster state (node1, node2, node3) conflicts with new names (new_node1, new_node2, new_node3)
@@ -44,8 +43,22 @@ sleep 3
 echo "Cleaning data directories to remove old cluster state..."
 mkdir -p apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
 rm -rf apps/weaviate/data-node-1/* apps/weaviate/data-node-2/* apps/weaviate/data-node-3/* 2>/dev/null || true
-echo "Data directories cleaned. Starting fresh cluster with renamed nodes..."
 
+# Verify data directories are empty
+echo "Verifying data directories are empty..."
+for node_dir in apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3; do
+    file_count=$(find "$node_dir" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)
+    if [ "$file_count" -gt 0 ]; then
+        echo "ERROR: $node_dir is not empty! Found $file_count items:"
+        ls -la "$node_dir" | head -10
+        exit 1
+    fi
+done
+echo "Confirmed: All data directories are empty. Starting fresh cluster with renamed nodes..."
+
+
+# Wait a moment to ensure containers are fully stopped
+sleep 5
 # Phase 2: Start cluster with renamed nodes (new_node1, new_node2, new_node3)
 export COMPOSE="apps/weaviate/docker-compose-backup-3nodes-renamed.yml"
 
