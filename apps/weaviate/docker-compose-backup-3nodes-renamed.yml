@@ -2,6 +2,7 @@
 services:
   weaviate-node-1:
     init: true
+    hostname: new_node1
     command:
     - --host
     - 0.0.0.0
@@ -44,6 +45,7 @@ services:
 
   weaviate-node-2:
     init: true
+    hostname: new_node2
     command:
     - --host
     - 0.0.0.0
@@ -86,6 +88,7 @@ services:
 
   weaviate-node-3:
     init: true
+    hostname: new_node3
     command:
     - --host
     - 0.0.0.0
