@@ -41,7 +41,8 @@ docker compose -f $COMPOSE down --remove-orphans --volumes
 # The backup is stored in S3, so we can safely clean local data - restore will pull from S3
 echo "Cleaning data directories to remove old cluster state..."
 # Remove entire directories and recreate them to ensure complete cleanup (including hidden files)
-rm -rf apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
+# Use sudo because Docker containers create files with different ownership
+sudo rm -rf apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3 || rm -rf apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
 mkdir -p apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
 
 # Verify data directories are empty
