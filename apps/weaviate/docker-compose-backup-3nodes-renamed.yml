@@ -1,0 +1,162 @@
+---
+services:
+  weaviate-node-1:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_NODE_1_VERSION
+    ports:
+    - 8080:8080
+    - 6060:6060
+    - 50051:50051
+    restart: on-failure:0
+    volumes:
+      - "$PWD/apps/weaviate/data-node-1:/var/lib/weaviate"
+    environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
+      CLUSTER_HOSTNAME: 'new_node1'
+      CLUSTER_GOSSIP_BIND_PORT: '7100'
+      CLUSTER_DATA_BIND_PORT: '7101'
+      RAFT_JOIN: 'new_node1,new_node2,new_node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUP_S3_USE_SSL: 'false'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
+      PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
+      PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  weaviate-node-2:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_NODE_2_VERSION
+    ports:
+    - 8081:8080
+    - 6061:6060
+    - 50052:50051
+    restart: on-failure:0
+    volumes:
+      - "$PWD/apps/weaviate/data-node-2:/var/lib/weaviate"
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
+      CLUSTER_HOSTNAME: 'new_node2'
+      CLUSTER_GOSSIP_BIND_PORT: '7102'
+      CLUSTER_DATA_BIND_PORT: '7103'
+      CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'new_node1,new_node2,new_node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUP_S3_USE_SSL: 'false'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
+      PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
+      PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  weaviate-node-3:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:$WEAVIATE_NODE_3_VERSION
+    ports:
+    - 8082:8080
+    - 6062:6060
+    - 50053:50051
+    restart: on-failure:0
+    volumes:
+      - "$PWD/apps/weaviate/data-node-3:/var/lib/weaviate"
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
+      CLUSTER_HOSTNAME: 'new_node3'
+      CLUSTER_GOSSIP_BIND_PORT: '7104'
+      CLUSTER_DATA_BIND_PORT: '7105'
+      CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'new_node1,new_node2,new_node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      BACKUP_S3_ENDPOINT: 'backup-s3:9000'
+      BACKUP_S3_BUCKET: 'weaviate-backups'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUP_S3_USE_SSL: 'false'
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
+      PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
+      PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  backup-s3:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+    volumes:
+      - "$PWD/apps/weaviate/backups-s3:/data"
+    environment:
+      MINIO_ROOT_USER: 'aws_access_key'
+      MINIO_ROOT_PASSWORD: 'aws_secret_key'
+    command: server /data
+
+  create-s3-bucket:
+    image: minio/mc
+    depends_on:
+      - backup-s3
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
+      /usr/bin/mc mb chaos/weaviate-backups;
+      /usr/bin/mc policy set public chaos/weaviate-backups;
+      exit 0;
+      "
+
+  remove-s3-bucket:
+    image: minio/mc
+    depends_on:
+      - backup-s3
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
+      /usr/bin/mc rb --force chaos/weaviate-backups;
+      exit 0;
+      "
+

@@ -1,0 +1,86 @@
+#!/bin/bash
+
+source common.sh
+
+set -e
+
+echo "Cleaning data directories to remove old cluster state..."
+mkdir -p apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
+rm -rf apps/weaviate/data-node-1/* apps/weaviate/data-node-2/* apps/weaviate/data-node-3/* 2>/dev/null || true
+echo "Data directories cleaned. Starting fresh cluster with renamed nodes..."
+
+echo "Building all required containers"
+( cd apps/backup_and_restore_node_mapping/ && docker build -t backup_and_restore_node_mapping \
+  --build-arg backend="s3" --build-arg expected_shard_count=3 . )
+
+export WEAVIATE_NODE_1_VERSION=$WEAVIATE_VERSION
+export WEAVIATE_NODE_2_VERSION=$WEAVIATE_VERSION
+export WEAVIATE_NODE_3_VERSION=$WEAVIATE_VERSION
+
+# Generate backup name
+BACKUP_NAME="$(date +%s)_node_mapping_test"
+
+# Phase 1: Start cluster with original node names (node1, node2, node3)
+export COMPOSE="apps/weaviate/docker-compose-backup-3nodes.yml"
+
+echo "=== PHASE 1: Starting cluster with original node names (node1, node2, node3) ==="
+echo "Starting Weaviate..."
+docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
+
+wait_weaviate 8080
+wait_weaviate 8081
+wait_weaviate 8082
+
+echo "Creating S3 bucket..."
+docker compose -f $COMPOSE up create-s3-bucket
+
+echo "Run backup phase"
+docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_node_mapping python3 backup_and_restore_node_mapping.py backup
+
+echo "Stopping cluster with original node names..."
+docker compose -f $COMPOSE down --remove-orphans
+
+# Wait a moment to ensure containers are fully stopped
+sleep 3
+
+# Clean data directories to remove old cluster state before starting with new node names
+# This is critical: the old cluster state (node1, node2, node3) conflicts with new names (new_node1, new_node2, new_node3)
+# The backup is stored in S3, so we can safely clean local data - restore will pull from S3
+echo "Cleaning data directories to remove old cluster state..."
+mkdir -p apps/weaviate/data-node-1 apps/weaviate/data-node-2 apps/weaviate/data-node-3
+rm -rf apps/weaviate/data-node-1/* apps/weaviate/data-node-2/* apps/weaviate/data-node-3/* 2>/dev/null || true
+echo "Data directories cleaned. Starting fresh cluster with renamed nodes..."
+
+# Phase 2: Start cluster with renamed nodes (new_node1, new_node2, new_node3)
+export COMPOSE="apps/weaviate/docker-compose-backup-3nodes-renamed.yml"
+
+echo "=== PHASE 2: Starting cluster with renamed nodes (new_node1, new_node2, new_node3) ==="
+echo "Starting Weaviate with renamed nodes..."
+docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
+
+wait_weaviate 8080
+wait_weaviate 8081
+wait_weaviate 8082
+
+echo "Run restore phase with node mapping"
+docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_node_mapping python3 backup_and_restore_node_mapping.py restore
+
+echo "Stopping cluster with renamed nodes..."
+docker compose -f $COMPOSE down
+
+echo "=== PHASE 3: Restart cluster and verify data persists ==="
+echo "Starting cluster again to verify data persisted..."
+docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
+
+wait_weaviate 8080
+wait_weaviate 8081
+wait_weaviate 8082
+
+echo "Verify data still exists after restart (without restore)"
+docker run --network host -e BACKUP_NAME="$BACKUP_NAME" -t backup_and_restore_node_mapping python3 backup_and_restore_node_mapping.py verify
+
+echo "Stopping cluster..."
+docker compose -f $COMPOSE down
+
+echo "Passed!"
+shutdown
