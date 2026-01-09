@@ -1307,8 +1307,8 @@ jobs:
   backup-restore-node-mapping:
     name: Backup & Restore 3-node with node mapping
     runs-on: ubicloud-standard-4
-    if: ${{ github.event.inputs.test_to_run == 'backup-restore-node-mapping' || github.event.inputs.test_to_run == '' }}
-    timeout-minutes: 60
+    needs: [newer-or-equal-than-1_31]
+    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'backup-restore-node-mapping' || github.event.inputs.test_to_run == '') }}
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
