@@ -72,12 +72,18 @@ else
 fi
 
 # Restart dead nodes, read objects with consistency level ALL
+# With RAFT_BOOTSTRAP_EXPECT: 1, only node1 can bootstrap. Nodes 2 and 3 must join node1.
+# We verify node 2 is fully joined before starting node 3 to avoid split-brain scenarios
+# and ensure node1 isn't overloaded handling multiple joins simultaneously.
 docker compose -f $COMPOSE up -d  weaviate-node-2
 wait_weaviate 8081
-# sleep to avoid any races in joining the cluster
-sleep 3
+# Verify node 2 is actually HEALTHY in the cluster before starting node 3
+# This prevents node 3 from trying to join while node 2 is still syncing with node1
+wait_for_node_in_cluster 8080 node2 180
 docker compose -f $COMPOSE up -d  weaviate-node-3
 wait_weaviate 8082
+# Verify node 3 is also HEALTHY in the cluster
+wait_for_node_in_cluster 8080 node3 180
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_one_node_remaining -t cluster_one_node_remaining; then
   echo "All objects read with consistency level ALL after weaviate-node-2 and weaviate-node-3 restarted".
 else

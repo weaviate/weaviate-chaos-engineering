@@ -64,6 +64,37 @@ function wait_weaviate() {
   exit 1
 }
 
+function wait_for_node_in_cluster() {
+  local query_port="${1:-8080}" # Port to query cluster status from (usually node1)
+  local node_name="${2}" # Name of the node to check (e.g., "node2")
+  local timeout="${3:-180}" # Set default timeout to 180 seconds if $3 is not provided
+  
+  if [ -z "$node_name" ]; then
+    echo "ERROR: wait_for_node_in_cluster requires a node name"
+    exit 1
+  fi
+  
+  echo "Wait for node $node_name to appear in cluster (checking via port $query_port)"
+  for ((i=1; i<=timeout; i++)); do
+    response=$(curl -sf "localhost:$query_port/v1/nodes" 2>/dev/null)
+    if [ $? -eq 0 ]; then
+      # Check if node exists in cluster and is HEALTHY
+      node_status=$(echo "$response" | jq -r ".nodes[]? | select(.name == \"$node_name\") | .status" 2>/dev/null)
+      if [ "$node_status" == "HEALTHY" ]; then
+        echo "Node $node_name is HEALTHY in cluster"
+        return 0
+      elif [ -n "$node_status" ]; then
+        echo "Node $node_name found with status: $node_status, waiting for HEALTHY..."
+      fi
+    fi
+    
+    echo "Node $node_name not yet in cluster or not HEALTHY, trying again in 1s"
+    sleep 1
+  done
+  echo "ERROR: Node $node_name did not become HEALTHY in cluster after ${timeout}s"
+  exit 1
+}
+
 function shutdown() { 
   echo "Cleaning up resources..."  
   container_count=$(docker container ls -aq | wc -l)
