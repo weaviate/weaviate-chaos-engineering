@@ -1077,7 +1077,7 @@ jobs:
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
     if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-backup' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-4
+    runs-on: ubicloud-standard-8
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
