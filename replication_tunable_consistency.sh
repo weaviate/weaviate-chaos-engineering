@@ -13,7 +13,7 @@ echo "Building all required containers"
 ( cd apps/replication_tunable_consistency/ && docker build --build-arg APP_NAME=cluster_one_node_down -t cluster_one_node_down . )
 ( cd apps/replication_tunable_consistency/ && docker build --build-arg APP_NAME=cluster_one_node_remaining -t cluster_one_node_remaining . )
 
-rm -rf workdir
+sudo rm -rf workdir || true
 mkdir workdir
 touch workdir/data.json
 

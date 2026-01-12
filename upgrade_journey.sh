@@ -6,7 +6,7 @@ set -eou pipefail
   cd apps/upgrade-journey/
 
   # remove any potential leftover data from previous runs
-  rm -rf data
+  sudo rm -rf data || true
 
   go run .
 )

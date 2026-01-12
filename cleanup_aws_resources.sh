@@ -71,6 +71,6 @@ if [ -f ".cleanup_info/group_id" ]; then
 fi
 
 # Clean up info files
-rm -rf .cleanup_info
+sudo rm -rf .cleanup_info || true
 
 echo "AWS cleanup completed" 

@@ -20,7 +20,7 @@ function shutdown() {
   echo "Cleaning up resources..."
   popd || true
   docker compose -f apps/debug-reindexing-endpoint/docker-compose.yml down --remove-orphans
-  rm -rf apps/weaviate/data* || true
+  sudo rm -rf apps/weaviate/data* || true
 }
 trap 'shutdown; exit 1' SIGINT ERR
 
