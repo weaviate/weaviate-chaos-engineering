@@ -2565,3 +2565,36 @@ jobs:
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
+
+  module-conflicting-vectorizer-settings:
+    needs: [newer-or-equal-than-1_33]
+    if: ${{ (needs.newer-or-equal-than-1_33.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'module-conflicting-vectorizer-settings' || github.event.inputs.test_to_run == '')}}
+    name: Module conflicting vectorizer settings
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+      - name: Module conflicting vectorizer settings tests
+        env:
+          WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+        run: |
+          cd apps/module-conflicting-vectorizer-settings
+          bash ./test.sh
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: module-conflicting-vectorizer-settings-${{ inputs.lsm_access_strategy }}-logs
+          path: |
+            apps/module-conflicting-vectorizer-settings/logs/
+            /tmp/weaviate*
