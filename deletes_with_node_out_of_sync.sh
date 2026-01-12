@@ -14,7 +14,7 @@ echo "Building all required containers"
 ( cd apps/deletes_with_node_out_of_sync/ && docker build --build-arg APP_NAME=check_objects_in_nodes -t check_objects_in_nodes . )
 ( cd apps/deletes_with_node_out_of_sync/ && docker build --build-arg APP_NAME=check_objects_deleted -t check_objects_deleted . )
 
-rm -rf workdir
+sudo rm -rf workdir || true
 mkdir workdir
 touch workdir/data.json
 

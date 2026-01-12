@@ -8,7 +8,7 @@ echo "Building all required containers"
 ( cd apps/recall/ && docker build -t recall . )
 ( cd apps/recall-check/ && docker build -t recall-checker . )
 
-rm -rf workdir
+sudo rm -rf workdir || true
 mkdir workdir
 touch workdir/data.json
 

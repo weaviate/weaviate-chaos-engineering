@@ -75,8 +75,8 @@ function shutdown() {
 
   docker compose -f "$COMPOSE" down --remove-orphans
   
-  rm -rf apps/weaviate/data* || true    
-  rm -rf workdir
+  sudo rm -rf apps/weaviate/data* || true    
+  sudo rm -rf workdir || true
 }
 
 trap 'logs; report_container_state; shutdown; exit 1' SIGINT ERR

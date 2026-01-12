@@ -12,7 +12,7 @@ echo "Building all required containers"
 ( cd apps/async_repair/ && docker build --build-arg APP_NAME=cluster_async_repair -t cluster_async_repair . )
 
 
-rm -rf workdir
+sudo rm -rf workdir || true
 mkdir workdir
 touch workdir/data.json
 

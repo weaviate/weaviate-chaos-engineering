@@ -30,8 +30,8 @@ echo "Building all required containers"
 ( cd apps/upgrade-single-node/ && docker build --build-arg APP_NAME=importer -t importer . )
 ( cd apps/upgrade-single-node/ && docker build --build-arg APP_NAME=importer_additional -t importer_additional . )
 
-rm -rf apps/weaviate/data* || true  
-rm -rf workdir
+sudo rm -rf apps/weaviate/data* || true  
+sudo rm -rf workdir || true
 mkdir workdir
 touch workdir/data.json
 
