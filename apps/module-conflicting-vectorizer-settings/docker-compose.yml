@@ -1,0 +1,111 @@
+---
+services:
+  weaviate-0:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    - --write-timeout=600s
+    - --read-timeout=600s
+    image: semitechnologies/weaviate:$WEAVIATE_TEST_VERSION
+    ports:
+    - 8080:8080
+    - 50051:50051
+    volumes:
+    - ./data/weaviate-0:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      MODULES_CLIENT_TIMEOUT: '600s'
+      CLUSTER_HOSTNAME: "weaviate-0"
+      CLUSTER_GOSSIP_BIND_PORT: "7110"
+      CLUSTER_DATA_BIND_PORT: "7111"
+      RAFT_PORT: "8300"
+      RAFT_INTERNAL_RPC_PORT: "8301"
+      RAFT_BOOTSTRAP_EXPECT: "1"
+      RAFT_JOIN: "weaviate-0:8300,weaviate-1:8300,weaviate-2:8300"
+      PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS: 1
+      ENABLE_API_BASED_MODULES: "true"
+      ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,text2vec-weaviate,text2vec-jinaai,text2vec-voyageai,text2vec-jinaai,text2vec-weaviate"
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+  weaviate-1:
+    init: true
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+      - --write-timeout=600s
+      - --read-timeout=600s
+    image: semitechnologies/weaviate:$WEAVIATE_TEST_VERSION
+    ports:
+      - 8081:8080
+      - 50052:50051
+    volumes:
+      - ./data/weaviate-1:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      CONTEXTIONARY_URL: contextionary:9999
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: "weaviate-1"
+      CLUSTER_GOSSIP_BIND_PORT: '7112'
+      CLUSTER_DATA_BIND_PORT: '7113'
+      CLUSTER_JOIN: 'weaviate-0:7110'
+      RAFT_PORT: "8300"
+      RAFT_INTERNAL_RPC_PORT: "8301"
+      RAFT_BOOTSTRAP_EXPECT: "1"
+      RAFT_JOIN: "weaviate-0:8300,weaviate-1:8300,weaviate-2:8300"
+      PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS: 1
+      ENABLE_API_BASED_MODULES: "true"
+      ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,text2vec-weaviate,text2vec-jinaai,text2vec-voyageai,text2vec-jinaai,text2vec-weaviate"
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+  weaviate-2:
+    init: true
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+      - --write-timeout=600s
+      - --read-timeout=600s
+    image: semitechnologies/weaviate:$WEAVIATE_TEST_VERSION
+    ports:
+      - 8082:8080
+      - 50053:50051
+    volumes:
+      - ./data/weaviate-2:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      CONTEXTIONARY_URL: contextionary:9999
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 20
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      CLUSTER_HOSTNAME: "weaviate-2"
+      CLUSTER_GOSSIP_BIND_PORT: '7112'
+      CLUSTER_DATA_BIND_PORT: '7113'
+      CLUSTER_JOIN: 'weaviate-0:7110'
+      RAFT_PORT: "8300"
+      RAFT_INTERNAL_RPC_PORT: "8301"
+      RAFT_BOOTSTRAP_EXPECT: "1"
+      RAFT_JOIN: "weaviate-0:8300,weaviate-1:8300,weaviate-2:8300"
+      PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS: 1
+      ENABLE_API_BASED_MODULES: "true"
+      ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,text2vec-weaviate,text2vec-jinaai,text2vec-voyageai,text2vec-jinaai,text2vec-weaviate"
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+...
