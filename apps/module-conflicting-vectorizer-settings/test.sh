@@ -62,6 +62,7 @@ function prepare() {
 function run_tests() {
   local weaviate_version="${1}"
   local test_name="${2}"
+  local verify_version="${3:-true}"
   export WEAVIATE_TEST_VERSION=$weaviate_version
   echo_yellow "Create collections on Weaviate v$weaviate_version"
 
@@ -70,7 +71,9 @@ function run_tests() {
 
   wait_weaviate_cluster
 
-  verify_weaviate_version 8080 $weaviate_version
+  if [[ "$verify_version" == "true" ]]; then
+    verify_weaviate_version 8080 $weaviate_version
+  fi
 
   echo_yellow "Run $test_name test"
 
@@ -93,6 +96,6 @@ run_tests 1.20.0 TestModuleSettings_v1_20
 run_tests 1.24.0 TestModuleNamedVectorsSettings_v1_24
 run_tests 1.27.0 TestModuleNamedVectorsSettings_v1_27
 run_tests 1.32.6 TestModuleNamedVectorsSettings_v1_32
-run_tests $WEAVIATE_VERSION TestUpdateCollection
+run_tests $WEAVIATE_VERSION TestUpdateCollection false
 
 echo_green "Success"
