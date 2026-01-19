@@ -12,6 +12,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUPS_MAX_SIZE_CHUNK_IN_MB: '50'
     depends_on:
       - backup-s3
 
@@ -27,6 +28,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUPS_MAX_SIZE_CHUNK_IN_MB: '50'
     depends_on:
       - backup-s3
 
@@ -42,6 +44,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
+      BACKUPS_MAX_SIZE_CHUNK_IN_MB: '50'
     depends_on:
       - backup-s3
 
