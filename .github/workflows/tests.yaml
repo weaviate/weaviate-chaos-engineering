@@ -237,7 +237,7 @@ jobs:
     runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v5
-      - uses: psf/black@stable
+      - uses: psf/black@26.1.0
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
     if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-sift-aws' || github.event.inputs.test_to_run == '' }}

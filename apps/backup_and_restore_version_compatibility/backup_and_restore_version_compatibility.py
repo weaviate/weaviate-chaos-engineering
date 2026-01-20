@@ -9,7 +9,6 @@ import uuid
 from loguru import logger
 from typing import Optional
 
-
 num_objects = 1000
 
 

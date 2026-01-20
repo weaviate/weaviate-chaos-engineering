@@ -5,7 +5,6 @@ import pandas as pd
 import os, glob
 import json
 
-
 datapoints = []
 
 path = "./results"
