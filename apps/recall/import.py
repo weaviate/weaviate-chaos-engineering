@@ -7,7 +7,6 @@ import weaviate
 import math
 from uuid import uuid4
 
-
 BATCH_SIZE = 256
 
 client = weaviate.Client(

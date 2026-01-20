@@ -8,7 +8,6 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from weaviate.classes.query import MetadataQuery
 from graphql_aggregate import graphql_grpc_aggregate
 
-
 number_of_tenants = 300
 additional_number_of_tenants = 100
 
