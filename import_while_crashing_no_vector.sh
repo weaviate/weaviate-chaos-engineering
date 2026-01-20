@@ -27,16 +27,31 @@ docker run \
   --name killer \
   killer
 
+ORIGIN="http://localhost:8080"
 echo "Run import script in foreground..."
 if ! docker run \
   -e 'SHARDS=1' \
   -e "SIZE=$SIZE" \
   -e 'BATCH_SIZE=128' \
-  -e 'ORIGIN=http://localhost:8080' \
+  -e "ORIGIN=$ORIGIN" \
   --network host \
   -t importer-no-vector; then
-  echo "Importer failed, printing latest Weaviate logs..."  
-    exit 1
+  echo "Importer failed, printing debug data..."
+  echo "-------------------------------------------------------"
+  echo "Get /v1/.well-known/ready response"
+  curl -w "Response code: %{http_code}\n" $ORIGIN/v1/.well-known/ready
+  echo "-------------------------------------------------------"
+  echo "Get /v1/nodes?output=verbose response"
+  curl $ORIGIN/v1/nodes?output=verbose
+  echo "-------------------------------------------------------"
+  echo "Get /v1/cluster/statistics response"
+  curl $ORIGIN/v1/cluster/statistics
+  echo "-------------------------------------------------------"
+  echo "Run docker compose -f $COMPOSE ps"
+  docker compose -f $COMPOSE ps
+  echo "-------------------------------------------------------"
+  echo "Showing latest Weaviate logs..."
+  exit 1
 fi
 
 echo "Import completed successfully, stop killer"
@@ -67,7 +82,7 @@ done
 
 if [ $attempt -gt $retries ]; then
   echo "Failed to validate object count after $retries attempts"
-    exit 1
+  exit 1
 fi
 
 echo "Passed!"
