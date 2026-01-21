@@ -2594,7 +2594,7 @@ jobs:
           path: |
             apps/module-conflicting-vectorizer-settings/logs/
             /tmp/weaviate*
-            
+
   server-side-batching-ungraceful-shutdown:
     needs: [newer-or-equal-than-1_34]
     if: ${{ (needs.newer-or-equal-than-1_34.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-ungraceful-shutdown' || github.event.inputs.test_to_run == '' ) }}
@@ -2610,13 +2610,13 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      - name: Spin-up 3 node cluster
-        uses: weaviate/weaviate-local-k8s@v2
-        with:
-          operation: 'setup'
-          workers: '1'
-          replicas: '3'
-          weaviate-version: ${{env.WEAVIATE_VERSION}}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      # - name: Spin-up 3 node cluster
+      #   uses: weaviate/weaviate-local-k8s@v2
+      #   with:
+      #     operation: 'setup'
+      #     workers: '1'
+      #     replicas: '3'
+      #     weaviate-version: ${{env.WEAVIATE_VERSION}}
+      #     values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Run chaos test
         run: ./server_side_batching_ungraceful_shutdown.sh
