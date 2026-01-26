@@ -223,7 +223,7 @@ jobs:
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -236,7 +236,7 @@ jobs:
   lint:
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: psf/black@26.1.0
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
@@ -251,7 +251,7 @@ jobs:
       REQUIRED_RECALL: 0.999
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -289,7 +289,7 @@ jobs:
       REQUIRED_RECALL: 0.965
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -328,7 +328,7 @@ jobs:
       QUANTIZATION: pq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -368,7 +368,7 @@ jobs:
       QUANTIZATION: sq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -407,7 +407,7 @@ jobs:
       QUANTIZATION: pq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -447,7 +447,7 @@ jobs:
       QUANTIZATION: sq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -488,7 +488,7 @@ jobs:
       QUANTIZATION: rq
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -535,7 +535,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       BOOT_DISK_SIZE: 50GB
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -573,7 +573,7 @@ jobs:
       BOOT_DISK_SIZE: 50GB
       QUANTIZATION: pq
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -613,7 +613,7 @@ jobs:
       BOOT_DISK_SIZE: 50GB
       QUANTIZATION: rq
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -662,7 +662,7 @@ jobs:
       BOOT_DISK_SIZE: 50GB
       MULTIVECTOR_DATASET: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -702,7 +702,7 @@ jobs:
       MULTIVECTOR_DATASET: true
       QUANTIZATION: pq
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -742,7 +742,7 @@ jobs:
       MULTIVECTOR_DATASET: true
       QUANTIZATION: sq
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -782,7 +782,7 @@ jobs:
       MULTIVECTOR_DATASET: true
       QUANTIZATION: rq
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -830,7 +830,7 @@ jobs:
       MULTIVECTOR_DATASET: true
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -881,7 +881,7 @@ jobs:
       MULTIVECTOR_DATASET: true
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -926,7 +926,7 @@ jobs:
       MULTIVECTOR_DATASET: true
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -971,7 +971,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -997,7 +997,7 @@ jobs:
       MINIMUM_WEAVIATE_VERSION: 1.22.0
       ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1028,7 +1028,7 @@ jobs:
       NUM_NODES: 3
       MINIMUM_WEAVIATE_VERSION: 1.22.0
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1057,7 +1057,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1082,7 +1082,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1105,7 +1105,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1128,7 +1128,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1151,7 +1151,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1174,7 +1174,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1197,7 +1197,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1220,7 +1220,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1243,7 +1243,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1266,7 +1266,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1289,7 +1289,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1312,7 +1312,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1330,7 +1330,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1353,7 +1353,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1376,7 +1376,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1399,7 +1399,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1422,7 +1422,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1445,7 +1445,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1468,7 +1468,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1492,7 +1492,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1511,7 +1511,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       ASYNC_INDEXING: 'false' # This test is not compatible with async indexing
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1534,7 +1534,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1557,7 +1557,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1580,7 +1580,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1604,7 +1604,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1628,7 +1628,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1651,7 +1651,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1674,7 +1674,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1698,7 +1698,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1722,7 +1722,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1746,7 +1746,7 @@ jobs:
   #   name: Compare REST and GraphQL while crashing
   #   runs-on: ubicloud-standard-4
   #   steps:
-  #     - uses: actions/checkout@v5
+  #     - uses: actions/checkout@v6
   #     - name: Login to Docker Hub
   #       uses: docker/login-action@v3
   #       with:
@@ -1765,7 +1765,7 @@ jobs:
       NUM_NODES: 1
       MINIMUM_WEAVIATE_VERSION: 1.25.0
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -1799,7 +1799,7 @@ jobs:
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ASYNC_INDEXING: false
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1877,7 +1877,7 @@ jobs:
           python3 additional_checks.py
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
           path: |
@@ -1904,7 +1904,7 @@ jobs:
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ASYNC_INDEXING: false
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1995,7 +1995,7 @@ jobs:
           python3 additional_checks.py
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: upgrade-journey-raft-${{ inputs.lsm_access_strategy }}-logs
           path: |
@@ -2021,7 +2021,7 @@ jobs:
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ASYNC_INDEXING: false
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2066,7 +2066,7 @@ jobs:
           ./scripts/metadata_only_voters_check.sh
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
           path: apps/upgrade-journey-raft/logs/
@@ -2088,7 +2088,7 @@ jobs:
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2276,7 +2276,7 @@ jobs:
           python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rbac-upgrade-journey-${{ inputs.lsm_access_strategy }}-logs
           path: |
@@ -2292,7 +2292,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -2323,7 +2323,7 @@ jobs:
       UPDATE_ITERATIONS: "10"
       REQUIRED_RECALL: "0.992"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -2347,7 +2347,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2371,7 +2371,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2395,7 +2395,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2421,7 +2421,7 @@ jobs:
       MINIMUM_WEAVIATE_VERSION: 1.25.0
       NUM_NODES: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2448,7 +2448,7 @@ jobs:
       MINIMUM_WEAVIATE_VERSION: 1.25.0
       NUM_NODES: 3
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2474,7 +2474,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2499,7 +2499,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2524,7 +2524,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2549,7 +2549,7 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2573,7 +2573,7 @@ jobs:
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2592,7 +2592,7 @@ jobs:
           bash ./test.sh
       - name: Archive logs
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: module-conflicting-vectorizer-settings-${{ inputs.lsm_access_strategy }}-logs
           path: |
