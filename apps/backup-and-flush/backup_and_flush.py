@@ -18,14 +18,33 @@ def other_classes(all_classes, self):
 def reset_schema(client: weaviate.Client, class_names):
     client.schema.delete_all()
     for class_name in class_names:
-        class_obj = {
-            "vectorizer": "none",
-            "vectorIndexConfig": {
+        index_type = os.environ.get("INDEX_TYPE", "hnsw").lower()
+        if index_type == "hfresh":
+            vector_index_config = {
+                "distance": "cosine",
+                "maxPostingSizeKB": 48,
+                "replicas": 4,
+                "rq": {
+                    "bits": 1,
+                    "enabled": True,
+                    "rescoreLimit": 350
+                },
+                "searchProbe": 64
+            }
+            index_type = "hfresh"
+        else:
+            vector_index_config = {
                 "efConstruction": 128,
                 "maxConnections": 16,
                 "ef": 256,
                 "cleanupIntervalSeconds": 10,
-            },
+            }
+            index_type = "hnsw"
+
+        class_obj = {
+            "vectorizer": "none",
+            "vectorIndexType": index_type,
+            "vectorIndexConfig": vector_index_config,
             "class": class_name,
             "invertedIndexConfig": {
                 "indexTimestamps": False,

@@ -1097,6 +1097,12 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./replication_importing_with_backup.sh
+        env:
+          INDEX_TYPE: hnsw
+      - name: Run chaos test with HFRESH
+        run: ./replication_importing_with_backup.sh
+        env:
+          INDEX_TYPE: hfresh
   replication-tunable-consistency:
     name: Replication tunable consistency
     if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
@@ -1281,6 +1287,8 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_crud.sh
+      - name: Run chaos test with HFRESH
+        run: ./backup_and_restore_crud_hfresh.sh
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
     runs-on: ubicloud-standard-4
@@ -1711,8 +1719,10 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
-      - name: Run chaos test
+      - name: Run chaos test with HNSW
         run: ./backup_and_flush.sh
+      - name: Run chaos test with HFRESH
+        run: ./backup_and_flush_hfresh.sh
   backup_and_restore_out_of_sync:
     # https://github.com/weaviate/weaviate/pull/4541
     name: Test that restoring a backup without data presence ensures schema consistency across nodes

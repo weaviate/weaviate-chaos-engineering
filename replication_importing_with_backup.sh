@@ -9,6 +9,7 @@ function compose_exit_code() {
 }
 
 export COMPOSE="apps/replicated_import_with_backup/docker-compose.yml"
+export INDEX_TYPE="hfresh"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d \
