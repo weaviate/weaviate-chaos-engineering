@@ -13,7 +13,8 @@ import_error_count = 0
 
 def reset_schema(client: weaviate.Client, repl_factor: int):
     client.schema.delete_all()
-    index_type = os.environ.get("INDEX_TYPE", "hnsw").lower()
+    index_type = os.environ.get("INDEX_TYPE", "hfresh").lower()
+    logger.info(f"Index type: {index_type}")
     if index_type == "hfresh":
         vector_index_config = {
             "distance": "cosine",
