@@ -50,10 +50,21 @@ echo "Validate the count is correct"
 attempt=1
 retries=3
 while [ $attempt -le $retries ]; do
-  object_count=$(curl -s 'localhost:8080/v1/graphql' -X POST \
+  response=$(curl -s 'localhost:8080/v1/graphql' -X POST \
     -H 'content-type: application/json' \
-    -d '{"query":"{Aggregate{DemoClass{meta{count}}}}"}' | \
-    jq '.data.Aggregate.DemoClass[0].meta.count')
+    -d '{"query":"{Aggregate{DemoClass{meta{count}}}}"}')
+  object_count=$(echo "$response" | jq '.data.Aggregate.DemoClass[0].meta.count')
+
+  # Check for null response which indicates schema/shard loading failure
+  if [ "$object_count" = "null" ]; then
+    echo "Got null response, checking Weaviate logs for errors..."
+    docker compose -f apps/weaviate/docker-compose.yml logs weaviate --tail=100
+    echo "Full GraphQL response: $response"
+    echo "Retrying in 5 seconds..."
+    sleep 5
+    attempt=$((attempt + 1))
+    continue
+  fi
 
   if [ "$object_count" -ge "$SIZE" ]; then
     echo "Object count is correct"
@@ -68,6 +79,8 @@ done
 
 if [ $attempt -gt $retries ]; then
   echo "Failed to validate object count after $retries attempts"
+  echo "Dumping final Weaviate logs for debugging..."
+  docker compose -f apps/weaviate/docker-compose.yml logs weaviate --tail=200
   exit 1
 fi
 

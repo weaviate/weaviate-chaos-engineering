@@ -64,8 +64,8 @@ function wait_weaviate() {
   exit 1
 }
 
-function shutdown() { 
-  echo "Cleaning up resources..."  
+function shutdown() {
+  echo "Cleaning up resources..."
   container_count=$(docker container ls -aq | wc -l)
   if [ "$container_count" -gt 0 ]; then
     # Place the command you want to execute here
@@ -74,9 +74,10 @@ function shutdown() {
   fi
 
   docker compose -f "$COMPOSE" down --remove-orphans
-  
-  sudo rm -rf apps/weaviate/data* || true    
-  sudo rm -rf workdir || true
+
+  # Try without sudo first, fall back to sudo if needed
+  rm -rf apps/weaviate/data* 2>/dev/null || sudo rm -rf apps/weaviate/data* || true
+  rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
 }
 
 trap 'logs; report_container_state; shutdown; exit 1' SIGINT ERR

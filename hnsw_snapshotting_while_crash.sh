@@ -98,9 +98,10 @@ validate_object_count() {
 wait_for_hnsw_snapshot() {
     local retries=150
     local attempt=1
-    
+
     while [ $attempt -le $retries ]; do
-        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "create_snapshot" | grep "started"; then
+        # Support both legacy "create_snapshot" + "started" and compactv2 "hnsw_compactor_snapshot" patterns
+        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep -E "(create_snapshot.*started|hnsw_compactor_snapshot)"; then
             echo "hnsw snapshot detected"
             return 0
         fi

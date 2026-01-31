@@ -68,9 +68,10 @@ validate_object_count() {
 wait_for_condensing() {
     local retries=150
     local attempt=1
-    
+
     while [ $attempt -le $retries ]; do
-        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "start hnsw condensing"; then
+        # Support both legacy "start hnsw condensing" and compactv2 log patterns
+        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep -E "start hnsw condensing|hnsw_compactor_convert|hnsw_compactor_merge"; then
             echo "Condensing begin detected"
             return 0
         fi
