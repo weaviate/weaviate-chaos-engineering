@@ -11,7 +11,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run expensive import in the background"
 docker run -d --network host -t batch_import_many_classes python3 expensive_batches.py

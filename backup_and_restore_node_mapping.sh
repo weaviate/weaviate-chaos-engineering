@@ -22,9 +22,9 @@ echo "=== PHASE 1: Starting cluster with original node names (node1, node2, node
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
 
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+wait_weaviate 8080 120 weaviate-node-1
+wait_weaviate 8081 120 weaviate-node-2
+wait_weaviate 8082 120 weaviate-node-3
 
 echo "Creating S3 bucket..."
 docker compose -f $COMPOSE up create-s3-bucket
@@ -69,9 +69,9 @@ echo "Starting Weaviate with renamed nodes..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
 
 echo "Waiting for nodes to be ready (allowing time for cluster formation)..."
-wait_weaviate 8080 180
-wait_weaviate 8081 180
-wait_weaviate 8082 180
+wait_weaviate 8080 180 weaviate-node-1
+wait_weaviate 8081 180 weaviate-node-2
+wait_weaviate 8082 180 weaviate-node-3
 
 # Give cluster additional time to fully form after all nodes are ready
 echo "Waiting for cluster to fully form..."
@@ -88,9 +88,9 @@ echo "Starting cluster again to verify data persisted..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3 backup-s3
 
 echo "Waiting for nodes to be ready after restart..."
-wait_weaviate 8080 180
-wait_weaviate 8081 180
-wait_weaviate 8082 180
+wait_weaviate 8080 180 weaviate-node-1
+wait_weaviate 8081 180 weaviate-node-2
+wait_weaviate 8082 180 weaviate-node-3
 
 # Give cluster additional time to fully form after all nodes are ready
 echo "Waiting for cluster to fully form..."

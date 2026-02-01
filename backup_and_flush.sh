@@ -11,7 +11,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Perform a backup and verify that flushing is restablished after the backup is finished."
 docker run --network host -v ./apps/weaviate/data:/data -t backup_and_flush python3 backup_and_flush.py

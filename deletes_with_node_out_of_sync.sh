@@ -28,9 +28,9 @@ export COMPOSE="apps/weaviate/docker-compose-replication_single_voter.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+wait_weaviate 8080 120 weaviate-node-1
+wait_weaviate 8081 120 weaviate-node-2
+wait_weaviate 8082 120 weaviate-node-3
 
 # Import tenant1 objects with consistency level ALL
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer -t importer
@@ -54,7 +54,7 @@ docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name 
 # Restart dead node, read objects from Node 3 with consistency level ONE
 echo "Restart node 3"
 docker compose -f $COMPOSE up -d weaviate-node-3
-wait_weaviate 8082
+wait_weaviate 8082 120 weaviate-node-3
 
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name check_objects_in_nodes -t check_objects_in_nodes; then
   echo "tenant2 objects are present in Node 1 but not in Node 3, as it was down."

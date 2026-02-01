@@ -10,9 +10,9 @@ export COMPOSE="apps/weaviate/docker-compose-replication.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+wait_weaviate 8080 120 weaviate-node-1
+wait_weaviate 8081 120 weaviate-node-2
+wait_weaviate 8082 120 weaviate-node-3
 
 echo "Run importer scripts in the background"
 docker compose -f apps/multi-tenancy-concurrent-imports/docker-compose-importers.yml up schema-resetter

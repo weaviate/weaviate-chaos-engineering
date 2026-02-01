@@ -11,7 +11,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run backup and restore CRUD operations"
 docker run --network host -t backup_and_restore_crud python3 backup_and_restore_crud.py

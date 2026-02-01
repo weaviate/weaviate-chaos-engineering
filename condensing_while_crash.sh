@@ -103,7 +103,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run import script to import $SIZE objects"
 run_importer $SIZE
@@ -121,7 +121,7 @@ for i in {1..10}; do
     docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
         && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
 
-    wait_weaviate
+    wait_weaviate 8080 120 weaviate
 done
 
 echo "Validate the count is correct"

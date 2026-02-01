@@ -10,7 +10,7 @@ function restart() {
   echo "Restarting node ..."
   docker compose -f $COMPOSE kill weaviate-node-1
   docker compose -f $COMPOSE up -d --force-recreate  weaviate-node-1
-  wait_weaviate 8080
+  wait_weaviate 8080 120 weaviate-node-1
 }
 
 function validateObjects() {
@@ -42,7 +42,7 @@ echo "Done generating."
 echo "Starting Weaviate 1.25..."
 export WEAVIATE_NODE_VERSION=1.25.0
 docker compose -f $COMPOSE up -d weaviate-node-1
-wait_weaviate 8080
+wait_weaviate 8080 120 weaviate-node-1
 
 # POST objects with consistency level ONE
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer -t importer
@@ -53,7 +53,7 @@ validateObjects
 echo "Upgrade Weaviate..."
 export WEAVIATE_NODE_VERSION=$WEAVIATE_VERSION
 docker compose -f $COMPOSE up -d --force-recreate  weaviate-node-1
-wait_weaviate 8080
+wait_weaviate 8080 120 weaviate-node-1
 
 
 # Read objects with consistency level ONE

@@ -12,7 +12,7 @@ export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose-with-memlimit.y
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run backup and restore CRUD operations"
 docker run --network host -t leaker python3 run.py
