@@ -59,7 +59,7 @@ for pair in "${!version_pairs[@]}"; do
   export WEAVIATE_NODE_1_VERSION=$backup_version
   export WEAVIATE_NODE_2_VERSION=$restore_version
 
-  export COMPOSE="apps/weaviate/docker-compose-backup.yml"
+  export COMPOSE="apps/weaviate/docker-compose-backup-version-compat.yml"
 
   echo "Starting Weaviate cluster..."
   docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-backup-node backup-s3
