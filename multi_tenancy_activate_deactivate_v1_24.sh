@@ -6,7 +6,7 @@ source common.sh
 
 git submodule update --init --remote --recursive
 
-export COMPOSE="apps/weaviate/docker-compose-replication.yml"
+export COMPOSE="apps/weaviate/docker-compose-replication-static.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3

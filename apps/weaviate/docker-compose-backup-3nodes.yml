@@ -29,6 +29,7 @@ services:
       CLUSTER_HOSTNAME: 'node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
+      CLUSTER_ADVERTISE_ADDR: '172.32.0.2'
       RAFT_JOIN: 'node1,node2,node3'
       RAFT_BOOTSTRAP_EXPECT: 3
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
@@ -73,6 +74,7 @@ services:
       CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
+      CLUSTER_ADVERTISE_ADDR: '172.32.0.3'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'node1,node2,node3'
       RAFT_BOOTSTRAP_EXPECT: 3
@@ -118,6 +120,7 @@ services:
       CLUSTER_HOSTNAME: 'node3'
       CLUSTER_GOSSIP_BIND_PORT: '7104'
       CLUSTER_DATA_BIND_PORT: '7105'
+      CLUSTER_ADVERTISE_ADDR: '172.32.0.4'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'node1,node2,node3'
       RAFT_BOOTSTRAP_EXPECT: 3

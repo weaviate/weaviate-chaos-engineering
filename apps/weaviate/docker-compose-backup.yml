@@ -26,6 +26,7 @@ services:
       CLUSTER_HOSTNAME: 'node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
+      CLUSTER_ADVERTISE_ADDR: '172.35.0.2'
       RAFT_BOOTSTRAP_EXPECT: 1
       RAFT_JOIN: "node1"
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
@@ -67,6 +68,7 @@ services:
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
       CLUSTER_HOSTNAME: 'node1'
+      CLUSTER_ADVERTISE_ADDR: '172.35.0.5'
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
       BACKUP_S3_BUCKET: 'weaviate-backups'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
@@ -107,6 +109,7 @@ services:
       CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
+      CLUSTER_ADVERTISE_ADDR: '172.35.0.3'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'node1'
       BOOTSTRAP_EXPECT: 1

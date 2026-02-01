@@ -7,7 +7,7 @@ source common.sh
 echo "Building all required containers"
 ( cd apps/multi-node-references && docker build -t ref-importer . )
 
-export COMPOSE="apps/weaviate/docker-compose-replication.yml"
+export COMPOSE="apps/weaviate/docker-compose-replication-static.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
