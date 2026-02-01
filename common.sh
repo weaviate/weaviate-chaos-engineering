@@ -136,9 +136,19 @@ function shutdown() {
   rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
 }
 
-trap 'logs; report_container_state; shutdown; exit 1' SIGINT ERR
+# Flag to prevent duplicate diagnostic output
+_LOGGED_DIAGNOSTICS=0
 
-trap 'exit_code=$?; if [[ $exit_code -eq 1 ]]; then logs; report_container_state; fi; shutdown' EXIT
+function run_failure_diagnostics() {
+  if [[ $_LOGGED_DIAGNOSTICS -eq 0 ]]; then
+    _LOGGED_DIAGNOSTICS=1
+    logs
+    report_container_state
+  fi
+}
+
+trap 'run_failure_diagnostics; shutdown; exit 1' SIGINT ERR
+trap 'exit_code=$?; if [[ $exit_code -ne 0 ]]; then run_failure_diagnostics; fi; shutdown' EXIT
 
 
 function wait_for_indexing() {
