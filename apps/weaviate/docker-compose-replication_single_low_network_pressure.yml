@@ -36,7 +36,8 @@ services:
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
-      - replication_single_low_network_pressure
+      replication_single_low_network_pressure:
+        ipv4_address: 172.30.0.2
 
   weaviate-node-2:
     init: true
@@ -75,7 +76,8 @@ services:
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
-      - replication_single_low_network_pressure
+      replication_single_low_network_pressure:
+        ipv4_address: 172.30.0.3
 
   weaviate-node-3:
     init: true
@@ -114,11 +116,15 @@ services:
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
-      - replication_single_low_network_pressure
+      replication_single_low_network_pressure:
+        ipv4_address: 172.30.0.4
 
 networks:
   replication_single_low_network_pressure:
     name: weaviate_replication_single_low_network_pressure
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
 
 volumes:
   replication_single_low_network_pressure_data_node_1:
