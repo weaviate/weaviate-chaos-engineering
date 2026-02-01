@@ -30,7 +30,6 @@ services:
       CLUSTER_HOSTNAME: 'new_node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
-      CLUSTER_ADVERTISE_ADDR: '172.33.0.2'
       RAFT_JOIN: 'new_node1,new_node2,new_node3'
       RAFT_BOOTSTRAP_EXPECT: 3
       BACKUP_S3_ENDPOINT: 'backup-s3:9000'
@@ -45,7 +44,7 @@ services:
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
       weaviate_backup_3nodes_renamed:
-        ipv4_address: 172.33.0.2
+        ipv4_address: 172.21.0.2
 
   weaviate-node-2:
     init: true
@@ -76,7 +75,6 @@ services:
       CLUSTER_HOSTNAME: 'new_node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
-      CLUSTER_ADVERTISE_ADDR: '172.33.0.3'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'new_node1,new_node2,new_node3'
       RAFT_BOOTSTRAP_EXPECT: 3
@@ -92,7 +90,7 @@ services:
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
       weaviate_backup_3nodes_renamed:
-        ipv4_address: 172.33.0.3
+        ipv4_address: 172.21.0.3
 
   weaviate-node-3:
     init: true
@@ -123,7 +121,6 @@ services:
       CLUSTER_HOSTNAME: 'new_node3'
       CLUSTER_GOSSIP_BIND_PORT: '7104'
       CLUSTER_DATA_BIND_PORT: '7105'
-      CLUSTER_ADVERTISE_ADDR: '172.33.0.4'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'new_node1,new_node2,new_node3'
       RAFT_BOOTSTRAP_EXPECT: 3
@@ -139,7 +136,7 @@ services:
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
       weaviate_backup_3nodes_renamed:
-        ipv4_address: 172.33.0.4
+        ipv4_address: 172.21.0.4
 
   backup-s3:
     image: minio/minio
@@ -153,7 +150,7 @@ services:
     command: server /data
     networks:
       weaviate_backup_3nodes_renamed:
-        ipv4_address: 172.33.0.10
+        ipv4_address: 172.21.0.10
 
   create-s3-bucket:
     image: minio/mc
@@ -168,7 +165,7 @@ services:
       "
     networks:
       weaviate_backup_3nodes_renamed:
-        ipv4_address: 172.33.0.11
+        ipv4_address: 172.21.0.11
 
   remove-s3-bucket:
     image: minio/mc
@@ -182,11 +179,11 @@ services:
       "
     networks:
       weaviate_backup_3nodes_renamed:
-        ipv4_address: 172.33.0.12
+        ipv4_address: 172.21.0.12
 
 networks:
   weaviate_backup_3nodes_renamed:
     name: weaviate_backup_3nodes_renamed
     ipam:
       config:
-        - subnet: 172.33.0.0/16
+        - subnet: 172.21.0.0/16

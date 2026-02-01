@@ -27,7 +27,6 @@ services:
       CLUSTER_HOSTNAME: 'node1'
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
-      CLUSTER_ADVERTISE_ADDR: '172.34.0.2'
       RAFT_JOIN: 'node1'
       RAFT_BOOTSTRAP_EXPECT: 1
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
@@ -37,7 +36,7 @@ services:
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
       weaviate_replication_single_voter:
-        ipv4_address: 172.34.0.2
+        ipv4_address: 172.22.0.2
 
   weaviate-node-2:
     init: true
@@ -65,7 +64,6 @@ services:
       CLUSTER_HOSTNAME: 'node2'
       CLUSTER_GOSSIP_BIND_PORT: '7102'
       CLUSTER_DATA_BIND_PORT: '7103'
-      CLUSTER_ADVERTISE_ADDR: '172.34.0.3'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'node1'
       RAFT_BOOTSTRAP_EXPECT: 1
@@ -76,7 +74,7 @@ services:
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
       weaviate_replication_single_voter:
-        ipv4_address: 172.34.0.3
+        ipv4_address: 172.22.0.3
 
   weaviate-node-3:
     init: true
@@ -104,7 +102,6 @@ services:
       CLUSTER_HOSTNAME: 'node3'
       CLUSTER_GOSSIP_BIND_PORT: '7104'
       CLUSTER_DATA_BIND_PORT: '7105'
-      CLUSTER_ADVERTISE_ADDR: '172.34.0.4'
       CLUSTER_JOIN: 'weaviate-node-1:7100'
       RAFT_JOIN: 'node1'
       RAFT_BOOTSTRAP_EXPECT: 1
@@ -115,11 +112,11 @@ services:
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
     networks:
       weaviate_replication_single_voter:
-        ipv4_address: 172.34.0.4
+        ipv4_address: 172.22.0.4
 
 networks:
   weaviate_replication_single_voter:
     name: weaviate_replication_single_voter
     ipam:
       config:
-        - subnet: 172.34.0.0/16
+        - subnet: 172.22.0.0/16
