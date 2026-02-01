@@ -38,6 +38,9 @@ services:
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      weaviate_backup:
+        ipv4_address: 172.35.0.2
 
   # Mutually exclusive with weaviate-node-2
   # Used for single-node BRO version compat
@@ -74,6 +77,9 @@ services:
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      weaviate_backup:
+        ipv4_address: 172.35.0.5
   # Mutually exclusive with weaviate-backup-node
   # Used for cluster backup scenarios
   weaviate-node-2:
@@ -114,6 +120,9 @@ services:
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      weaviate_backup:
+        ipv4_address: 172.35.0.3
 
   backup-s3:
     image: minio/minio
@@ -125,6 +134,9 @@ services:
       MINIO_ROOT_USER: 'aws_access_key'
       MINIO_ROOT_PASSWORD: 'aws_secret_key'
     command: server /data
+    networks:
+      weaviate_backup:
+        ipv4_address: 172.35.0.10
 
   create-s3-bucket:
     image: minio/mc
@@ -137,6 +149,9 @@ services:
       /usr/bin/mc policy set public chaos/weaviate-backups;
       exit 0;
       "
+    networks:
+      weaviate_backup:
+        ipv4_address: 172.35.0.11
 
   remove-s3-bucket:
     image: minio/mc
@@ -148,4 +163,13 @@ services:
       /usr/bin/mc rb --force chaos/weaviate-backups;
       exit 0;
       "
-...
+    networks:
+      weaviate_backup:
+        ipv4_address: 172.35.0.12
+
+networks:
+  weaviate_backup:
+    name: weaviate_backup
+    ipam:
+      config:
+        - subnet: 172.35.0.0/16
