@@ -34,6 +34,9 @@ services:
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      weaviate_replication_single_voter:
+        ipv4_address: 172.22.0.2
 
   weaviate-node-2:
     init: true
@@ -69,6 +72,9 @@ services:
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      weaviate_replication_single_voter:
+        ipv4_address: 172.22.0.3
 
   weaviate-node-3:
     init: true
@@ -104,3 +110,13 @@ services:
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+    networks:
+      weaviate_replication_single_voter:
+        ipv4_address: 172.22.0.4
+
+networks:
+  weaviate_replication_single_voter:
+    name: weaviate_replication_single_voter
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
