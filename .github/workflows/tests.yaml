@@ -205,7 +205,7 @@ jobs:
           second: "1.33.0"
           operator: ">="
   equal-to-1_36_dev:
-    name: "Check if the version is newer than 1.36"
+    name: "Check if the version is equal to 1.36.0-dev"
     needs: real-version-in-tag
     runs-on: ubicloud-standard-2
     outputs:
@@ -217,7 +217,7 @@ jobs:
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.36.0-dev"
-          operator: "=="  
+          operator: "="  
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
