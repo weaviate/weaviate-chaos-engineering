@@ -14,7 +14,7 @@ export COMPOSE="apps/weaviate/docker-compose-cpu-constrained.yml"
 # perfect for this test
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
-wait_weaviate 8080
+wait_weaviate 8080 120 weaviate
 
 echo "Run test script"
 docker run --network host -t goroutine-test-script python3 run.py

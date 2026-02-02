@@ -11,7 +11,7 @@ export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
 
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 function dump_logs() {
   docker compose -f $COMPOSE logs

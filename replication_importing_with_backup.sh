@@ -17,9 +17,9 @@ docker compose -f $COMPOSE up -d \
   weaviate-node-3 \
   backup-s3
 
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+wait_weaviate 8080 120 weaviate-node-1
+wait_weaviate 8081 120 weaviate-node-2
+wait_weaviate 8082 120 weaviate-node-3
 
 echo "Creating S3 bucket..."
 docker compose -f $COMPOSE up \

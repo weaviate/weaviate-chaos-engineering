@@ -14,7 +14,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run import script in foreground..."
 if ! docker run \

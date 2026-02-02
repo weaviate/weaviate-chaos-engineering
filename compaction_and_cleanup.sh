@@ -12,7 +12,7 @@ export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
 echo "Starting Weaviate..."
 PERSISTENCE_LSM_MAX_SEGMENT_SIZE=20MiB PERSISTENCE_MEMTABLES_MAX_SIZE_MB=6 PERSISTENCE_MEMTABLES_FLUSH_DIRTY_AFTER_SECONDS=1 PERSISTENCE_LSM_SEGMENTS_CLEANUP_INTERVAL_HOURS=1 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 function dump_logs() {
   docker compose -f $COMPOSE logs

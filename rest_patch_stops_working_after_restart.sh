@@ -12,7 +12,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run consecutive update operations"
 docker run --network host -t rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py
@@ -21,7 +21,7 @@ echo "Restart Weaviate..."
 docker compose -f $COMPOSE stop
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run consecutive update operations after restart"
 docker run --network host -t rest-patch-stops-working-after-restart python3 rest-patch-stops-working-after-restart.py

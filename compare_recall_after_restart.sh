@@ -22,7 +22,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Import into Weaviate..."
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" -t recall python3 import.py
@@ -34,7 +34,7 @@ echo "Restart Weaviate"
 docker compose -f $COMPOSE stop weaviate && \
   docker compose -f $COMPOSE start weaviate
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Check Recall again"
 docker run --network host -v "$PWD/workdir/:/app/data" -t recall-checker

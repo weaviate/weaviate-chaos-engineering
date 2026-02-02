@@ -23,9 +23,9 @@ echo "Done generating."
 export COMPOSE="apps/weaviate/docker-compose-replication_single_voter.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
-wait_weaviate 8080
-wait_weaviate 8081
-wait_weaviate 8082
+wait_weaviate 8080 120 weaviate-node-1
+wait_weaviate 8081 120 weaviate-node-2
+wait_weaviate 8082 120 weaviate-node-3
 
 # POST objects with consistency level ALL
 docker run --network host -v "$PWD/workdir/data.json:/workdir/data.json" --name importer -t importer
@@ -50,7 +50,7 @@ fi
 # Restart dead node, read objects with consistency level ALL
 echo "Restart node 3"
 docker compose -f $COMPOSE up -d weaviate-node-3
-wait_weaviate 8082
+wait_weaviate 8082 120 weaviate-node-3
 # Give some time for async repair to restore the objects in the restarted node
 sleep 120
 if docker run --network host -v "$PWD/workdir/:/workdir/data" --name cluster_async_repair -t cluster_async_repair; then

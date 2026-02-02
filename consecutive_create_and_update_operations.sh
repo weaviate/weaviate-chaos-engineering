@@ -12,7 +12,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Run consecutive create and update operations"
 docker run --network host -t consecutive_create_and_update_operations python3 consecutive_create_and_update_operations.py

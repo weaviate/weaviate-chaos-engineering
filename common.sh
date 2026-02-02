@@ -3,16 +3,65 @@
 set -e
 
 function logs() {
-  echo "Showing logs:"
+  echo "======================================"
+  echo "ABBREVIATED LOGS (first 30 + last 100 lines per service)"
+  echo "======================================"
   services=$(docker compose -f "$COMPOSE" config --services)
-  # Loop through each service
   for service in $services; do
-    # Check if the service name starts with "weaviate"
     if [[ $service == weaviate* ]]; then
-      # Fetch and print logs for the matching service
-      docker compose -f "$COMPOSE" logs "$service"
+      echo ""
+      echo "--- $service (first 30 lines) ---"
+      docker compose -f "$COMPOSE" logs "$service" 2>&1 | head -30
+      echo ""
+      echo "--- $service (last 100 lines) ---"
+      docker compose -f "$COMPOSE" logs "$service" 2>&1 | tail -100
+      echo ""
     fi
   done
+}
+
+function diagnose_node() {
+  local service="$1"
+  local port="$2"
+
+  echo "========================================"
+  echo "DIAGNOSTIC REPORT FOR: $service (port $port)"
+  echo "========================================"
+
+  # Container status
+  echo ""
+  echo "=== Container Status ==="
+  docker compose -f "$COMPOSE" ps -a "$service"
+
+  # Container inspect (exit code, state, health)
+  echo ""
+  echo "=== Container Inspect (State) ==="
+  docker compose -f "$COMPOSE" ps -a --format json "$service" | jq -r '.State, .Status, .Health' 2>/dev/null || true
+
+  # Get container ID for docker inspect
+  local container_id
+  container_id=$(docker compose -f "$COMPOSE" ps -aq "$service" 2>/dev/null)
+  if [ -n "$container_id" ]; then
+    echo ""
+    echo "=== Docker Inspect (Exit Code & Error) ==="
+    docker inspect "$container_id" --format '{{.State.Status}} ExitCode={{.State.ExitCode}} Error={{.State.Error}} OOMKilled={{.State.OOMKilled}}' 2>/dev/null || true
+  fi
+
+  # Logs: first 50 lines and last 100 lines
+  echo ""
+  echo "=== Logs (first 50 lines) ==="
+  docker compose -f "$COMPOSE" logs "$service" 2>&1 | head -50
+
+  echo ""
+  echo "=== Logs (last 100 lines) ==="
+  docker compose -f "$COMPOSE" logs "$service" 2>&1 | tail -100
+
+  # Check cluster state from node-1 (usually stays up)
+  echo ""
+  echo "=== Cluster State from node-1 (port 8080) ==="
+  curl -sf localhost:8080/v1/nodes 2>/dev/null | jq '.' || echo "Could not fetch cluster state"
+
+  echo "========================================"
 }
 
 function report_container_state() {
@@ -50,6 +99,7 @@ function report_container_state() {
 function wait_weaviate() {
   local port="${1:-8080}" # Set default port to 8080 if $1 is not provided
   local timeout="${2:-120}" # Set default timeout to 120 seconds if $2 is not provided
+  local service="${3:-}" # Optional service name for diagnostics
   echo "Wait for Weaviate to be ready"
   for ((i=1; i<=timeout; i++)); do
     if curl -sf -o /dev/null localhost:$port/v1/.well-known/ready; then
@@ -60,12 +110,18 @@ function wait_weaviate() {
     echo "Weaviate is not ready on $port, trying again in 1s"
     sleep 1
   done
-  echo "ERROR: Weaviate is not ready in port ${port} after ${timeout}s"
+  echo "ERROR: Weaviate is not ready on port ${port} after ${timeout}s"
+
+  # Targeted diagnostics if service name provided
+  if [ -n "$service" ] && [ -n "$COMPOSE" ]; then
+    diagnose_node "$service" "$port"
+  fi
+
   exit 1
 }
 
-function shutdown() { 
-  echo "Cleaning up resources..."  
+function shutdown() {
+  echo "Cleaning up resources..."
   container_count=$(docker container ls -aq | wc -l)
   if [ "$container_count" -gt 0 ]; then
     # Place the command you want to execute here
@@ -74,14 +130,25 @@ function shutdown() {
   fi
 
   docker compose -f "$COMPOSE" down --remove-orphans
-  
-  sudo rm -rf apps/weaviate/data* || true    
-  sudo rm -rf workdir || true
+
+  # Try without sudo first, fallback to sudo if needed
+  rm -rf apps/weaviate/data* 2>/dev/null || sudo rm -rf apps/weaviate/data* || true
+  rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
 }
 
-trap 'logs; report_container_state; shutdown; exit 1' SIGINT ERR
+# Flag to prevent duplicate diagnostic output
+_LOGGED_DIAGNOSTICS=0
 
-trap 'exit_code=$?; if [[ $exit_code -eq 1 ]]; then logs; report_container_state; fi; shutdown' EXIT
+function run_failure_diagnostics() {
+  if [[ $_LOGGED_DIAGNOSTICS -eq 0 ]]; then
+    _LOGGED_DIAGNOSTICS=1
+    logs
+    report_container_state
+  fi
+}
+
+trap 'run_failure_diagnostics; shutdown; exit 1' SIGINT ERR
+trap 'exit_code=$?; if [[ $exit_code -ne 0 ]]; then run_failure_diagnostics; fi; shutdown' EXIT
 
 
 function wait_for_indexing() {

@@ -23,7 +23,7 @@ export COMPOSE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
 echo "Starting Weaviate..."
 PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS=1 PERSISTENCE_LSM_MAX_SEGMENT_SIZE="5MB" docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 function dump_logs() {
   docker compose -f $COMPOSE logs
@@ -64,7 +64,7 @@ new_size=15
 docker compose -f apps/weaviate-no-restart-on-crash/docker-compose.yml down
 PERSISTENCE_MEMTABLES_FLUSH_IDLE_AFTER_SECONDS=1 PERSISTENCE_LSM_MAX_SEGMENT_SIZE="${new_size}MB" docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Checking segment levels after max LSM segment increased to ${new_size}MB..."
 # Wait for the compaction to occurr by checking the number of segments every 3 seconds.

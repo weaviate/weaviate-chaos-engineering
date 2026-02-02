@@ -15,7 +15,7 @@ export COMPOSE="apps/weaviate/docker-compose.yml"
 echo "Starting Weaviate..."
 docker compose -f $COMPOSE up -d
 
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Starting the chaos script to kill Weaviate periodically (in the background)"
 docker run \
@@ -43,7 +43,7 @@ echo "Import completed successfully, stop killer"
 docker rm -f killer
 
 echo "Wait for Weaviate to be ready again in case there was a kill recently"
-wait_weaviate
+wait_weaviate 8080 120 weaviate
 
 echo "Validate the count is correct"
 attempt=1
