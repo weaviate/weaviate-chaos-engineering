@@ -1,2 +1,3 @@
 loguru==0.6.0
-weaviate-client==4.20.0b0
+# weaviate-client==4.20.0b0
+weaviate-client @ git+https://github.com/weaviate/weaviate-python-client@dev/1.36
