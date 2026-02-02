@@ -13,19 +13,19 @@ Chaos engineering tests for Weaviate - testing crash recovery, data integrity, a
 
 **Locally:**
 ```bash
-WEAVIATE_VERSION=1.36.5 ./script_name.sh
+WEAVIATE_VERSION=1.35.6 ./script_name.sh
 ```
 
 **CI - "Test Matrix" workflow:**
 ```bash
-gh workflow run "Test matrix" -f weaviate_version=1.36.5
+gh workflow run "Test matrix" -f weaviate_version=1.35.6
 ```
 
-Note: `weaviate_version` should not have a leading "v" (use `1.36.5`, not `v1.36.5`).
+Note: `weaviate_version` should not have a leading "v" (use `1.35.6`, not `v1.35.6`).
 
 To run a specific test:
 ```bash
-gh workflow run "Test matrix" -f weaviate_version=1.36.5 -f test_to_run=import-while-crashing
+gh workflow run "Test matrix" -f weaviate_version=1.35.6 -f test_to_run=import-while-crashing
 ```
 
 **Specific Versions:**
