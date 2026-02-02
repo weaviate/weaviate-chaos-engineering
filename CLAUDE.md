@@ -13,7 +13,7 @@ Chaos engineering tests for Weaviate - testing crash recovery, data integrity, a
 
 **Locally:**
 ```bash
-./script_name.sh
+WEAVIATE_VERSION=1.36.5 ./script_name.sh
 ```
 
 **CI - "Test Matrix" workflow:**
@@ -27,6 +27,10 @@ To run a specific test:
 ```bash
 gh workflow run "Test matrix" -f weaviate_version=1.36.5 -f test_to_run=import-while-crashing
 ```
+
+**Specific Versions:**
+
+If an image does not exist for a specific version under test (e.g. a local branch), build it in the weaviate core repo using `make weaviate-image`.
 
 ## Environment Variables
 
