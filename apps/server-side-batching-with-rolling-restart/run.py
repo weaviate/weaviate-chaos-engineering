@@ -8,8 +8,6 @@ import weaviate.classes.config as wvcc
 
 
 def setup(client: weaviate.WeaviateClient, collection: str) -> weaviate.collections.Collection:
-    if client.collections.exists(collection):
-        client.collections.delete(collection)
     return client.collections.create(
         name=collection,
         properties=[
@@ -125,21 +123,27 @@ def sync() -> None:
     collection = "BatchImportShutdownJourney"
     how_many = 100000
     with weaviate.connect_to_local() as client:
-        collection = setup(client, collection)
-        import_sync(client, collection.name, how_many)
-        verify(client, collection.name, how_many)
-        print("Journey completed successfully")
+        try:
+            c = setup(client, collection)
+            import_sync(client, c.name, how_many)
+            verify(client, c.name, how_many)
+            print("Journey completed successfully")
+        finally:
+            client.collections.delete(collection)
 
 
 async def async_() -> None:
     collection = "BatchImportShutdownJourney"
     how_many = 100000
     with weaviate.connect_to_local() as client:
-        collection = setup(client, collection)
-        async with weaviate.use_async_with_local() as aclient:
-            await import_async(aclient, collection.name, how_many)
-        verify(client, collection.name, how_many)
-        print("Journey completed successfully")
+        try:
+            c = setup(client, collection)
+            async with weaviate.use_async_with_local() as aclient:
+                await import_async(aclient, c.name, how_many)
+            verify(client, c.name, how_many)
+            print("Journey completed successfully")
+        finally:
+            client.collections.delete(collection)
 
 
 if __name__ == "__main__":
