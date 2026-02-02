@@ -24,12 +24,8 @@ def reset_schema(client: weaviate.Client, class_names):
                 "distance": "cosine",
                 "maxPostingSizeKB": 48,
                 "replicas": 4,
-                "rq": {
-                    "bits": 1,
-                    "enabled": True,
-                    "rescoreLimit": 350
-                },
-                "searchProbe": 64
+                "rq": {"bits": 1, "enabled": True, "rescoreLimit": 350},
+                "searchProbe": 64,
             }
             index_type = "hfresh"
         else:
