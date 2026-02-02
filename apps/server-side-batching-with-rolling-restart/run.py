@@ -42,6 +42,10 @@ def import_sync(
                 vector=random_vector(),
             )
             uuids[str(uuid)] = i
+            if i % 10000 == 0:
+                print(
+                    f"Imported {len(client.collections.use(collection))} after processing {i} objects..."
+                )
 
     for err in client.batch.failed_objects:
         print(err.message)
@@ -70,6 +74,10 @@ async def import_async(
                 vector=random_vector(),
             )
             uuids[str(uuid)] = i
+            if i % 10000 == 0:
+                print(
+                    f"Imported {await client.collections.use(collection).length()} after processing {i} objects..."
+                )
 
     for err in client.batch.failed_objects:
         print(err.message)
