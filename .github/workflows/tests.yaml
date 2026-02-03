@@ -2542,13 +2542,17 @@ jobs:
   
   server-side-batching-with-rolling-restart-without-async-indexing:
     needs: [equal-to-1_36_dev]
-    if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
+    if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-without-async-indexing' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart without async indexing
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       ASYNC_INDEXING: false
+      VALUES_OVERRIDE: |
+        env:
+          PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+          ASYNC_INDEXING: ${{ inputs.async_indexing }}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -2563,13 +2567,13 @@ jobs:
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
 
   server-side-batching-with-rolling-restart-with-async-indexing:
     needs: [equal-to-1_36_dev]
-    if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
+    if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-with-async-indexing' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart with async indexing enabled
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
@@ -2590,7 +2594,7 @@ jobs:
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
 
