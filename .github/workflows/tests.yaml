@@ -2543,7 +2543,7 @@ jobs:
   server-side-batching-with-rolling-restart-without-async-indexing:
     needs: [equal-to-1_36_dev]
     if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
-    name: Check that server-side batching works when there is a rolling restart
+    name: Check that server-side batching works when there is a rolling restart without async indexing
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -2570,7 +2570,7 @@ jobs:
   server-side-batching-with-rolling-restart-with-async-indexing:
     needs: [equal-to-1_36_dev]
     if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart' || github.event.inputs.test_to_run == '' ) }}
-    name: Check that server-side batching works when there is a rolling restart
+    name: Check that server-side batching works when there is a rolling restart with async indexing enabled
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
