@@ -3,11 +3,24 @@ import json
 import random
 import sys
 import time
+from typing import Awaitable, overload
 import weaviate
 import weaviate.classes.config as wvcc
 
 
-def setup(client: weaviate.WeaviateClient, collection: str) -> weaviate.collections.Collection:
+@overload
+def setup(client: weaviate.WeaviateClient, collection: str) -> weaviate.collections.Collection: ...
+
+
+@overload
+def setup(
+    client: weaviate.WeaviateAsyncClient, collection: str
+) -> Awaitable[weaviate.collections.CollectionAsync]: ...
+
+
+def setup(
+    client: weaviate.WeaviateClient | weaviate.WeaviateAsyncClient, collection: str
+) -> weaviate.collections.Collection | Awaitable[weaviate.collections.CollectionAsync]:
     return client.collections.create(
         name=collection,
         properties=[
@@ -115,6 +128,34 @@ def verify(client: weaviate.WeaviateClient, collection: str, expected: int = 1_0
         sys.exit(1)
 
 
+async def averify(
+    client: weaviate.WeaviateAsyncClient, collection: str, expected: int = 1_000_000
+) -> None:
+    actual = 0
+    count = 0
+    c = client.collections.use(collection)
+    while actual < expected:
+        actual = await c.length()
+        print(f"Found {actual} objects, waiting for async repl to reach {expected}...")
+        time.sleep(1)
+        count += 1
+        if count == 600:  # 10 minutes
+            break
+    if actual > expected:
+        print(f"Expected at most {expected} objects, found {actual}")
+        sys.exit(1)
+    if actual != expected:
+        print(
+            f"Expected {expected} objects, found {actual} after 10 minutes of waiting for async replication to complete"
+        )
+        actual_ids = []
+        async for obj in c.iterator():
+            actual_ids.append(int(obj.properties["title"].split(" ")[1]))  # pyright: ignore
+        expected_ids = list(range(expected))
+        print(f"Missing IDs: {sorted(list(set(expected_ids).difference(actual_ids)))}")
+        sys.exit(1)
+
+
 def random_vector() -> list[float]:
     return [random.uniform(0, 1) for _ in range(128)]
 
@@ -135,15 +176,14 @@ def sync() -> None:
 async def async_() -> None:
     collection = "BatchImportShutdownJourney"
     how_many = 100000
-    with weaviate.connect_to_local() as client:
+    async with weaviate.use_async_with_local() as client:
         try:
-            c = setup(client, collection)
-            async with weaviate.use_async_with_local() as aclient:
-                await import_async(aclient, c.name, how_many)
-            verify(client, c.name, how_many)
+            c = await setup(client, collection)
+            await import_async(client, c.name, how_many)
+            await averify(client, c.name, how_many)
             print("Journey completed successfully")
         finally:
-            client.collections.delete(collection)
+            await client.collections.delete(collection)
 
 
 if __name__ == "__main__":
