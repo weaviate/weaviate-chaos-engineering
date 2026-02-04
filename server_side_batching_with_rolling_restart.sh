@@ -2,21 +2,37 @@
 
 set -e
 
-echo "Building all required containers"
-( cd apps/server-side-batching-with-rolling-restart/ && docker build -t server_side_batching_with_rolling_restart . )
+restart() {
+    echo "wait a bit to let the import start"
+    shuf -i 1-10 -n 1 | xargs sleep # wait a bit before performing rolling restart
 
-echo "Start the journey"
-container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart python3 run.py)
+    echo "perform a rolling restart of the weaviate cluster"
+    kubectl rollout restart statefulset/weaviate -n weaviate
 
-echo "Wait a bit to let the import start"
-shuf -i 1-10 -n 1 | xargs sleep # wait a bit before performing rolling restart
+    echo "following the logs of the journey"
+    docker logs -f "$1"
 
-echo "Perform a rolling restart of the weaviate cluster"
-kubectl rollout restart statefulset/weaviate -n weaviate
+    exit_code=$(docker inspect "$1" --format='{{.State.ExitCode}}')
+    echo "container exited with code $exit_code"
+    if [ "$exit_code" -ne 0 ]; then
+        echo "$2 journey failed"
+        exit "$exit_code"
+    fi
+}
 
-echo "Following the logs of the journey"
-docker logs -f "$container_id"
+echo "building all required containers"
+( cd apps/server-side-batching-with-rolling-restart/ && docker build -t server_side_batching_with_rolling_restart_py ./py && docker build -t server_side_batching_with_rolling_restart_ts ./ts )
 
-exit_code=$(docker inspect "$container_id" --format='{{.State.ExitCode}}')
-echo "Container exited with code $exit_code"
-exit "$exit_code"
+echo "start the sync python journey"
+container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_py python3 run.py sync)
+restart "$container_id" "sync python"
+
+echo "start the async python journey"
+container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_py python3 run.py async)
+restart "$container_id" "async python"
+
+echo "start the typescript journey"
+container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_ts)
+restart "$container_id" "typescript"
+
+echo "All journeys completed successfully"
