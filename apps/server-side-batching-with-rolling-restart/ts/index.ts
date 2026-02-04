@@ -6,11 +6,12 @@ type Args = {
 };
 
 const HOW_MANY = 100000;
+const COLLECTION_NAME = "ServerSideBatchingWithRollingRestart";
 
 const setup = async (client: WeaviateClient) =>
   client.collections
     .create({
-      name: "ServerSideBatchingWithRollingRestart",
+      name: COLLECTION_NAME,
       properties: [
         { name: "title", dataType: "text" },
         { name: "content", dataType: "text" },
@@ -73,12 +74,18 @@ const verify = async (args: Args) => {
   }
 };
 
+const cleanup = () =>
+  weaviate
+    .connectToLocal()
+    .then((client) => client.collections.delete(COLLECTION_NAME));
+
 const main = () =>
   weaviate
     .connectToLocal()
     .then(setup)
     .then(import_)
-    .then(verify);
+    .then(verify)
+    .finally(cleanup);
 
 main().catch((err) => {
   console.error(err);

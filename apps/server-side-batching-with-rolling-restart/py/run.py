@@ -168,7 +168,7 @@ def sync() -> None:
             c = setup(client, collection)
             import_sync(client, c.name, how_many)
             verify(client, c.name, how_many)
-            print("Journey completed successfully")
+            print("sync journey completed successfully")
         finally:
             client.collections.delete(collection)
 
@@ -181,7 +181,7 @@ async def async_() -> None:
             c = await setup(client, collection)
             await import_async(client, c.name, how_many)
             await averify(client, c.name, how_many)
-            print("Journey completed successfully")
+            print("async ourney completed successfully")
         finally:
             await client.collections.delete(collection)
 
