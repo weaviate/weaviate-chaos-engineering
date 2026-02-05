@@ -52,9 +52,11 @@ fi
 version_pairs=($pair_string)
 
 # run backup/restore ops for each version pairing
-for pair in "${!version_pairs[@]}"; do 
-  backup_version=$(echo "${version_pairs[$pair]}" | cut -f1 -d+)
-  restore_version=$(echo "${version_pairs[$pair]}" | cut -f2 -d+)
+# Only run the last 30 pairs
+filtered_version_pairs=("${version_pairs[@]: -30}")
+for pair in "${!filtered_version_pairs[@]}"; do
+  backup_version=$(echo "${filtered_version_pairs[$pair]}" | cut -f1 -d+)
+  restore_version=$(echo "${filtered_version_pairs[$pair]}" | cut -f2 -d+)
 
   export WEAVIATE_NODE_1_VERSION=$backup_version
   export WEAVIATE_NODE_2_VERSION=$restore_version
