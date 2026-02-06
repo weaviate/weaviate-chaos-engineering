@@ -646,6 +646,90 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
 
+  ann-benchmarks-hfresh-sift-gcp:
+    needs: [newer-or-equal-than-1_32]
+    if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-hfresh-sift-gcp' || github.event.inputs.test_to_run == '') }}
+    name: "[bench GCP] SIFT1M hfresh=true"
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      DATASET: sift-128-euclidean
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.80
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      BOOT_DISK_SIZE: 50GB
+      INDEX_TYPE: hfresh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v3'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v3'
+      - name: Run chaos test
+        if: always()
+        env:
+          INDEX_TYPE: hfresh
+        run: ./ann_benchmark_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v3'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
+        
+
+  ann-benchmarks-hfresh-dbpedia-gcp:
+    needs: [newer-or-equal-than-1_32]
+    if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-hfresh-dbpedia-gcp' || github.event.inputs.test_to_run == '') }}
+    name: "[bench GCP] DBpedia hfresh=true"
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      DATASET: dbpedia-100k-openai-ada002-angular
+      DISTANCE: l2-squared
+      REQUIRED_RECALL: 0.992
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      BOOT_DISK_SIZE: 50GB
+      INDEX_TYPE: hfresh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v3'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v3'
+      - name: Run chaos test
+        if: always()
+        env:
+          INDEX_TYPE: hfresh
+        run: ./ann_benchmark_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v3'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
 
 
   ann-benchmarks-multivector-gcp:
@@ -1097,6 +1181,35 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./replication_importing_with_backup.sh
+        env:
+          INDEX_TYPE: hnsw
+
+  replicated-imports-with-backup-hfresh:
+    name: Replicated imports with backup loop with Hfresh
+    if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-backup' || github.event.inputs.test_to_run == '' }}
+    runs-on: ubicloud-standard-8
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
+
+      - name: Run chaos test with HFRESH
+        run: ./replication_importing_with_backup.sh
+        env:
+          INDEX_TYPE: hfresh
   replication-tunable-consistency:
     name: Replication tunable consistency
     if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
@@ -1281,6 +1394,8 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_crud.sh
+      - name: Run chaos test with HFRESH
+        run: ./backup_and_restore_crud_hfresh.sh
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
     runs-on: ubicloud-standard-4
@@ -1711,8 +1826,10 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
-      - name: Run chaos test
+      - name: Run chaos test with HNSW
         run: ./backup_and_flush.sh
+      - name: Run chaos test with HFRESH
+        run: ./backup_and_flush_hfresh.sh
   backup_and_restore_out_of_sync:
     # https://github.com/weaviate/weaviate/pull/4541
     name: Test that restoring a backup without data presence ensures schema consistency across nodes
