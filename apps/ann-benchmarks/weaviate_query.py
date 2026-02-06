@@ -48,7 +48,15 @@ def search_grpc(
     return out
 
 
-def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, multivector=False, index_type="hnsw"):
+def query(
+    client: weaviate.WeaviateClient,
+    stub,
+    dataset,
+    ef_values,
+    labels,
+    multivector=False,
+    index_type="hnsw",
+):
     collection = client.collections.get(class_name)
     schema = collection.config.get()
     shards = schema.sharding_config.actual_count
@@ -59,10 +67,12 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, mul
         else:
             efC = schema.vector_config["multivector"].vector_index_config.ef_construction
             m = schema.vector_config["multivector"].vector_index_config.max_connections
-        logger.info(f"build params: shards={shards}, index_type={index_type}, efC={efC}, m={m} labels={labels}")
+        logger.info(
+            f"build params: shards={shards}, index_type={index_type}, efC={efC}, m={m} labels={labels}"
+        )
     elif index_type == "hfresh":
         efC = None
-        ef_values = [16,128,512]
+        ef_values = [16, 128, 512]
         logger.info(f"build params: shards={shards}, index_type={index_type} labels={labels}")
     else:
         logger.error(f"unknown index type {index_type}")
@@ -78,8 +88,8 @@ def query(client: weaviate.WeaviateClient, stub, dataset, ef_values, labels, mul
             if not multivector:
                 if index_type == "hnsw":
                     collection.config.update(
-                            vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(ef=ef)
-                        )
+                        vector_index_config=wvc.Reconfigure.VectorIndex.hnsw(ef=ef)
+                    )
                 elif index_type == "hfresh":
                     collection.config.update(
                         vector_index_config=wvc.Reconfigure.VectorIndex.hfresh(search_probe=ef)

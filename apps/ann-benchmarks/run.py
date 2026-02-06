@@ -144,14 +144,21 @@ for shards in values["shards"]:
             multivector = values["multivector"]
             multivector_implementation = values["multivector_implementation"]
             rq_bits = values["rq_bits"]
-            
+
             before_import = time.time()
             logger.info(
                 f"Starting import with index_type={index_type}, m={m}, shards={shards}, distance={distance}"
             )
             if override == False:
                 reset_schema(
-                    client, efC, m, shards, distance, multivector, multivector_implementation, index_type
+                    client,
+                    efC,
+                    m,
+                    shards,
+                    distance,
+                    multivector,
+                    multivector_implementation,
+                    index_type,
                 )
             load_records(
                 client,
