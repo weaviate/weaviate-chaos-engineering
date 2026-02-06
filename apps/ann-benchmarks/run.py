@@ -54,6 +54,7 @@ parser.add_argument("-s", "--dim-to-segment-ratio")
 parser.add_argument("-mv", "--multivector", action=argparse.BooleanOptionalAction, default=False)
 parser.add_argument("-mi", "--multivector-implementation", default="regular")
 parser.add_argument("-rq", "--rq-bits", default=8)
+parser.add_argument("-it", "--index-type", default="hnsw")
 args = parser.parse_args()
 
 
@@ -83,6 +84,7 @@ values["quantization"] = args.quantization or False
 values["override"] = args.override or False
 values["query_only"] = args.query_only
 values["rq_bits"] = int(args.rq_bits)
+values["index_type"] = args.index_type
 if (args.dim_to_segment_ratio) != None:
     values["dim_to_segment_ratio"] = int(args.dim_to_segment_ratio)
     values["labels"]["dim_to_segment_ratio"] = values["dim_to_segment_ratio"]
@@ -129,6 +131,7 @@ if values["multivector"]:
 
 
 efC = values["efC"]
+index_type = values["index_type"]
 distance = args.distance
 
 print(values["labels"])
@@ -141,13 +144,14 @@ for shards in values["shards"]:
             multivector = values["multivector"]
             multivector_implementation = values["multivector_implementation"]
             rq_bits = values["rq_bits"]
+            
             before_import = time.time()
             logger.info(
-                f"Starting import with efC={efC}, m={m}, shards={shards}, distance={distance}"
+                f"Starting import with index_type={index_type}, m={m}, shards={shards}, distance={distance}"
             )
             if override == False:
                 reset_schema(
-                    client, efC, m, shards, distance, multivector, multivector_implementation
+                    client, efC, m, shards, distance, multivector, multivector_implementation, index_type
                 )
             load_records(
                 client,
@@ -158,6 +162,7 @@ for shards in values["shards"]:
                 multivector,
                 multivector_implementation,
                 rq_bits,
+                index_type,
             )
             elapsed = time.time() - before_import
             logger.info(
@@ -175,5 +180,6 @@ for shards in values["shards"]:
             values["ef"],
             values["labels"],
             values["multivector"],
+            index_type,
         )
         logger.info(f"Finished querying for efC={efC}, m={m}, shards={shards}")

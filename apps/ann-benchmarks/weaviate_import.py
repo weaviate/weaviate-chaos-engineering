@@ -51,22 +51,27 @@ def reset_schema(
     distance,
     multivector=False,
     multivector_implementation="regular",
+    index_type="hnsw",
 ):
     client.collections.delete_all()
 
+    if index_type == "hnsw":
+        vector_index_config = wvc.Configure.VectorIndex.hnsw(
+            ef_construction=efC,
+            max_connections=m,
+            ef=-1,
+            distance_metric=wvc.VectorDistances(distance),
+        )
+    elif index_type == "hfresh":
+        vector_index_config = wvc.Configure.VectorIndex.hfresh(
+            distance_metric=wvc.VectorDistances(distance),
+        )
+    else:
+        logger.error(f"unknown index type {index_type}")
     client.collections.create(
         name=CLASS_NAME,
         vectorizer_config=get_vectorizer_config(efC, m, multivector, multivector_implementation),
-        vector_index_config=(
-            wvc.Configure.VectorIndex.hnsw(
-                ef_construction=efC,
-                max_connections=m,
-                ef=-1,
-                distance_metric=wvc.VectorDistances(distance),
-            )
-            if not multivector
-            else None
-        ),
+        vector_index_config=vector_index_config if not multivector else None,
         properties=[
             wvc.Property(
                 name="i",
@@ -87,6 +92,7 @@ def load_records(
     multivector=False,
     multivector_implementation="regular",
     rq_bits=8,
+    index_type="hnsw",
 ):
     collection = client.collections.get(CLASS_NAME)
     i = 0
@@ -121,7 +127,7 @@ def load_records(
     for err in client.batch.failed_objects:
         logger.error(err.message)
 
-    if quantization in ["pq", "sq", "bq", "rq"] and override == False:
+    if index_type == "hnsw" and quantization in ["pq", "sq", "bq", "rq"] and override == False:
         if quantization == "pq":
             if multivector is False:
                 collection.config.update(
@@ -193,33 +199,33 @@ def load_records(
                     ]
                 )
 
-        check_shards_readonly(collection)
-        wait_for_all_shards_ready(client)
+    check_shards_readonly(collection)
+    wait_for_all_shards_ready(client)
 
-        i = 100000
-        with client.batch.fixed_size(batch_size=batch_size) as batch:
-            while i < len_objects:
-                vector = vectors[i]
-                if i % 10000 == 0:
-                    logger.info(f"writing record {i}/{len_objects}")
+    i = 100000
+    with client.batch.fixed_size(batch_size=batch_size) as batch:
+        while i < len_objects:
+            vector = vectors[i]
+            if i % 10000 == 0:
+                logger.info(f"writing record {i}/{len_objects}")
 
-                data_object = {
-                    "i": i,
-                }
+            data_object = {
+                "i": i,
+            }
 
-                multivector_object = {}
-                if multivector:
-                    multivector_object["multivector"] = vector
-                batch.add_object(
-                    properties=data_object,
-                    vector=vector if multivector is False else multivector_object,
-                    uuid=uuid.UUID(int=i),
-                    collection=CLASS_NAME,
-                )
-                i += 1
+            multivector_object = {}
+            if multivector:
+                multivector_object["multivector"] = vector
+            batch.add_object(
+                properties=data_object,
+                vector=vector if multivector is False else multivector_object,
+                uuid=uuid.UUID(int=i),
+                collection=CLASS_NAME,
+            )
+            i += 1
 
-        for err in client.batch.failed_objects:
-            logger.error(err.message)
+    for err in client.batch.failed_objects:
+        logger.error(err.message)
 
     logger.info("Waiting for vector indexing to finish")
     collection.batch.wait_for_vector_indexing()
