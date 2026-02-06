@@ -136,7 +136,6 @@ function shutdown() {
   rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
 }
 
-<<<<<<< HEAD
 # Flag to prevent duplicate diagnostic output
 _LOGGED_DIAGNOSTICS=0
 
@@ -150,11 +149,6 @@ function run_failure_diagnostics() {
 
 trap 'run_failure_diagnostics; shutdown; exit 1' SIGINT ERR
 trap 'exit_code=$?; if [[ $exit_code -ne 0 ]]; then run_failure_diagnostics; fi; shutdown' EXIT
-=======
-#trap 'logs; report_container_state; shutdown; exit 1' SIGINT ERR
-
-#trap 'exit_code=$?; if [[ $exit_code -eq 1 ]]; then logs; report_container_state; fi; shutdown' EXIT
->>>>>>> 36d4288 (Add backup tests for Hfresh)
 
 
 function wait_for_indexing() {
