@@ -8,6 +8,7 @@ readonly DISTANCE="${DISTANCE:-l2-squared}"
 readonly QUANTIZATION="${QUANTIZATION:-none}"
 readonly MULTIVECTOR_DATASET="${MULTIVECTOR_DATASET:-false}"
 readonly MULTIVECTOR_IMPLEMENTATION="${MULTIVECTOR_IMPLEMENTATION:-regular}"
+readonly CUSTOM_DATASET="${CUSTOM_DATASET:-false}"
 readonly WEAVIATE_VERSION="${WEAVIATE_VERSION:-}"
 readonly CLOUD_PROVIDER="${CLOUD_PROVIDER:-}"
 readonly MACHINE_TYPE="${MACHINE_TYPE:-}"
@@ -117,6 +118,9 @@ download_dataset() {
     if [ "$MULTIVECTOR_DATASET" = "true" ]; then
         log_info "Downloading multivector dataset"
         curl -LO "https://storage.googleapis.com/ann-datasets/custom/Multivector/${DATASET}.hdf5"
+    elif [ "$CUSTOM_DATASET" = "true" ]; then
+        log_info "Downloading custom dataset"
+        curl -LO "https://storage.googleapis.com/ann-datasets/custom/${DATASET}.hdf5"
     else
         log_info "Downloading single vector dataset"
         curl -LO "http://ann-benchmarks.com/${DATASET}.hdf5"
