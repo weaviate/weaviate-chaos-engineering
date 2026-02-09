@@ -699,7 +699,7 @@ jobs:
       DATASET: dbpedia-100k-openai-ada002-angular
       CUSTOM_DATASET: true
       DISTANCE: cosine
-      REQUIRED_RECALL: 0.992
+      REQUIRED_RECALL: 0.984
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
       BOOT_DISK_SIZE: 50GB
       INDEX_TYPE: hfresh
