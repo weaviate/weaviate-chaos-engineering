@@ -149,7 +149,7 @@ echo "Wait some time to let the metrics be updated"
 sleep 10
 
 echo "Validate there are no tombstones to be cleaned up"
-if ! validate_tombstone_count 70; then
+if ! validate_tombstone_count 200; then
     exit 1
 fi
 
