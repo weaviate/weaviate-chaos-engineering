@@ -2572,6 +2572,8 @@ jobs:
     name: Module conflicting vectorizer settings
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -2598,3 +2600,21 @@ jobs:
           path: |
             apps/module-conflicting-vectorizer-settings/logs/
             /tmp/weaviate*
+
+  server-side-batching-ungraceful-shutdown:
+    needs: [newer-or-equal-than-1_34]
+    if: ${{ (needs.newer-or-equal-than-1_34.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-ungraceful-shutdown' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that server-side batching works when the pods are being killed
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Run chaos test
+        run: ./server_side_batching_ungraceful_shutdown.sh
