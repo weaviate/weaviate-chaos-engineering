@@ -2575,6 +2575,12 @@ jobs:
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2610,13 +2616,5 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
-      # - name: Spin-up 3 node cluster
-      #   uses: weaviate/weaviate-local-k8s@v2
-      #   with:
-      #     operation: 'setup'
-      #     workers: '1'
-      #     replicas: '3'
-      #     weaviate-version: ${{env.WEAVIATE_VERSION}}
-      #     values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Run chaos test
         run: ./server_side_batching_ungraceful_shutdown.sh
