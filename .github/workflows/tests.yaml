@@ -217,7 +217,21 @@ jobs:
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.34.0"
-          operator: ">="  
+          operator: ">="
+  newer-or-equal-than-1_36:
+    name: "Check if the version is newer than 1.36"
+    needs: real-version-in-tag
+    runs-on: ubicloud-standard-2
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.2.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.36.0"
+          operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -646,6 +660,48 @@ jobs:
           destination: 'ann-pipelines/github-action-runs'
           glob: '*.json'
 
+  ann-benchmarks-hfresh-dbpedia-gcp:
+    needs: [newer-or-equal-than-1_36]
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-hfresh-dbpedia-gcp' || github.event.inputs.test_to_run == '') }}
+    name: "[bench GCP] DBpedia hfresh=true"
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      DATASET: dbpedia-100k-openai-ada002-angular
+      CUSTOM_DATASET: true
+      DISTANCE: cosine
+      REQUIRED_RECALL: 0.984
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      BOOT_DISK_SIZE: 50GB
+      INDEX_TYPE: hfresh
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - id: 'gcs_auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v3'
+        with:
+          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+      - name: 'Set up Cloud SDK'
+        uses: 'google-github-actions/setup-gcloud@v3'
+      - name: Run chaos test
+        if: always()
+        env:
+          INDEX_TYPE: hfresh
+        run: ./ann_benchmark_gcp.sh
+      - name: Cleanup GCP resources
+        if: always()
+        run: ./cleanup_gcp_resources.sh
+      - id: 'upload-files'
+        uses: 'google-github-actions/upload-cloud-storage@v3'
+        with:
+          path: 'results'
+          destination: 'ann-pipelines/github-action-runs'
+          glob: '*.json'
 
 
   ann-benchmarks-multivector-gcp:
@@ -1097,6 +1153,35 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./replication_importing_with_backup.sh
+        env:
+          INDEX_TYPE: hnsw
+
+  replicated-imports-with-backup-hfresh:
+    name: Replicated imports with backup loop with Hfresh
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true') && (github.event.inputs.test_to_run == 'replicated-imports-with-backup-hfresh' || github.event.inputs.test_to_run == '') }}
+    runs-on: ubicloud-standard-8
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
+
+      - name: Run chaos test with HFRESH
+        run: ./replication_importing_with_backup.sh
+        env:
+          INDEX_TYPE: hfresh
   replication-tunable-consistency:
     name: Replication tunable consistency
     if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
@@ -1281,6 +1366,9 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./backup_and_restore_crud.sh
+      - name: Run chaos test with 
+        if: ${{ needs.newer-or-equal-than-1_36.outputs.check == 'true' }}
+        run: ./backup_and_restore_crud_hfresh.sh
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
     runs-on: ubicloud-standard-4
@@ -1711,8 +1799,11 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
-      - name: Run chaos test
+      - name: Run chaos test with HNSW
         run: ./backup_and_flush.sh
+      - name: Run chaos test with HFRESH
+        if: ${{ needs.newer-or-equal-than-1_36.outputs.check == 'true' }}
+        run: ./backup_and_flush_hfresh.sh
   backup_and_restore_out_of_sync:
     # https://github.com/weaviate/weaviate/pull/4541
     name: Test that restoring a backup without data presence ensures schema consistency across nodes

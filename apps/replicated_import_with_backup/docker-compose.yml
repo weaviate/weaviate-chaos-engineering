@@ -92,6 +92,7 @@ services:
     environment:
       - CONFIG_REPLICATION_FACTOR=2
       - CONFIG_HOST=http://localhost:8080
+      - INDEX_TYPE=${INDEX_TYPE}
 
   importer-data-node-1:
     build: ./../replicated-import/
@@ -104,6 +105,7 @@ services:
       - CONFIG_OBJECT_COUNT=500_000
       - CONFIG_BATCH_SIZE=1_000
       - CONFIG_UUID_OFFSET=0
+      - INDEX_TYPE=${INDEX_TYPE}
 
   importer-data-node-2:
     build: ./../replicated-import/
@@ -116,6 +118,7 @@ services:
       - CONFIG_OBJECT_COUNT=500_000
       - CONFIG_BATCH_SIZE=1_000
       - CONFIG_UUID_OFFSET=500_000
+      - INDEX_TYPE=${INDEX_TYPE}
 
   backup-loop-node-1:
     build: .
