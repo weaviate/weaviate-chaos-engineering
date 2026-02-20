@@ -204,8 +204,8 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.33.0"
           operator: ">="
-  equal-to-1_36_dev:
-    name: "Check if the version is equal to 1.36.0-dev"
+  equal-to-1_36_rc:
+    name: "Check if the version is equal to 1.36.0-rc"
     needs: real-version-in-tag
     runs-on: ubicloud-standard-2
     outputs:
@@ -216,7 +216,7 @@ jobs:
         uses: fabriziocacicia/semver-compare-action@v0.2.0
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.36.0-dev"
+          second: "1.36.0-rc"
           operator: "="  
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
@@ -2541,8 +2541,8 @@ jobs:
           ./hnsw_snapshotting_while_crash.sh
   
   server-side-batching-with-rolling-restart-without-async-indexing:
-    needs: [equal-to-1_36_dev]
-    if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-without-async-indexing' || github.event.inputs.test_to_run == '' ) }}
+    needs: [equal-to-1_36_rc]
+    if: ${{ (needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-without-async-indexing' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart without async indexing
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
@@ -2572,8 +2572,8 @@ jobs:
         run: ./server_side_batching_with_rolling_restart.sh
 
   server-side-batching-with-rolling-restart-with-async-indexing:
-    needs: [equal-to-1_36_dev]
-    if: ${{ (needs.equal-to-1_36_dev.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-with-async-indexing' || github.event.inputs.test_to_run == '' ) }}
+    needs: [equal-to-1_36_rc]
+    if: ${{ (needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-with-async-indexing' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart with async indexing enabled
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
