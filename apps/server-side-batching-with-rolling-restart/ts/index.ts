@@ -5,7 +5,7 @@ type Args = {
   collection: Collection<any, any, any>;
 };
 
-const HOW_MANY = 200000;
+const HOW_MANY = 100_000;
 const COLLECTION_NAME = "TypeScriptShutdownJourney";
 
 const setup = async (client: WeaviateClient) =>
