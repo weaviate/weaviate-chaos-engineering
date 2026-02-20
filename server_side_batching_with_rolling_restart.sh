@@ -4,7 +4,7 @@ set -e
 
 restart() {
     echo "wait a bit to let the imports start"
-    shuf -i 10 -n 1 | xargs sleep # wait a bit before performing rolling restart
+    shuf -i 5-20 -n 1 | xargs sleep # wait a bit before performing rolling restart
 
     echo "perform a rolling restart of the weaviate cluster"
     kubectl rollout restart statefulset/weaviate -n weaviate
