@@ -6,7 +6,7 @@ type Args = {
 };
 
 const HOW_MANY = 100000;
-const COLLECTION_NAME = "ServerSideBatchingWithRollingRestart";
+const COLLECTION_NAME = "TypeScriptShutdownJourney";
 
 const setup = async (client: WeaviateClient) =>
   client.collections

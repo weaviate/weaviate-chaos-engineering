@@ -8,7 +8,9 @@ restart() {
 
     echo "perform a rolling restart of the weaviate cluster"
     kubectl rollout restart statefulset/weaviate -n weaviate
+}
 
+follow() {
     echo "following the logs of the journey"
     docker logs -f "$1"
 
@@ -23,16 +25,15 @@ restart() {
 echo "building all required containers"
 ( cd apps/server-side-batching-with-rolling-restart/ && docker build -t server_side_batching_with_rolling_restart_py ./py && docker build -t server_side_batching_with_rolling_restart_ts ./ts )
 
-echo "start the sync python journey"
-container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_py python3 run.py sync)
-restart "$container_id" "sync python"
+echo "start the journeys"
+sync_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_py python3 run.py sync)
+async_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_py python3 run.py async)
+ts_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_ts)
 
-echo "start the async python journey"
-container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_py python3 run.py async)
-restart "$container_id" "async python"
+restart
 
-echo "start the typescript journey"
-container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart_ts)
-restart "$container_id" "typescript"
+follow "$sync_id" "sync"
+follow "$async_id" "async"
+follow "$ts_id" "typescript"
 
 echo "All journeys completed successfully"

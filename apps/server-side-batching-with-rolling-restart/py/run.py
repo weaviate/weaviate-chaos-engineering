@@ -161,7 +161,7 @@ def random_vector() -> list[float]:
 
 
 def sync() -> None:
-    collection = "BatchImportShutdownJourney"
+    collection = "SyncPythonShutdownJourney"
     how_many = 100000
     with weaviate.connect_to_local() as client:
         try:
@@ -174,7 +174,7 @@ def sync() -> None:
 
 
 async def async_() -> None:
-    collection = "BatchImportShutdownJourney"
+    collection = "AsyncPythonShutdownJourney"
     how_many = 100000
     async with weaviate.use_async_with_local() as client:
         try:
