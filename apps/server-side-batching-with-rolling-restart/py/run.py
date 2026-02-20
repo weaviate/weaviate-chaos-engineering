@@ -162,7 +162,7 @@ def random_vector() -> list[float]:
 
 def sync() -> None:
     collection = "SyncPythonShutdownJourney"
-    how_many = 100000
+    how_many = 200000
     with weaviate.connect_to_local() as client:
         try:
             c = setup(client, collection)
@@ -175,7 +175,7 @@ def sync() -> None:
 
 async def async_() -> None:
     collection = "AsyncPythonShutdownJourney"
-    how_many = 100000
+    how_many = 200000
     async with weaviate.use_async_with_local() as client:
         try:
             c = await setup(client, collection)
