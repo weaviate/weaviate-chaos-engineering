@@ -3,7 +3,7 @@
 set -e
 
 echo "Building all required containers"
-( cd apps/server-side-batching-with-rolling-restart/ && docker build -t server_side_batching_with_rolling_restart . )
+( cd apps/server-side-batching-with-rolling-restart/py && docker build -t server_side_batching_with_rolling_restart . )
 
 echo "Start the journey"
 container_id=$(docker run -d --network host -t server_side_batching_with_rolling_restart python3 run.py sync)
