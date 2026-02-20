@@ -181,7 +181,7 @@ async def async_() -> None:
             c = await setup(client, collection)
             await import_async(client, c.name, how_many)
             await averify(client, c.name, how_many)
-            print("async ourney completed successfully")
+            print("async journey completed successfully")
         finally:
             await client.collections.delete(collection)
 
