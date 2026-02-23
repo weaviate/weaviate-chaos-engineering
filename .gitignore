@@ -22,3 +22,4 @@ apps/weaviate/backups*/
 apps/upgrade-journey-object-nested-properties/.docker_data
 apps/downgrade-journey-raft-schema-force-from-snapshot/data/
 apps/upgrade-journey/data/
+apps/module-conflicting-vectorizer-settings/data/

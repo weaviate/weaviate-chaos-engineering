@@ -217,7 +217,21 @@ jobs:
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.36.0-rc"
-          operator: "="  
+          operator: "="
+  newer-or-equal-than-1_36:
+    name: "Check if the version is newer than 1.36"
+    needs: real-version-in-tag
+    runs-on: ubicloud-standard-2
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.2.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.36.0"
+          operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -2629,4 +2643,45 @@ jobs:
           name: module-conflicting-vectorizer-settings-${{ inputs.lsm_access_strategy }}-logs
           path: |
             apps/module-conflicting-vectorizer-settings/logs/
+            /tmp/weaviate*
+
+  alter-schema-operations:
+    needs: [newer-or-equal-than-1_36, equal-to-1_36_rc]
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true' || needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'alter-schema-operations' || github.event.inputs.test_to_run == '') }}
+    name: Alter schema operations
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      # - name: Collect Workflow Telemetry
+      #   uses: catchpoint/workflow-telemetry-action@master
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+      - name: Setup 3-node Weaviate cluster with model2vec
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          modules: 'text2vec-model2vec'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Run alter schema operations tests
+        run: apps/alter_schema_operations/alter_schema_operations.sh
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: alter-schema-operations-${{ inputs.lsm_access_strategy }}-logs
+          path: |
+            apps/alter_schema_operations/logs/
             /tmp/weaviate*
