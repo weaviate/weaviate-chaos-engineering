@@ -1066,7 +1066,7 @@ jobs:
   replicated-imports-with-chaos-killing:
     name: Replicated imports with chaos killing
     if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-chaos-killing' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubicloud-standard-16
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
@@ -1114,7 +1114,7 @@ jobs:
   replication-tunable-consistency:
     name: Replication tunable consistency
     if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
-    runs-on: ubicloud-standard-8
+    runs-on: ubicloud-standard-16
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
