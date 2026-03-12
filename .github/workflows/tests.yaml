@@ -1768,6 +1768,39 @@ jobs:
   #         password: ${{secrets.DOCKER_PASSWORD}}
   #     - name: Run chaos test
   #       run: ./compare_rest_graphql_while_crashing.sh
+  offload-s3-provider-down:
+    if: github.event_name == 'schedule' || github.event.inputs.scenario_to_run == '' || github.event.inputs.scenario_to_run == 'offload-s3-provider-down'
+    name: Offload S3 – tenant reverts to HOT when MinIO is killed during freeze
+    runs-on: ubicloud-standard-4
+    timeout-minutes: 30
+    env:
+      WEAVIATE_VERSION: ${{ github.event_name == 'schedule' && 'nightly' || github.event.inputs.weaviate_version || '1.27.2' }}
+      PERSISTENCE_LSM_ACCESS_STRATEGY: "mmap"
+      OFFLOAD_TIMEOUT: "30"
+      OFFLOAD_S3_CONCURRENCY: "1"
+      OFFLOAD_S3_WORKERS: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Retrieve Weaviate version from image
+        uses: weaviate/github-common-actions/.github/actions/weaviate-version-in-image@main
+        id: weaviate-version
+        with:
+          image_tag: ${{ env.WEAVIATE_VERSION }}
+      - name: Check Weaviate >= 1.30 (offload-s3)
+        id: semver
+        uses: fabriziocacicia/semver-compare-action@v0.2.0
+        with:
+          first: ${{ steps.weaviate-version.outputs.weaviate_version }}
+          second: "1.30.0"
+          operator: ">="
+      - name: Run chaos test (cluster and provider)
+        if: steps.semver.outputs.result == 'true'
+        run: ./offload_s3_provider_down.sh
   upgrade-journey-single-node-cluster:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-single-node-cluster' || github.event.inputs.test_to_run == '') }}

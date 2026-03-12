@@ -1,0 +1,163 @@
+---
+# Weaviate 3-node cluster with offload-s3 module and MinIO.
+# Used by offload_s3_provider_down.sh chaos scenario.
+services:
+  weaviate-node-1:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION:-latest}
+    ports:
+    - 8080:8080
+    - 6060:6060
+    - 50051:50051
+    restart: on-failure:0
+    volumes:
+    - "$PWD/apps/weaviate/data-node-1:/var/lib/weaviate"
+    environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'offload-s3'
+      OFFLOAD_S3_BUCKET: 'offloading'
+      OFFLOAD_S3_ENDPOINT: 'http://test-minio:9000'
+      OFFLOAD_S3_BUCKET_AUTO_CREATE: 'true'
+      OFFLOAD_TIMEOUT: '${OFFLOAD_TIMEOUT:-2}'
+      OFFLOAD_S3_CONCURRENCY: '${OFFLOAD_S3_CONCURRENCY:-1}'
+      OFFLOAD_S3_WORKERS: '${OFFLOAD_S3_WORKERS:-1}'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      CLUSTER_HOSTNAME: 'node1'
+      CLUSTER_GOSSIP_BIND_PORT: '7100'
+      CLUSTER_DATA_BIND_PORT: '7101'
+      RAFT_JOIN: 'node1,node2,node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
+      PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
+      PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  weaviate-node-2:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION:-latest}
+    ports:
+    - 8081:8080
+    - 6061:6060
+    - 50052:50051
+    restart: on-failure:0
+    volumes:
+    - "$PWD/apps/weaviate/data-node-2:/var/lib/weaviate"
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'offload-s3'
+      OFFLOAD_S3_BUCKET: 'offloading'
+      OFFLOAD_S3_ENDPOINT: 'http://test-minio:9000'
+      OFFLOAD_S3_BUCKET_AUTO_CREATE: 'true'
+      OFFLOAD_TIMEOUT: '${OFFLOAD_TIMEOUT:-2}'
+      OFFLOAD_S3_CONCURRENCY: '${OFFLOAD_S3_CONCURRENCY:-1}'
+      OFFLOAD_S3_WORKERS: '${OFFLOAD_S3_WORKERS:-1}'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      CLUSTER_HOSTNAME: 'node2'
+      CLUSTER_GOSSIP_BIND_PORT: '7102'
+      CLUSTER_DATA_BIND_PORT: '7103'
+      CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'node1,node2,node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
+      PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
+      PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  weaviate-node-3:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate:${WEAVIATE_VERSION:-latest}
+    ports:
+    - 8082:8080
+    - 6062:6060
+    - 50053:50051
+    restart: on-failure:0
+    volumes:
+    - "$PWD/apps/weaviate/data-node-3:/var/lib/weaviate"
+    environment:
+      LOG_LEVEL: 'debug'
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'offload-s3'
+      OFFLOAD_S3_BUCKET: 'offloading'
+      OFFLOAD_S3_ENDPOINT: 'http://test-minio:9000'
+      OFFLOAD_S3_BUCKET_AUTO_CREATE: 'true'
+      OFFLOAD_TIMEOUT: '${OFFLOAD_TIMEOUT:-2}'
+      OFFLOAD_S3_CONCURRENCY: '${OFFLOAD_S3_CONCURRENCY:-1}'
+      OFFLOAD_S3_WORKERS: '${OFFLOAD_S3_WORKERS:-1}'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+      CLUSTER_HOSTNAME: 'node3'
+      CLUSTER_GOSSIP_BIND_PORT: '7104'
+      CLUSTER_DATA_BIND_PORT: '7105'
+      CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'node1,node2,node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: 'true'
+      PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
+      PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
+      PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  test-minio:
+    image: minio/minio
+    ports:
+    - "9000:9000"
+    volumes:
+    - "$PWD/apps/weaviate/offload-s3-data:/data"
+    environment:
+      MINIO_ROOT_USER: 'aws_access_key'
+      MINIO_ROOT_PASSWORD: 'aws_secret_key'
+    command: server /data
+
+  offload-importer:
+    build: ./offload-importer
+    command: ['python3', 'offload_s3_importer.py']
+    environment:
+      HOST: weaviate-node-1
+      HOST_PORT: 8080
+      HOST_GRPC: weaviate-node-1
+      GRPC_PORT: 50051
+      CLASS_NAME: MultiTenantClass
+      TENANT_NAME: Tenant1
+      TOTAL_OBJECTS: '${TOTAL_OBJECTS:-500000}'
+      BATCH_SIZE: '${BATCH_SIZE:-1000}'
+    depends_on:
+      - weaviate-node-1
+      - weaviate-node-2
+      - weaviate-node-3
