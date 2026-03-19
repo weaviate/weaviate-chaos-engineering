@@ -220,7 +220,8 @@ func getClass(shards int) *models.Class {
 			"desiredCount": shards,
 		},
 		VectorIndexConfig: map[string]interface{}{
-			"vectorCacheMaxObjects": 10000000000,
+			"vectorCacheMaxObjects":  10000000000,
+			"cleanupIntervalSeconds": 30,
 		},
 		Properties: []*models.Property{
 			{

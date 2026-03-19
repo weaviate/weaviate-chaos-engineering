@@ -15,8 +15,12 @@ apps/weaviate/backups*/
 **/.vscode/
 **/.venv/
 **/__pycache__*/
+**/node_modules*/
+**/.ruff_cache*/
 
 apps/weaviate/backups*/
 apps/upgrade-journey-object-nested-properties/.docker_data
 apps/downgrade-journey-raft-schema-force-from-snapshot/data/
 apps/upgrade-journey/data/
+apps/module-conflicting-vectorizer-settings/data/
+apps/restart-highly-available-qps-benchmark/benchmark_results*
