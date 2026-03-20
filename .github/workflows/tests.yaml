@@ -2432,6 +2432,38 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./update_stability.sh
+  update-stability-hfresh:
+    name: Recall Stability on object updates with Hfresh
+    needs: [newer-or-equal-than-1_36]
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true') && (github.event.inputs.test_to_run == 'update-stability-hfresh' || github.event.inputs.test_to_run == '') }}
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      PROMETHEUS_MONITORING_ENABLED: "true"
+      DATASET: "dbpedia-100k-openai-ada002-angular"
+      DISTANCE: "cosine"
+      INDEX_TYPE: "hfresh"
+      UPDATE_PERCENTAGE: "0.08"
+      CLEANUP_INTERVAL_SECONDS: "30"
+      UPDATE_ITERATIONS: "10"
+      REQUIRED_RECALL: "0.98"
+    steps:
+      - uses: actions/checkout@v5
+      # - name: Polar Signals Continuous Profiling
+      #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
+      #   with:
+      #     polarsignals_cloud_token: ${{ secrets.POLARSIGNALS_TOKEN }}
+      #     labels: 'job=${{ github.job }};gh_run_id=${{ github.run_id }}'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
+      - name: Run chaos test
+        run: ./update_stability.sh
   debug-reindexing-endpoint-journey-tests:
     needs: [newer-or-equal-than-1_24]
     if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'debug-reindexing-endpoint-journey-tests' || github.event.inputs.test_to_run == '' )}}
