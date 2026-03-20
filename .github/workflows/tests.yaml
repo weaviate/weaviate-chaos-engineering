@@ -1158,6 +1158,7 @@ jobs:
 
   replicated-imports-with-backup-hfresh:
     name: Replicated imports with backup loop with Hfresh
+    needs: [newer-or-equal-than-1_36]
     if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true') && (github.event.inputs.test_to_run == 'replicated-imports-with-backup-hfresh' || github.event.inputs.test_to_run == '') }}
     runs-on: ubicloud-standard-8
     timeout-minutes: 60
@@ -1346,6 +1347,7 @@ jobs:
   backup-restore-crud:
     name: Backup & Restore CRUD
     runs-on: ubicloud-standard-4
+    needs: [newer-or-equal-than-1_36]
     if: ${{ github.event.inputs.test_to_run == 'backup-restore-crud' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
@@ -1781,6 +1783,7 @@ jobs:
     # https://github.com/weaviate/weaviate/issues/4418
     name: Test that flushing is reestablished after a backup is performed
     runs-on: ubicloud-standard-2
+    needs: [newer-or-equal-than-1_36]
     if: ${{ github.event.inputs.test_to_run == 'backup_and_flush' || github.event.inputs.test_to_run == '' }}
     timeout-minutes: 60
     env:
