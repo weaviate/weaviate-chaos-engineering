@@ -2645,10 +2645,10 @@ jobs:
             apps/module-conflicting-vectorizer-settings/logs/
             /tmp/weaviate*
 
-  alter-schema-operations:
+  alter-schema-drop-property-index:
     needs: [newer-or-equal-than-1_36, equal-to-1_36_rc]
-    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true' || needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'alter-schema-operations' || github.event.inputs.test_to_run == '') }}
-    name: Alter schema operations
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true' || needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'alter-schema-drop-property-index' || github.event.inputs.test_to_run == '') }}
+    name: Alter schema drop property index
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -2675,13 +2675,13 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-model2vec'
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
-      - name: Run alter schema operations tests
-        run: apps/alter_schema_operations/alter_schema_operations.sh
+      - name: Run alter schema drop property index tests
+        run: apps/alter_schema_operations/alter_schema_drop_property_index.sh
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
         with:
-          name: alter-schema-operations-${{ inputs.lsm_access_strategy }}-logs
+          name: alter-schema-drop-property-index-${{ inputs.lsm_access_strategy }}-logs
           path: |
             apps/alter_schema_operations/logs/
             /tmp/weaviate*
