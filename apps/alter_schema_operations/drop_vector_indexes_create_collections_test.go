@@ -14,6 +14,7 @@ import (
 
 const (
 	moviesClass    = "Movies"
+	mvMoviesClass  = "MVMovies"
 	multiVecDim    = 64
 	multiVecTokens = 8
 )
@@ -67,6 +68,8 @@ func randomMultiVector(tokens, dim int) [][]float32 {
 	return mv
 }
 
+// TestCreateMoviesCollectionAndSearch creates the Movies collection with
+// vectorizer-based named vectors (text2vec-model2vec) and verifies nearText search.
 func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 	ctx := context.Background()
 
@@ -77,13 +80,11 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
-	// Clean up any existing schema
-	err = client.Schema().AllDeleter().Do(ctx)
-	require.NoError(t, err)
+	// Clean up any existing Movies collection
+	client.Schema().ClassDeleter().WithClassName(moviesClass).Do(ctx)
 
 	allProps := []string{"title", "director", "description"}
 
-	// Create "Movies" collection with various vector index configurations
 	moviesSchema := &models.Class{
 		Class: moviesClass,
 		Properties: []*models.Property{
@@ -96,17 +97,14 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 			AsyncEnabled: true,
 		},
 		VectorConfig: map[string]models.VectorConfig{
-			// a) Pure HNSW
 			"hnsw_plain": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "hnsw",
 			},
-			// a) Pure flat
 			"flat_plain": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "flat",
 			},
-			// b) HNSW with PQ
 			"hnsw_pq": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "hnsw",
@@ -117,7 +115,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// b) HNSW with BQ
 			"hnsw_bq": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "hnsw",
@@ -127,7 +124,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// b) HNSW with SQ
 			"hnsw_sq": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "hnsw",
@@ -138,7 +134,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// b) HNSW with RQ (bits=1)
 			"hnsw_rq1": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "hnsw",
@@ -149,7 +144,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// b) HNSW with RQ (bits=8)
 			"hnsw_rq8": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "hnsw",
@@ -160,7 +154,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// c) Flat with BQ
 			"flat_bq": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "flat",
@@ -170,7 +163,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// c) Flat with RQ (bits=1)
 			"flat_rq1": {
 				Vectorizer:      vectorizerConfig(allProps),
 				VectorIndexType: "flat",
@@ -181,7 +173,109 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// Multi-vector: pure HNSW
+		},
+	}
+
+	err = client.Schema().ClassCreator().WithClass(moviesSchema).Do(ctx)
+	require.NoError(t, err)
+
+	t.Logf("Importing %d objects in batches of %d...", numObjects, batchSize)
+	for i := 0; i < numObjects; i += batchSize {
+		batcher := client.Batch().ObjectsBatcher()
+		end := i + batchSize
+		if end > numObjects {
+			end = numObjects
+		}
+		for j := i; j < end; j++ {
+			batcher = batcher.WithObject(&models.Object{
+				Class: moviesClass,
+				Properties: map[string]any{
+					"title":       faker.Sentence(),
+					"director":    faker.Name(),
+					"description": faker.Sentence(),
+				},
+			})
+		}
+
+		res, err := batcher.Do(ctx)
+		require.NoError(t, err, "batch import failed at offset %d", i)
+		for _, r := range res {
+			if r.Result != nil && r.Result.Errors != nil && r.Result.Errors.Error != nil {
+				t.Fatalf("failed to create object: %+v, status: %v",
+					r.Result.Errors.Error[0], r.Result.Status)
+			}
+		}
+
+		if (i+batchSize)%2000 == 0 {
+			t.Logf("Imported %d/%d objects", i+batchSize, numObjects)
+		}
+	}
+
+	// Verify object count
+	t.Log("Verifying object count...")
+	result, err := client.GraphQL().Aggregate().
+		WithClassName(moviesClass).
+		WithFields(graphql.Field{Name: "meta", Fields: []graphql.Field{{Name: "count"}}}).
+		Do(ctx)
+	require.NoError(t, err)
+	require.Empty(t, result.Errors, "aggregate query returned errors: %v", result.Errors)
+
+	aggregate := result.Data["Aggregate"].(map[string]interface{})[moviesClass].([]interface{})
+	require.NotEmpty(t, aggregate)
+	actualCount := aggregate[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
+	require.Equal(t, numObjects, int(actualCount), "expected %d objects, got %d", numObjects, int(actualCount))
+	t.Logf("Verified object count: %d", int(actualCount))
+
+	// Verify nearText search works for all vectorizer-based named vectors
+	for _, vectorName := range vectorizerVectors {
+		t.Run("nearText_"+vectorName, func(t *testing.T) {
+			nearText := client.GraphQL().NearTextArgBuilder().
+				WithConcepts([]string{"adventure movie"}).
+				WithTargetVectors(vectorName)
+
+			searchResult, err := client.GraphQL().Get().
+				WithClassName(moviesClass).
+				WithFields(graphql.Field{Name: "title"}).
+				WithNearText(nearText).
+				WithLimit(5).
+				Do(ctx)
+			require.NoError(t, err)
+			require.Empty(t, searchResult.Errors, "nearText search returned errors for %s: %v", vectorName, searchResult.Errors)
+
+			data := searchResult.Data["Get"].(map[string]interface{})[moviesClass].([]interface{})
+			require.NotEmpty(t, data, "nearText search for %s returned no results", vectorName)
+			t.Logf("nearText search for %s returned %d result(s)", vectorName, len(data))
+		})
+	}
+}
+
+// TestCreateMVMoviesCollectionAndSearch creates the MVMovies collection with
+// multi-vector named vectors (none vectorizer, explicit [][]float32) and verifies nearVector search.
+func TestCreateMVMoviesCollectionAndSearch(t *testing.T) {
+	ctx := context.Background()
+
+	client, err := wvt.NewClient(wvt.Config{
+		Scheme: "http",
+		Host:   "localhost:8080",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, client)
+
+	// Clean up any existing MVMovies collection
+	client.Schema().ClassDeleter().WithClassName(mvMoviesClass).Do(ctx)
+
+	mvMoviesSchema := &models.Class{
+		Class: mvMoviesClass,
+		Properties: []*models.Property{
+			{Name: "title", DataType: []string{"text"}},
+			{Name: "director", DataType: []string{"text"}},
+			{Name: "description", DataType: []string{"text"}},
+		},
+		ReplicationConfig: &models.ReplicationConfig{
+			Factor:       3,
+			AsyncEnabled: true,
+		},
+		VectorConfig: map[string]models.VectorConfig{
 			"hnsw_multivec": {
 				Vectorizer:      map[string]any{"none": nil},
 				VectorIndexType: "hnsw",
@@ -191,7 +285,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// Multi-vector: HNSW with muvera
 			"hnsw_multivec_muvera": {
 				Vectorizer:      map[string]any{"none": nil},
 				VectorIndexType: "hnsw",
@@ -204,7 +297,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// Multi-vector: HNSW with muvera + RQ (bits=1)
 			"hnsw_multivec_muvera_rq1": {
 				Vectorizer:      map[string]any{"none": nil},
 				VectorIndexType: "hnsw",
@@ -221,7 +313,6 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 					},
 				},
 			},
-			// Multi-vector: HNSW with muvera + RQ (bits=8)
 			"hnsw_multivec_muvera_rq8": {
 				Vectorizer:      map[string]any{"none": nil},
 				VectorIndexType: "hnsw",
@@ -241,13 +332,12 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 		},
 	}
 
-	err = client.Schema().ClassCreator().WithClass(moviesSchema).Do(ctx)
+	err = client.Schema().ClassCreator().WithClass(mvMoviesSchema).Do(ctx)
 	require.NoError(t, err)
 
-	// Sample multi-vector for search verification (stored from first object)
+	// Sample multi-vector for search verification
 	sampleMultiVec := randomMultiVector(multiVecTokens, multiVecDim)
 
-	// Generate and batch import objects
 	t.Logf("Importing %d objects in batches of %d...", numObjects, batchSize)
 	for i := 0; i < numObjects; i += batchSize {
 		batcher := client.Batch().ObjectsBatcher()
@@ -265,11 +355,11 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 			}
 
 			batcher = batcher.WithObject(&models.Object{
-				Class: moviesClass,
+				Class: mvMoviesClass,
 				Properties: map[string]any{
 					"title":       faker.Sentence(),
 					"director":    faker.Name(),
-					"description": faker.Paragraph(),
+					"description": faker.Sentence(),
 				},
 				Vectors: vectors,
 			})
@@ -289,50 +379,24 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 		}
 	}
 
-	// Verify object count via GraphQL aggregate
+	// Verify object count
 	t.Log("Verifying object count...")
 	result, err := client.GraphQL().Aggregate().
-		WithClassName(moviesClass).
+		WithClassName(mvMoviesClass).
 		WithFields(graphql.Field{Name: "meta", Fields: []graphql.Field{{Name: "count"}}}).
 		Do(ctx)
 	require.NoError(t, err)
 	require.Empty(t, result.Errors, "aggregate query returned errors: %v", result.Errors)
 
-	aggregate := result.Data["Aggregate"].(map[string]interface{})[moviesClass].([]interface{})
-	require.NotEmpty(t, aggregate, "no aggregate found for collection %q", moviesClass)
+	aggregate := result.Data["Aggregate"].(map[string]interface{})[mvMoviesClass].([]interface{})
+	require.NotEmpty(t, aggregate)
 	actualCount := aggregate[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
 	require.Equal(t, numObjects, int(actualCount), "expected %d objects, got %d", numObjects, int(actualCount))
 	t.Logf("Verified object count: %d", int(actualCount))
 
-	// Verify nearText search works for vectorizer-based named vectors
-	for _, vectorName := range vectorizerVectors {
-		t.Run("nearText_"+vectorName, func(t *testing.T) {
-			t.Logf("Testing nearText search for %s...", vectorName)
-
-			nearText := client.GraphQL().NearTextArgBuilder().
-				WithConcepts([]string{"adventure movie"}).
-				WithTargetVectors(vectorName)
-
-			searchResult, err := client.GraphQL().Get().
-				WithClassName(moviesClass).
-				WithFields(graphql.Field{Name: "title"}).
-				WithNearText(nearText).
-				WithLimit(5).
-				Do(ctx)
-			require.NoError(t, err)
-			require.Empty(t, searchResult.Errors, "nearText search returned errors for %s: %v", vectorName, searchResult.Errors)
-
-			data := searchResult.Data["Get"].(map[string]interface{})[moviesClass].([]interface{})
-			require.NotEmpty(t, data, "nearText search for %s returned no results", vectorName)
-			t.Logf("nearText search for %s returned %d result(s)", vectorName, len(data))
-		})
-	}
-
-	// Verify nearVector search works for multi-vector named vectors
+	// Verify nearVector search works for all multi-vector named vectors
 	for _, vectorName := range multiVectors {
 		t.Run("nearVector_"+vectorName, func(t *testing.T) {
-			t.Logf("Testing nearVector search for %s...", vectorName)
-
 			nearVec := client.GraphQL().NearVectorArgBuilder().
 				WithVectorPerTarget(map[string]models.Vector{
 					vectorName: sampleMultiVec,
@@ -340,7 +404,7 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 				WithTargetVectors(vectorName)
 
 			searchResult, err := client.GraphQL().Get().
-				WithClassName(moviesClass).
+				WithClassName(mvMoviesClass).
 				WithFields(graphql.Field{Name: "title"}).
 				WithNearVector(nearVec).
 				WithLimit(5).
@@ -348,7 +412,7 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 			require.NoError(t, err)
 			require.Empty(t, searchResult.Errors, "nearVector search returned errors for %s: %v", vectorName, searchResult.Errors)
 
-			data := searchResult.Data["Get"].(map[string]interface{})[moviesClass].([]interface{})
+			data := searchResult.Data["Get"].(map[string]interface{})[mvMoviesClass].([]interface{})
 			require.NotEmpty(t, data, "nearVector search for %s returned no results", vectorName)
 			t.Logf("nearVector search for %s returned %d result(s)", vectorName, len(data))
 		})

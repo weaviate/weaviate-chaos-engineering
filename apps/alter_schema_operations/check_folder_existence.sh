@@ -2,10 +2,22 @@
 set -eou pipefail
 
 if [ "$#" -lt 4 ]; then
-  echo "Usage: $0 <collection> <shard> <expect> <folder1> [folder2 ...]"
+  echo "Usage: $0 [--location lsm|shard] <collection> <shard> <expect> <folder1> [folder2 ...]"
+  echo "  --location: 'lsm' checks under <shard>/lsm/ (default), 'shard' checks under <shard>/"
   echo "  <expect>: 'exists' or 'absent'"
   echo "Example: $0 books HBVnMFMblTSi exists property_title property_title_searchable"
-  echo "Example: $0 booksmt tenant1 absent property_title property_title_searchable"
+  echo "Example: $0 --location shard movies HBVnMFMblTSi absent vectors_hnsw_plain.hnsw.commitlog.d"
+  exit 1
+fi
+
+LOCATION="lsm"
+if [ "$1" = "--location" ]; then
+  LOCATION="$2"
+  shift 2
+fi
+
+if [ "$LOCATION" != "lsm" ] && [ "$LOCATION" != "shard" ]; then
+  echo "Error: --location must be 'lsm' or 'shard', got '$LOCATION'"
   exit 1
 fi
 
@@ -37,9 +49,13 @@ function echo_red() {
 exit_code=0
 
 for pod in "${PODS[@]}"; do
-  echo "Checking pod: $pod (collection=${COLLECTION}, shard=${SHARD}, expect=${EXPECT})"
+  echo "Checking pod: $pod (collection=${COLLECTION}, shard=${SHARD}, location=${LOCATION}, expect=${EXPECT})"
   for folder in "${FOLDERS[@]}"; do
-    path="${BASE_PATH}/lsm/${folder}"
+    if [ "$LOCATION" = "lsm" ]; then
+      path="${BASE_PATH}/lsm/${folder}"
+    else
+      path="${BASE_PATH}/${folder}"
+    fi
     dir_exists=0
     kubectl -n "$NAMESPACE" exec -i "$pod" -c "$CONTAINER" -- test -d "$path" || dir_exists=1
 
