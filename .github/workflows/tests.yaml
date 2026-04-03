@@ -2686,6 +2686,45 @@ jobs:
             apps/alter_schema_operations/logs/
             /tmp/weaviate*
 
+  alter-schema-drop-vector-index:
+    needs: [newer-or-equal-than-1_36, equal-to-1_36_rc]
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true' || needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'alter-schema-drop-vector-index' || github.event.inputs.test_to_run == '') }}
+    name: Alter schema drop vector index
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+      - name: Setup 3-node Weaviate cluster with model2vec
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          modules: 'text2vec-model2vec'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Run alter schema drop vector index tests
+        run: apps/alter_schema_operations/alter_schema_drop_vector_index.sh
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: alter-schema-drop-vector-index-${{ inputs.lsm_access_strategy }}-logs
+          path: |
+            apps/alter_schema_operations/logs/
+            /tmp/weaviate*
+
   rolling-restart-highly-available-qps-benchmark:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rolling-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == '')}}
