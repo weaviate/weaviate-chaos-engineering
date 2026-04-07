@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	moviesClass    = "Movies"
-	mvMoviesClass  = "MVMovies"
-	multiVecDim    = 64
-	multiVecTokens = 8
+	moviesClass      = "Movies"
+	mvMoviesClass    = "MVMovies"
+	multiVecDim      = 64
+	multiVecTokens   = 8
+	vecNumObjects    = 4000
 )
 
 // Named vectors using text2vec-model2vec (vectorized automatically)
@@ -179,12 +180,12 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 	err = client.Schema().ClassCreator().WithClass(moviesSchema).Do(ctx)
 	require.NoError(t, err)
 
-	t.Logf("Importing %d objects in batches of %d...", numObjects, batchSize)
-	for i := 0; i < numObjects; i += batchSize {
+	t.Logf("Importing %d objects in batches of %d...", vecNumObjects, batchSize)
+	for i := 0; i < vecNumObjects; i += batchSize {
 		batcher := client.Batch().ObjectsBatcher()
 		end := i + batchSize
-		if end > numObjects {
-			end = numObjects
+		if end > vecNumObjects {
+			end = vecNumObjects
 		}
 		for j := i; j < end; j++ {
 			batcher = batcher.WithObject(&models.Object{
@@ -207,7 +208,7 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 		}
 
 		if (i+batchSize)%2000 == 0 {
-			t.Logf("Imported %d/%d objects", i+batchSize, numObjects)
+			t.Logf("Imported %d/%d objects", i+batchSize, vecNumObjects)
 		}
 	}
 
@@ -223,7 +224,7 @@ func TestCreateMoviesCollectionAndSearch(t *testing.T) {
 	aggregate := result.Data["Aggregate"].(map[string]interface{})[moviesClass].([]interface{})
 	require.NotEmpty(t, aggregate)
 	actualCount := aggregate[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
-	require.Equal(t, numObjects, int(actualCount), "expected %d objects, got %d", numObjects, int(actualCount))
+	require.Equal(t, vecNumObjects, int(actualCount), "expected %d objects, got %d", vecNumObjects, int(actualCount))
 	t.Logf("Verified object count: %d", int(actualCount))
 
 	// Verify nearText search works for all vectorizer-based named vectors
@@ -338,12 +339,12 @@ func TestCreateMVMoviesCollectionAndSearch(t *testing.T) {
 	// Sample multi-vector for search verification
 	sampleMultiVec := randomMultiVector(multiVecTokens, multiVecDim)
 
-	t.Logf("Importing %d objects in batches of %d...", numObjects, batchSize)
-	for i := 0; i < numObjects; i += batchSize {
+	t.Logf("Importing %d objects in batches of %d...", vecNumObjects, batchSize)
+	for i := 0; i < vecNumObjects; i += batchSize {
 		batcher := client.Batch().ObjectsBatcher()
 		end := i + batchSize
-		if end > numObjects {
-			end = numObjects
+		if end > vecNumObjects {
+			end = vecNumObjects
 		}
 		for j := i; j < end; j++ {
 			vectors := make(models.Vectors)
@@ -375,7 +376,7 @@ func TestCreateMVMoviesCollectionAndSearch(t *testing.T) {
 		}
 
 		if (i+batchSize)%2000 == 0 {
-			t.Logf("Imported %d/%d objects", i+batchSize, numObjects)
+			t.Logf("Imported %d/%d objects", i+batchSize, vecNumObjects)
 		}
 	}
 
@@ -391,7 +392,7 @@ func TestCreateMVMoviesCollectionAndSearch(t *testing.T) {
 	aggregate := result.Data["Aggregate"].(map[string]interface{})[mvMoviesClass].([]interface{})
 	require.NotEmpty(t, aggregate)
 	actualCount := aggregate[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
-	require.Equal(t, numObjects, int(actualCount), "expected %d objects, got %d", numObjects, int(actualCount))
+	require.Equal(t, vecNumObjects, int(actualCount), "expected %d objects, got %d", vecNumObjects, int(actualCount))
 	t.Logf("Verified object count: %d", int(actualCount))
 
 	// Verify nearVector search works for all multi-vector named vectors

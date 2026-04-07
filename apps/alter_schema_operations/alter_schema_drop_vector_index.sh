@@ -198,6 +198,9 @@ run_step "Check HNSW commitlog/snapshot dirs still exist for MoviesMT tenant3 (w
 run_step "Activate tenant3 and verify search fails + folders removed"
 go test -count 1 -v -run '^TestActivateTenant3MoviesMT$' ./... -timeout 600s
 
+echo "Waiting 30s for async cleanup of tenant3 folders..."
+sleep 30
+
 run_step "Check vector index LSM buckets removed for MoviesMT tenant3"
 "$SCRIPT_DIR/check_folder_existence.sh" moviesmt tenant3 absent "${MT_LSM_FOLDERS[@]}"
 

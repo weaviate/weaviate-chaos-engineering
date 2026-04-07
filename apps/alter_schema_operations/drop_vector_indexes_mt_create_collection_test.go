@@ -96,12 +96,12 @@ func TestCreateMoviesMTCollectionAndSearch(t *testing.T) {
 
 	for _, tenant := range tenants {
 		t.Run(tenant, func(t *testing.T) {
-			t.Logf("Importing %d objects for tenant %s in batches of %d...", numObjects, tenant, batchSize)
-			for i := 0; i < numObjects; i += batchSize {
+			t.Logf("Importing %d objects for tenant %s in batches of %d...", vecNumObjects, tenant, batchSize)
+			for i := 0; i < vecNumObjects; i += batchSize {
 				batcher := client.Batch().ObjectsBatcher()
 				end := i + batchSize
-				if end > numObjects {
-					end = numObjects
+				if end > vecNumObjects {
+					end = vecNumObjects
 				}
 				for j := i; j < end; j++ {
 					batcher = batcher.WithObject(&models.Object{
@@ -125,7 +125,7 @@ func TestCreateMoviesMTCollectionAndSearch(t *testing.T) {
 				}
 
 				if (i+batchSize)%2000 == 0 {
-					t.Logf("[%s] Imported %d/%d objects", tenant, i+batchSize, numObjects)
+					t.Logf("[%s] Imported %d/%d objects", tenant, i+batchSize, vecNumObjects)
 				}
 			}
 
@@ -142,7 +142,7 @@ func TestCreateMoviesMTCollectionAndSearch(t *testing.T) {
 			aggregate := result.Data["Aggregate"].(map[string]interface{})[moviesMTClass].([]interface{})
 			require.NotEmpty(t, aggregate)
 			actualCount := aggregate[0].(map[string]interface{})["meta"].(map[string]interface{})["count"].(float64)
-			require.Equal(t, numObjects, int(actualCount), "expected %d objects, got %d", numObjects, int(actualCount))
+			require.Equal(t, vecNumObjects, int(actualCount), "expected %d objects, got %d", vecNumObjects, int(actualCount))
 			t.Logf("[%s] Verified object count: %d", tenant, int(actualCount))
 
 			// Verify nearText search works for all named vectors
