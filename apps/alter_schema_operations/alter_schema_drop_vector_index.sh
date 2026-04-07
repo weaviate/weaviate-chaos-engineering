@@ -140,6 +140,70 @@ for SHARD in $MVMOVIES_SHARDS; do
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard mvmovies "$SHARD" absent "${MV_SHARD_FOLDERS[@]}"
 done
 
+# --- Multi-tenant named vectors (MoviesMT collection) ---
+
+# MoviesMT has: hnsw_plain, flat_plain, hnsw_rq8, flat_rq1
+MT_LSM_FOLDERS=(
+  vectors_flat_plain
+  vectors_flat_rq1 vectors_compressed_flat_rq1
+  vectors_compressed_hnsw_rq8
+)
+
+MT_SHARD_FOLDERS=(
+  vectors_hnsw_plain.hnsw.commitlog.d vectors_hnsw_plain.hnsw.snapshot.d
+  vectors_hnsw_rq8.hnsw.commitlog.d vectors_hnsw_rq8.hnsw.snapshot.d
+)
+
+MT_TENANTS=(tenant1 tenant2 tenant3)
+
+run_step "Create MoviesMT multi-tenant collection and import data"
+go test -count 1 -v -run '^TestCreateMoviesMTCollectionAndSearch$' ./... -timeout 600s
+
+run_step "Check vector index LSM buckets exist for MoviesMT tenants"
+for TENANT in "${MT_TENANTS[@]}"; do
+  echo "Checking tenant: $TENANT"
+  "$SCRIPT_DIR/check_folder_existence.sh" moviesmt "$TENANT" exists "${MT_LSM_FOLDERS[@]}"
+done
+
+run_step "Check HNSW commitlog/snapshot dirs exist for MoviesMT tenants"
+for TENANT in "${MT_TENANTS[@]}"; do
+  echo "Checking tenant: $TENANT"
+  "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt "$TENANT" exists "${MT_SHARD_FOLDERS[@]}"
+done
+
+run_step "Deactivate tenant3 in MoviesMT"
+go test -count 1 -v -run '^TestDeactivateTenant3MoviesMT$' ./... -timeout 60s
+
+run_step "Drop all vector indexes from MoviesMT and verify search fails for active tenants"
+go test -count 1 -v -run '^TestDropVectorIndicesMoviesMT$' ./... -timeout 600s
+
+run_step "Check vector index LSM buckets removed for MoviesMT tenant1 and tenant2"
+for TENANT in tenant1 tenant2; do
+  echo "Checking tenant: $TENANT"
+  "$SCRIPT_DIR/check_folder_existence.sh" moviesmt "$TENANT" absent "${MT_LSM_FOLDERS[@]}"
+done
+
+run_step "Check HNSW commitlog/snapshot dirs removed for MoviesMT tenant1 and tenant2"
+for TENANT in tenant1 tenant2; do
+  echo "Checking tenant: $TENANT"
+  "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt "$TENANT" absent "${MT_SHARD_FOLDERS[@]}"
+done
+
+run_step "Check vector index LSM buckets still exist for MoviesMT tenant3 (was inactive)"
+"$SCRIPT_DIR/check_folder_existence.sh" moviesmt tenant3 exists "${MT_LSM_FOLDERS[@]}"
+
+run_step "Check HNSW commitlog/snapshot dirs still exist for MoviesMT tenant3 (was inactive)"
+"$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt tenant3 exists "${MT_SHARD_FOLDERS[@]}"
+
+run_step "Activate tenant3 and verify search fails + folders removed"
+go test -count 1 -v -run '^TestActivateTenant3MoviesMT$' ./... -timeout 600s
+
+run_step "Check vector index LSM buckets removed for MoviesMT tenant3"
+"$SCRIPT_DIR/check_folder_existence.sh" moviesmt tenant3 absent "${MT_LSM_FOLDERS[@]}"
+
+run_step "Check HNSW commitlog/snapshot dirs removed for MoviesMT tenant3"
+"$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt tenant3 absent "${MT_SHARD_FOLDERS[@]}"
+
 echo ""
 echo "======================================"
 echo "All $step steps passed!"
