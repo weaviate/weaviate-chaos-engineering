@@ -2741,7 +2741,7 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-model2vec'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true'
       - name: Run alter schema drop vector index tests
         run: apps/alter_schema_operations/alter_schema_drop_vector_index.sh
       - name: Archive logs
