@@ -5,8 +5,8 @@ go 1.25
 require (
 	github.com/go-faker/faker/v4 v4.5.0
 	github.com/stretchr/testify v1.11.1
-	github.com/weaviate/weaviate v1.35.1
-	github.com/weaviate/weaviate-go-client/v5 v5.6.1-0.20260210091848-d1e293f20852
+	github.com/weaviate/weaviate v1.36.0
+	github.com/weaviate/weaviate-go-client/v5 v5.7.2-0.20260403130511-391a3ea75104
 )
 
 require (
@@ -46,12 +46,12 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/oauth2 v0.33.0 // indirect
+	golang.org/x/oauth2 v0.34.0 // indirect
 	golang.org/x/sync v0.18.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251103181224-f26f9409b101 // indirect
-	google.golang.org/grpc v1.77.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251111163417-95abcf5c77ba // indirect
+	google.golang.org/grpc v1.78.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
