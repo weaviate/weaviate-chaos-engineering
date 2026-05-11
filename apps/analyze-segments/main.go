@@ -100,11 +100,12 @@ func wasCompacted(dir, missingName string) bool {
 	}
 
 	// (2) Look for a file that carries this segment's ID as:
-	//   - left half of a merge:  segment-{id}_...
+	//   - left half of a merge:    segment-{id}_...
 	//   - same-ID cleanup rewrite: segment-{id}....  (different suffix, e.g. .l0.s5.db)
-	//   - right half of a merge: ..._  {id}.  (id followed by "." or end of name base)
+	//   - right half of a merge:   segment-{otherID}_{id}.  (id followed by ".")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
+		log.Printf("wasCompacted: readdir %s: %v\n", dir, err)
 		return false
 	}
 	leftOrCleanup := "segment-" + id
@@ -116,7 +117,7 @@ func wasCompacted(dir, missingName string) bool {
 		}
 		if strings.HasPrefix(n, leftOrCleanup+"_") ||
 			strings.HasPrefix(n, leftOrCleanup+".") ||
-			strings.Contains(n, rightSuffix) {
+			(strings.HasPrefix(n, "segment-") && strings.Contains(n, rightSuffix)) {
 			return true
 		}
 	}
