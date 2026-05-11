@@ -73,6 +73,17 @@ func main() {
 	}
 }
 
+// compactedSegmentRegex matches Weaviate's final (non-transient) segment filenames
+// that could carry a missing segment's ID as evidence of compaction:
+//   - segment-{id}.db
+//   - segment-{id}.l{level}.s{strategy}.db
+//   - segment-{leftID}_{rightID}.db
+//   - segment-{leftID}_{rightID}.l{level}.s{strategy}.db
+//
+// Transient files (e.g. segment-{id}.db.tmp, .wal) are intentionally excluded so
+// they cannot be mistaken for a successful compaction output.
+var compactedSegmentRegex = regexp.MustCompile(`^segment-[0-9]+(_[0-9]+)?(\.l[0-9]+\.s[0-9]+)?\.db$`)
+
 // wasCompacted confirms that a segment that could not be opened was removed by an LSM
 // compaction rather than by an unexpected cause. Two conditions must hold:
 //
@@ -84,8 +95,9 @@ func main() {
 //       segment-{leftID}_{rightID}[.l{level}.s{strategy}].db
 //     A cleanup pass may also produce segment-{id}.l{level}.s{strategy}.db for the
 //     same base ID. In both cases the missing segment's ID appears as a name
-//     component. Finding such a file confirms the data is present in a newer segment,
-//     not silently lost.
+//     component. Candidates must match compactedSegmentRegex so transient files
+//     (e.g. *.db.tmp) cannot trigger a false positive. Finding such a file confirms
+//     the data is present in a newer segment, not silently lost.
 func wasCompacted(dir, missingName string) bool {
 	// (1) Confirm the file is actually gone.
 	if _, err := os.Stat(filepath.Join(dir, missingName)); !errors.Is(err, os.ErrNotExist) {
@@ -112,12 +124,12 @@ func wasCompacted(dir, missingName string) bool {
 	rightSuffix := "_" + id + "."
 	for _, e := range entries {
 		n := e.Name()
-		if n == missingName {
+		if n == missingName || !compactedSegmentRegex.MatchString(n) {
 			continue
 		}
 		if strings.HasPrefix(n, leftOrCleanup+"_") ||
 			strings.HasPrefix(n, leftOrCleanup+".") ||
-			(strings.HasPrefix(n, "segment-") && strings.Contains(n, rightSuffix)) {
+			strings.Contains(n, rightSuffix) {
 			return true
 		}
 	}
