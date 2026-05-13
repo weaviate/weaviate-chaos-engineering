@@ -2196,7 +2196,7 @@ jobs:
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - import data
         run: |
           cd apps/upgrade-journey-raft
-          python3 run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+          python3 run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}} --admin-api-key ${{ env.WEAVIATE_API_KEY }}
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - check roles
         run: |
           cd apps/rbac-upgrade-journey
@@ -2247,7 +2247,7 @@ jobs:
       - name: Weaviate ${{ env.WEAVIATE_VERSION}} - add additional data and check all (old and new) data
         run: |
           cd apps/upgrade-journey-raft
-          python3 additional_run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
+          python3 additional_run.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}} --admin-api-key ${{ env.WEAVIATE_API_KEY }}
           python3 additional_checks.py --api-key ${{ env.WEAVIATE_API_KEY_CUSTOM}}
       - name: Weaviate ${{ env.WEAVIATE_VERSION}} - add additional roles and check all (old and new) roles
         run: |

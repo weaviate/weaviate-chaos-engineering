@@ -9,9 +9,9 @@ from weaviate.collections.classes.config import ConsistencyLevel
 from graphql_aggregate import graphql_grpc_aggregate
 
 
-def create(client: weaviate.WeaviateClient):
+def create(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
     _create_schema(client)
-    _import(client)
+    _import(client, admin_client)
 
 
 def _create_schema(client: weaviate.WeaviateClient):
@@ -19,9 +19,9 @@ def _create_schema(client: weaviate.WeaviateClient):
     _create_authors_schema(client)
 
 
-def _import(client: weaviate.WeaviateClient):
-    _import_books(client)
-    _import_authors(client)
+def _import(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
+    _import_books(client, admin_client)
+    _import_authors(client, admin_client)
 
 
 def sanity_checks(client: weaviate.WeaviateClient):
@@ -88,7 +88,7 @@ def _create_authors_schema(client: weaviate.WeaviateClient):
     assert authors.name == "Authors"
 
 
-def _import_books(client: weaviate.WeaviateClient):
+def _import_books(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
     books_json = "data/books/books.json"
     with open(books_json) as f:
         books = json.load(f)
@@ -98,9 +98,15 @@ def _import_books(client: weaviate.WeaviateClient):
             for book in books:
                 batch.add_object(properties=book, uuid=book["uuid"])
             batch.flush()
+        logger.info("waiting for Books vector indexing to finish")
+        # wait_for_vector_indexing() calls GET /schema/{class}/shards, which Weaviate
+        # authorizes via read_tenants. Under RBAC, the workload user lacks that on Books*,
+        # so the runner passes a separate admin client for the readiness wait.
+        admin_client.collections.get("Books").batch.wait_for_vector_indexing()
+        logger.info("Books vector indexing finished")
 
 
-def _import_authors(client: weaviate.WeaviateClient):
+def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
     books_json = "data/books/books.json"
     authors_books = dict()
     authors_genres = dict()
@@ -133,6 +139,10 @@ def _import_authors(client: weaviate.WeaviateClient):
                 uuid = batch.add_object(properties=properties, uuid=generate_uuid5(properties))
                 author_uuids[author] = uuid
             batch.flush()
+        logger.info("waiting for Authors vector indexing to finish")
+        # See note in _import_books: shards-readiness requires read_tenants under RBAC.
+        admin_client.collections.get("Authors").batch.wait_for_vector_indexing()
+        logger.info("Authors vector indexing finished")
 
         refs_list = []
         for author in author_uuids:
