@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -16,6 +17,31 @@ import (
 	"github.com/semi-technologies/weaviate-go-client/v3/weaviate/fault"
 	"github.com/semi-technologies/weaviate/entities/models"
 )
+
+// transientPerObjectErrorSubstrings lists error messages that the server may
+// return for individual objects in a batch response during a brief window
+// after the weaviate process restarts (e.g., after the chaotic-killer has
+// SIGKILLed it). In all cases the underlying state is fine — the schema is
+// persisted in RAFT, autoSchema is mid-flight, or the FSM hasn't finished
+// replaying — and a subsequent batch attempt will succeed. Treating these
+// per-object errors as fatal makes the importer flake on every kill that
+// happens to land inside a batch boundary, so we retry instead.
+var transientPerObjectErrorSubstrings = []string{
+	"not present in schema",
+	"shard not ready",
+	"local schema",
+	"context deadline exceeded",
+	"context canceled",
+}
+
+func isTransientPerObjectError(msg string) bool {
+	for _, s := range transientPerObjectErrorSubstrings {
+		if strings.Contains(msg, s) {
+			return true
+		}
+	}
+	return false
+}
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -109,15 +135,30 @@ func buildAndSendBatchWithRetries(ctx context.Context, batcher *batch.ObjectsBat
 		if err != nil {
 			lastErr = getErrorWithDerivedError(err)
 			continue
-		} else {
-			for _, c := range res {
-				if c.Result != nil {
-					if c.Result.Errors != nil && c.Result.Errors.Error != nil {
-						return errors.Errorf("failed to create obj: %+v, with status: %v",
-							c.Result.Errors.Error[0], c.Result.Status)
-					}
-				}
+		}
+
+		// Walk per-object results. Transient errors (e.g. "class X not present
+		// in schema" while the just-restarted server's schema cache is still
+		// being repopulated) are expected during the *_while_crashing chaos
+		// scenarios and must be retried; any other per-object error is a real
+		// failure and aborts the import.
+		retryDueToTransient := false
+		for _, c := range res {
+			if c.Result == nil || c.Result.Errors == nil || c.Result.Errors.Error == nil {
+				continue
 			}
+			objErr := c.Result.Errors.Error[0]
+			if isTransientPerObjectError(objErr.Message) {
+				retryDueToTransient = true
+				lastErr = errors.Errorf("transient per-object error: %+v, with status: %v",
+					objErr, c.Result.Status)
+				break
+			}
+			return errors.Errorf("failed to create obj: %+v, with status: %v",
+				objErr, c.Result.Status)
+		}
+		if retryDueToTransient {
+			continue
 		}
 
 		return nil
