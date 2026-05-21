@@ -12,11 +12,11 @@ number_of_tenants = 300
 additional_number_of_tenants = 100
 
 
-def create(client: weaviate.WeaviateClient):
+def create(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
     for i in range(number_of_tenants):
         _create_multitenancy_schema(client, i)
     for i in range(number_of_tenants):
-        _import_books(client, i)
+        _import_books(client, admin_client, i)
 
 
 def check_collections_existence(client: weaviate.WeaviateClient):
@@ -30,12 +30,12 @@ def sanity_checks(client: weaviate.WeaviateClient):
     logger.info("[sanity_checks] going further")
 
 
-def create_additional(client: weaviate.WeaviateClient):
+def create_additional(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
     suffix = "Additional"
     for i in range(additional_number_of_tenants):
         _create_multitenancy_schema(client, i, suffix=suffix)
     for i in range(additional_number_of_tenants):
-        _import_books(client, i, suffix=suffix)
+        _import_books(client, admin_client, i, suffix=suffix)
 
 
 def check_additional_collections_existence(client: weaviate.WeaviateClient):
@@ -88,7 +88,12 @@ def _create_multitenancy_schema(client: weaviate.WeaviateClient, i: int, suffix:
     collection.tenants.create(tenants=[Tenant(name=tenant)])
 
 
-def _import_books(client: weaviate.WeaviateClient, i: int, suffix: str = ""):
+def _import_books(
+    client: weaviate.WeaviateClient,
+    admin_client: weaviate.WeaviateClient,
+    i: int,
+    suffix: str = "",
+):
     class_name = _get_class_name(i, suffix)
     tenant = _get_tenant_name(i, suffix)
     books_json = "data/books/books.json"
@@ -108,6 +113,13 @@ def _import_books(client: weaviate.WeaviateClient, i: int, suffix: str = ""):
                     uuid=book["uuid"],
                 )
             batch.flush()
+        logger.debug("waiting for {} vector indexing to finish", class_name)
+        # See note in books.py: shards-readiness requires read_tenants under RBAC; use admin
+        # creds for the readiness wait while the workload itself stays on the test user.
+        admin_client.collections.get(class_name).with_tenant(
+            tenant
+        ).batch.wait_for_vector_indexing()
+        logger.debug("{} vector indexing finished", class_name)
 
 
 def _wait_for_collections_to_exist(client: weaviate.WeaviateClient, suffix: str = "") -> bool:
