@@ -2583,8 +2583,8 @@ jobs:
           ./hnsw_snapshotting_while_crash.sh
   
   server-side-batching-with-rolling-restart-without-async-indexing:
-    needs: [equal-to-1_36_rc]
-    if: ${{ (needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-without-async-indexing' || github.event.inputs.test_to_run == '' ) }}
+    needs: [newer-or-equal-than-1_36]
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-without-async-indexing' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart without async indexing
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
@@ -2614,8 +2614,8 @@ jobs:
         run: ./server_side_batching_with_rolling_restart.sh
 
   server-side-batching-with-rolling-restart-with-async-indexing:
-    needs: [equal-to-1_36_rc]
-    if: ${{ (needs.equal-to-1_36_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-with-async-indexing' || github.event.inputs.test_to_run == '' ) }}
+    needs: [newer-or-equal-than-1_36]
+    if: ${{ (needs.newer-or-equal-than-1_36.outputs.check == 'true') && (github.event.inputs.test_to_run == 'server-side-batching-with-rolling-restart-with-async-indexing' || github.event.inputs.test_to_run == '' ) }}
     name: Check that server-side batching works when there is a rolling restart with async indexing enabled
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
