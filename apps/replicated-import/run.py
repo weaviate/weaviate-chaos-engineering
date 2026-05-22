@@ -13,12 +13,27 @@ import_error_count = 0
 
 def reset_schema(client: weaviate.Client, repl_factor: int):
     client.schema.delete_all()
-    class_obj = {
-        "vectorizer": "none",
-        "vectorIndexConfig": {
+    index_type = os.environ.get("INDEX_TYPE", "hfresh").lower()
+    logger.info(f"Index type: {index_type}")
+    if index_type == "hfresh":
+        vector_index_config = {
+            "distance": "cosine",
+            "maxPostingSizeKB": 48,
+            "replicas": 4,
+            "rq": {"bits": 1, "enabled": True, "rescoreLimit": 350},
+            "searchProbe": 64,
+        }
+        index_type = "hfresh"
+    else:
+        vector_index_config = {
             "efConstruction": 64,
             "maxConnections": 8,
-        },
+        }
+        index_type = "hnsw"
+    class_obj = {
+        "vectorizer": "none",
+        "vectorIndexConfig": vector_index_config,
+        "vectorIndexType": index_type,
         "class": "Document",
         "invertedIndexConfig": {
             "indexTimestamps": False,
