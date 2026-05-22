@@ -204,6 +204,20 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.33.0"
           operator: ">="
+  equal-to-1_36_rc:
+    name: "Check if the version is equal to 1.36.0-rc"
+    needs: real-version-in-tag
+    runs-on: ubicloud-standard-2
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.2.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.36.0-rc"
+          operator: "="
   newer-or-equal-than-1_36:
     name: "Check if the version is newer than 1.36"
     needs: real-version-in-tag
