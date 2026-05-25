@@ -28,7 +28,7 @@ jobs:
   checkout:
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
   weaviate-version-information:
     runs-on: ubicloud-standard-2
     env:
@@ -62,7 +62,7 @@ jobs:
     if: always() && (cancelled() || failure())
     runs-on: ubicloud-standard-2
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - id: 'gcs_auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v3'
@@ -71,7 +71,7 @@ jobs:
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           aws-access-key-id: ${{secrets.AWS_ACCESS_KEY}}
           aws-secret-access-key: ${{secrets.AWS_SECRET_ACCESS_KEY}}
