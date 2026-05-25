@@ -158,10 +158,15 @@ services:
       - backup-s3
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
-      /usr/bin/mc mb chaos/weaviate-backups;
+      set -e;
+      i=0;
+      until /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key; do
+        i=$$((i+1));
+        if [ $$i -ge 60 ]; then echo 'ERROR: MinIO not ready after 60s'; exit 1; fi;
+        echo 'Waiting for MinIO to be ready...'; sleep 1;
+      done;
+      /usr/bin/mc mb --ignore-existing chaos/weaviate-backups;
       /usr/bin/mc policy set public chaos/weaviate-backups;
-      exit 0;
       "
     networks:
       weaviate_backup_3nodes_renamed:
@@ -173,9 +178,14 @@ services:
       - backup-s3
     entrypoint: >
       /bin/sh -c "
-      /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
+      set -e;
+      i=0;
+      until /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key; do
+        i=$$((i+1));
+        if [ $$i -ge 60 ]; then echo 'ERROR: MinIO not ready after 60s'; exit 1; fi;
+        echo 'Waiting for MinIO to be ready...'; sleep 1;
+      done;
       /usr/bin/mc rb --force chaos/weaviate-backups;
-      exit 0;
       "
     networks:
       weaviate_backup_3nodes_renamed:
