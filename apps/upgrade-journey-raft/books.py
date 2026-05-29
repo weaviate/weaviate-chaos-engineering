@@ -93,7 +93,9 @@ def _import_books(client: weaviate.WeaviateClient, admin_client: weaviate.Weavia
     with open(books_json) as f:
         books = json.load(f)
         logger.info("import {} books", len(books))
-        collection = client.collections.get("Books")
+        collection = client.collections.get("Books").with_consistency_level(
+            consistency_level=ConsistencyLevel.ALL
+        )
         with collection.batch.dynamic() as batch:
             for book in books:
                 batch.add_object(properties=book, uuid=book["uuid"])
@@ -128,7 +130,9 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
                 ]
 
         logger.info("import {} Authors", len(authors_books))
-        authors = client.collections.get("Authors")
+        authors = client.collections.get("Authors").with_consistency_level(
+            consistency_level=ConsistencyLevel.ALL
+        )
         author_uuids = dict()
         with authors.batch.dynamic() as batch:
             for author in authors_books:
@@ -267,6 +271,7 @@ def _authors_sanity_checks(client: weaviate.WeaviateClient):
         ],
     )
     assert result is not None
+    logger.info("TEST OBJECTS RESULTS COUNT: {}", len(result.objects))
     assert len(result.objects) == 5
     logger.info(
         "where on reference Books genre property equal to dystopian found: {}", len(result.objects)
