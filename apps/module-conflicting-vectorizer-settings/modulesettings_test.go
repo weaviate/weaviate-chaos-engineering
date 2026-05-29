@@ -10,26 +10,27 @@ import (
 )
 
 const (
-	TestOpenAI       = "TestOpenAI"
-	TestCohere       = "TestCohere"
-	TestHF           = "TestHF"
-	TestOpenAI_nv    = "TestOpenAI_nv"
-	TestOpenAI_nv2   = "TestOpenAI_nv2"
-	TestCohere_nv    = "TestCohere_nv"
-	TestCohere_nv2   = "TestCohere_nv2"
-	TestHF_nv        = "TestHF_nv"
-	TestHF_nv2       = "TestHF_nv2"
-	TestWeaviate_nv  = "TestWeaviate_nv"
-	TestWeaviate_nv2 = "TestWeaviate_nv2"
-	TestJinaAI       = "TestJinaAI"
-	TestM2V_Aws      = "TestM2V_Aws"
-	TestMV_Cohere    = "TestMV_Cohere"
+	TestOpenAI            = "TestOpenAI"
+	TestCohere            = "TestCohere"
+	TestHF                = "TestHF"
+	TestOpenAI_nv         = "TestOpenAI_nv"
+	TestOpenAI_nv2        = "TestOpenAI_nv2"
+	TestCohere_nv         = "TestCohere_nv"
+	TestCohere_nv2        = "TestCohere_nv2"
+	TestHF_nv             = "TestHF_nv"
+	TestHF_nv2            = "TestHF_nv2"
+	TestWeaviate_nv       = "TestWeaviate_nv"
+	TestWeaviate_nv2      = "TestWeaviate_nv2"
+	TestJinaAI            = "TestJinaAI"
+	TestM2V_Aws           = "TestM2V_Aws"
+	TestMV_Cohere         = "TestMV_Cohere"
+	TestMV_Cohere_factor3 = "TestMV_Cohere_factor3"
 )
 
 var all_collections = []string{
 	TestOpenAI, TestCohere, TestHF, TestOpenAI_nv, TestOpenAI_nv2, TestCohere_nv,
 	TestCohere_nv2, TestHF_nv, TestHF_nv2, TestWeaviate_nv,
-	TestWeaviate_nv2, TestJinaAI, TestM2V_Aws, TestMV_Cohere,
+	TestWeaviate_nv2, TestJinaAI, TestM2V_Aws, TestMV_Cohere, TestMV_Cohere_factor3,
 }
 
 func getClientConfig() wvt.Config {
@@ -445,6 +446,50 @@ func TestModuleNamedVectorsSettings_v1_32(t *testing.T) {
 
 	err = client.Schema().ClassCreator().WithClass(testSchema).Do(ctx)
 	require.NoError(t, err)
+
+	testSchema = &models.Class{
+		Class: TestMV_Cohere_factor3,
+		VectorConfig: map[string]models.VectorConfig{
+			"cohere": {
+				Vectorizer: map[string]any{
+					"multi2vec-cohere": map[string]any{
+						"textFields":  []any{"property1"},
+						"imageFields": []any{"property2"},
+						"weights": map[string]any{
+							"textFields":  []any{0.1},
+							"imageFields": []any{0.9},
+						},
+					},
+				},
+				VectorIndexType: "hnsw",
+			},
+		},
+		ReplicationConfig: &models.ReplicationConfig{
+			AsyncEnabled: false,
+			Factor:       3,
+		},
+		Properties: []*models.Property{
+			{
+				Name:        "property1",
+				DataType:    []string{"text"},
+				Description: "First test property",
+			},
+			{
+				Name:     "property2",
+				DataType: []string{"blob"},
+			},
+		},
+	}
+
+	err = client.Schema().ClassCreator().WithClass(testSchema).Do(ctx)
+	require.NoError(t, err)
+
+	class, err := client.Schema().ClassGetter().WithClassName(testSchema.Class).Do(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, class)
+	require.NotNil(t, class.ReplicationConfig)
+	require.Equal(t, int64(3), class.ReplicationConfig.Factor)
+	require.Equal(t, false, class.ReplicationConfig.AsyncEnabled)
 }
 
 func TestUpdateCollection(t *testing.T) {
@@ -464,6 +509,10 @@ func TestUpdateCollection(t *testing.T) {
 			AsyncEnabled:     true,
 		}
 
+		if class.Class == TestMV_Cohere_factor3 {
+			class.ReplicationConfig.Factor = 3
+		}
+
 		err = client.Schema().ClassUpdater().WithClass(class).Do(ctx)
 		require.NoError(t, err)
 
@@ -471,7 +520,12 @@ func TestUpdateCollection(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, class)
 		require.NotNil(t, class.ReplicationConfig)
-		require.Equal(t, true, class.ReplicationConfig.AsyncEnabled)
+		if class.Class == TestMV_Cohere_factor3 {
+			require.Equal(t, int64(3), class.ReplicationConfig.Factor)
+			require.Equal(t, true, class.ReplicationConfig.AsyncEnabled)
+		} else {
+			require.Equal(t, int64(1), class.ReplicationConfig.Factor)
+		}
 		require.Equal(t, models.ReplicationConfigDeletionStrategyTimeBasedResolution, class.ReplicationConfig.DeletionStrategy)
 	}
 }
