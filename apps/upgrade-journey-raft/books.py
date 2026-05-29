@@ -41,7 +41,7 @@ def _create_books_schema(client: weaviate.WeaviateClient):
             Property(name="genre", data_type=DataType.TEXT),
             Property(name="page_count", data_type=DataType.INT),
         ],
-        replication_config=Configure.replication(factor=2),
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 name="title",
@@ -72,7 +72,7 @@ def _create_authors_schema(client: weaviate.WeaviateClient):
             Property(name="genres", data_type=DataType.TEXT_ARRAY),
         ],
         references=[ReferenceProperty(name="wroteBooks", target_collection="Books")],
-        replication_config=Configure.replication(factor=2),
+        replication_config=Configure.replication(factor=2, async_enabled=True),
         vectorizer_config=[
             Configure.NamedVectors.text2vec_contextionary(
                 name="author",
@@ -93,11 +93,15 @@ def _import_books(client: weaviate.WeaviateClient, admin_client: weaviate.Weavia
     with open(books_json) as f:
         books = json.load(f)
         logger.info("import {} books", len(books))
-        collection = client.collections.get("Books")
+        collection = client.collections.get("Books").with_consistency_level(
+            consistency_level=ConsistencyLevel.ALL
+        )
         with collection.batch.dynamic() as batch:
             for book in books:
                 batch.add_object(properties=book, uuid=book["uuid"])
-            batch.flush()
+        assert (
+            len(collection.batch.failed_objects) == 0
+        ), f"expected no failures during books batch insert but got {len(collection.batch.failed_objects)}"
         logger.info("waiting for Books vector indexing to finish")
         # wait_for_vector_indexing() calls GET /schema/{class}/shards, which Weaviate
         # authorizes via read_tenants. Under RBAC, the workload user lacks that on Books*,
@@ -128,7 +132,9 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
                 ]
 
         logger.info("import {} Authors", len(authors_books))
-        authors = client.collections.get("Authors")
+        authors = client.collections.get("Authors").with_consistency_level(
+            consistency_level=ConsistencyLevel.ALL
+        )
         author_uuids = dict()
         with authors.batch.dynamic() as batch:
             for author in authors_books:
@@ -138,7 +144,9 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
                 }
                 uuid = batch.add_object(properties=properties, uuid=generate_uuid5(properties))
                 author_uuids[author] = uuid
-            batch.flush()
+        assert (
+            len(authors.batch.failed_objects) == 0
+        ), f"expected no failures during authors batch insert but got {len(authors.batch.failed_objects)}"
         logger.info("waiting for Authors vector indexing to finish")
         # See note in _import_books: shards-readiness requires read_tenants under RBAC.
         admin_client.collections.get("Authors").batch.wait_for_vector_indexing()
@@ -267,7 +275,9 @@ def _authors_sanity_checks(client: weaviate.WeaviateClient):
         ],
     )
     assert result is not None
-    assert len(result.objects) == 5
+    assert (
+        len(result.objects) == 5
+    ), f"expected filter by wroteBooks reference to return 5 results but got {len(result.objects)}"
     logger.info(
         "where on reference Books genre property equal to dystopian found: {}", len(result.objects)
     )
