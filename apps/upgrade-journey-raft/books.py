@@ -99,7 +99,8 @@ def _import_books(client: weaviate.WeaviateClient, admin_client: weaviate.Weavia
         with collection.batch.dynamic() as batch:
             for book in books:
                 batch.add_object(properties=book, uuid=book["uuid"])
-            batch.flush()
+        assert len(collection.batch.failed_objects) == 0
+
         logger.info("waiting for Books vector indexing to finish")
         # wait_for_vector_indexing() calls GET /schema/{class}/shards, which Weaviate
         # authorizes via read_tenants. Under RBAC, the workload user lacks that on Books*,
@@ -142,7 +143,7 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
                 }
                 uuid = batch.add_object(properties=properties, uuid=generate_uuid5(properties))
                 author_uuids[author] = uuid
-            batch.flush()
+        assert len(authors.batch.failed_objects) == 0
         logger.info("waiting for Authors vector indexing to finish")
         # See note in _import_books: shards-readiness requires read_tenants under RBAC.
         admin_client.collections.get("Authors").batch.wait_for_vector_indexing()
