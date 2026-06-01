@@ -159,7 +159,7 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
 def _books_sanity_checks(client: weaviate.WeaviateClient):
     logger.info("running Books sanity checks")
     collection = client.collections.get("Books").with_consistency_level(
-        consistency_level=ConsistencyLevel.ONE
+        consistency_level=ConsistencyLevel.QUORUM
     )
     aggregate = collection.aggregate.over_all()
     logger.info("aggregate total_count: {}", aggregate.total_count)
@@ -216,7 +216,7 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
 def _authors_sanity_checks(client: weaviate.WeaviateClient):
     logger.info("running Authors sanity checks")
     collection = client.collections.get("Authors").with_consistency_level(
-        consistency_level=ConsistencyLevel.ONE
+        consistency_level=ConsistencyLevel.QUORUM
     )
     aggregate = collection.aggregate.over_all()
     logger.info("aggregate total_count: {}", aggregate.total_count)
