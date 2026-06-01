@@ -34,12 +34,29 @@ def _diagnose_dystopian_undercount(client: weaviate.WeaviateClient, got: int):
 
     by_ref = Filter.by_ref("wroteBooks").by_property("genre").equal("dystopian")
     logger.error("DIAGNOSE by-ref under-count: got {} authors, expected 5", got)
-    for name, cl in (("ONE", ConsistencyLevel.ONE), ("QUORUM", ConsistencyLevel.QUORUM), ("ALL", ConsistencyLevel.ALL)):
-        inner = len(client.collections.get("Books").with_consistency_level(cl)
-                    .query.fetch_objects(filters=Filter.by_property("genre").equal("dystopian"), limit=100).objects)
-        outer = len(client.collections.get("Authors").with_consistency_level(cl)
-                    .query.fetch_objects(filters=by_ref, limit=100).objects)
-        logger.error("  CL={} inner Books(genre=dystopian)={} (exp 8)  outer Authors(by_ref)={} (exp 5)", name, inner, outer)
+    for name, cl in (
+        ("ONE", ConsistencyLevel.ONE),
+        ("QUORUM", ConsistencyLevel.QUORUM),
+        ("ALL", ConsistencyLevel.ALL),
+    ):
+        inner = len(
+            client.collections.get("Books")
+            .with_consistency_level(cl)
+            .query.fetch_objects(filters=Filter.by_property("genre").equal("dystopian"), limit=100)
+            .objects
+        )
+        outer = len(
+            client.collections.get("Authors")
+            .with_consistency_level(cl)
+            .query.fetch_objects(filters=by_ref, limit=100)
+            .objects
+        )
+        logger.error(
+            "  CL={} inner Books(genre=dystopian)={} (exp 8)  outer Authors(by_ref)={} (exp 5)",
+            name,
+            inner,
+            outer,
+        )
     authors_q = client.collections.get("Authors").with_consistency_level(ConsistencyLevel.QUORUM)
     converged = False
     for i in range(20):
@@ -51,7 +68,9 @@ def _diagnose_dystopian_undercount(client: weaviate.WeaviateClient, got: int):
             break
         time.sleep(2)
     if not converged:
-        logger.error("  -> still != 5 after retries => PERSISTENT (derived index incomplete / functional bug)")
+        logger.error(
+            "  -> still != 5 after retries => PERSISTENT (derived index incomplete / functional bug)"
+        )
 
 
 def sanity_checks(client: weaviate.WeaviateClient):
