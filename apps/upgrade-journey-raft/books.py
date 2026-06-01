@@ -34,6 +34,31 @@ def _diagnose_dystopian_undercount(client: weaviate.WeaviateClient, got: int):
 
     by_ref = Filter.by_ref("wroteBooks").by_property("genre").equal("dystopian")
     logger.error("DIAGNOSE by-ref under-count: got {} authors, expected 5", got)
+    # Forward-resolution probe: do the Author BODIES still hold their wroteBooks
+    # refs (just the inverted index lost), or are the refs gone from the bodies
+    # too (actual data loss)? Count total resolved refs across all authors at ALL.
+    fwd = (
+        client.collections.get("Authors")
+        .with_consistency_level(ConsistencyLevel.ALL)
+        .query.fetch_objects(
+            return_references=[QueryReference(link_on="wroteBooks", return_properties=["title"])],
+            limit=100,
+        )
+    )
+    total_refs = sum(
+        (
+            len(o.references["wroteBooks"].objects)
+            if o.references and "wroteBooks" in o.references
+            else 0
+        )
+        for o in fwd.objects
+    )
+    logger.error(
+        "  forward-resolution: {} authors, {} total wroteBooks refs resolved from bodies "
+        "(>0 => bodies intact, inverted-index-only loss; ~0 => refs lost from bodies too)",
+        len(fwd.objects),
+        total_refs,
+    )
     for name, cl in (
         ("ONE", ConsistencyLevel.ONE),
         ("QUORUM", ConsistencyLevel.QUORUM),
