@@ -158,8 +158,9 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
 
 def _books_sanity_checks(client: weaviate.WeaviateClient):
     logger.info("running Books sanity checks")
+    # QUORUM not ONE: async replication is default-on for RF>1 since weaviate#11214, so right after a rolling restart a CL=ONE read can hit a not-yet-reconciled replica and under-count.
     collection = client.collections.get("Books").with_consistency_level(
-        consistency_level=ConsistencyLevel.ONE
+        consistency_level=ConsistencyLevel.QUORUM
     )
     aggregate = collection.aggregate.over_all()
     logger.info("aggregate total_count: {}", aggregate.total_count)
@@ -215,8 +216,9 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
 
 def _authors_sanity_checks(client: weaviate.WeaviateClient):
     logger.info("running Authors sanity checks")
+    # QUORUM not ONE: async replication is default-on for RF>1 since weaviate#11214, so right after a rolling restart a CL=ONE read can hit a not-yet-reconciled replica and under-count.
     collection = client.collections.get("Authors").with_consistency_level(
-        consistency_level=ConsistencyLevel.ONE
+        consistency_level=ConsistencyLevel.QUORUM
     )
     aggregate = collection.aggregate.over_all()
     logger.info("aggregate total_count: {}", aggregate.total_count)
