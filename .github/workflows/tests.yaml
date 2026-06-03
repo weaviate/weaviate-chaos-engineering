@@ -275,6 +275,41 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./filter_memory_leak.sh
+  replication-latency-bench:
+    name: Replication latency benchmark
+    if: ${{ github.event.inputs.test_to_run == 'replication-latency-bench' || github.event.inputs.test_to_run == '' }}
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 30
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{ inputs.lsm_access_strategy }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Collect Workflow Telemetry
+        uses: catchpoint/workflow-telemetry-action@master
+      - name: Run replication latency benchmark
+        run: ./replication_latency_bench.sh
+      - name: Report replication latency metrics
+        if: always()
+        run: |
+          if [ -f results.json ]; then
+            python3 apps/replication-latency-bench/results_to_summary.py results.json >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Replication latency benchmark" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo ":warning: no \`results.json\` was produced — the benchmark did not complete." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload benchmark results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: replication-latency-results-${{ inputs.lsm_access_strategy }}
+          path: results.json
+          if-no-files-found: warn
   lint:
     runs-on: ubicloud-standard-2
     steps:

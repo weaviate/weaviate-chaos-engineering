@@ -1,0 +1,4 @@
+weaviate-client>=4.16.0
+prometheus-client==0.20.0
+requests==2.31.0
+loguru==0.7.2
