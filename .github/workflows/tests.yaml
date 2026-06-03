@@ -352,10 +352,20 @@ jobs:
             # results-baseline.json only exists in A/B mode; pass it for the delta table.
             python3 apps/replication-latency-bench/results_to_summary.py \
               results.json results-baseline.json >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "_Latency histogram (\`hist.png\`) attached as a build artifact._" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "## Replication latency benchmark" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo ":warning: no \`results.json\` was produced — the benchmark did not complete." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Render latency histogram (PNG)
+        if: always()
+        run: |
+          if [ -f results.json ]; then
+            pip3 install --quiet matplotlib
+            python3 apps/replication-latency-bench/plot_results.py \
+              results.json results-baseline.json --outdir charts || echo "histogram render failed (non-fatal)"
           fi
       - name: Upload benchmark results
         if: always()
@@ -365,6 +375,7 @@ jobs:
           path: |
             results.json
             results-baseline.json
+            charts/hist.png
           if-no-files-found: warn
   lint:
     runs-on: ubicloud-standard-2

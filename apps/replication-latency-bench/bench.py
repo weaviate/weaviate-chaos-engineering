@@ -88,9 +88,11 @@ METRICS_URL = os.getenv("METRICS_URL", f"http://{HTTP_HOST}:2112/metrics")
 COLLECTION = os.getenv("COLLECTION", "LocalReplicaLatencyBench")
 REPLICATION_FACTOR = _int("REPLICATION_FACTOR", 3)
 DIM = _int("DIM", 32)
-OBJECTS = _int("OBJECTS", 5000)
+# Volume per timed cycle. Kept modest so a full A/B (2 versions x 3 levels x
+# iterations) finishes quickly; bump via env for a more thorough run.
+OBJECTS = _int("OBJECTS", 2000)
 BATCH_SIZE = _int("BATCH_SIZE", 10)
-READS = _int("READS", 5000)
+READS = _int("READS", 3000)
 # Consistency levels to benchmark, in order. ONE is the headline case (the local
 # leg satisfies it immediately); QUORUM and ALL still wait on remote legs.
 CONSISTENCY_LEVELS = [
@@ -107,8 +109,9 @@ SEED = _int("SEED", 42)
 # WARMUP untimed cycles (discarded; they warm caches, the gRPC pool and the JIT)
 # followed by ITERATIONS timed cycles, then report the MEDIAN across timed runs
 # plus the per-run spread. Each cycle recreates the collection so writes are
-# always fresh inserts and runs are independent.
-ITERATIONS = _int("ITERATIONS", 3)
+# always fresh inserts and runs are independent. 10 same-runner iterations
+# resolves the effect we care about; bump via env when chasing tighter tails.
+ITERATIONS = _int("ITERATIONS", 10)
 WARMUP = _int("WARMUP", 1)
 
 _CL = {
@@ -305,6 +308,35 @@ def pcts(samples_ms: List[float]) -> dict:
     }
 
 
+# Cap on retained client-latency samples per phase. We pool samples across all
+# timed iterations via reservoir sampling (uniform without replacement) so the
+# downstream CDF / box / violin plots are faithful while results.json stays small.
+SAMPLES_CAP = 5000
+
+
+class Reservoir:
+    """Size-capped uniform reservoir sample of a stream (Algorithm R)."""
+
+    def __init__(self, rng: random.Random, cap: int = SAMPLES_CAP) -> None:
+        self.rng = rng
+        self.cap = cap
+        self.seen = 0
+        self.items: List[float] = []
+
+    def add(self, xs: List[float]) -> None:
+        for x in xs:
+            self.seen += 1
+            if len(self.items) < self.cap:
+                self.items.append(x)
+            else:
+                j = self.rng.randrange(self.seen)
+                if j < self.cap:
+                    self.items[j] = x
+
+    def rounded(self) -> List[float]:
+        return [round(x, 4) for x in self.items]
+
+
 def _median(xs: List[Optional[float]]) -> Optional[float]:
     vals = [x for x in xs if x is not None]
     if not vals:
@@ -416,6 +448,9 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     read_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
     write_tputs: List[float] = []
     read_tputs: List[float] = []
+    # Pooled raw-latency samples (for the CDF/box/violin plots), reservoir-capped.
+    write_res = Reservoir(random.Random(SEED + 101))
+    read_res = Reservoir(random.Random(SEED + 202))
 
     for i in range(WARMUP + ITERATIONS):
         warm = i < WARMUP
@@ -436,6 +471,7 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             write_runs.append(pcts(write_client_ms))
+            write_res.add(write_client_ms)
             accumulate(write_srv_acc, delta(after, before))
             if write_wall:
                 write_tputs.append(OBJECTS / write_wall)
@@ -448,6 +484,7 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             read_runs.append(pcts(read_client_ms))
+            read_res.add(read_client_ms)
             accumulate(read_srv_acc, delta(after, before))
             if read_wall:
                 read_tputs.append(READS / read_wall)
@@ -461,6 +498,7 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "batch_size": BATCH_SIZE,
             "objects_per_second": _median(write_tputs),
             "client_latency_ms": aggregate_runs(write_runs),
+            "client_latency_samples_ms": write_res.rounded(),
             # server-side histograms pooled across all timed iterations
             "server_request_latency": summarize(write_srv_acc),
         },
@@ -468,6 +506,7 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "reads": READS,
             "reads_per_second": _median(read_tputs),
             "client_latency_ms": aggregate_runs(read_runs),
+            "client_latency_samples_ms": read_res.rounded(),
             "server_request_latency": summarize(read_srv_acc),
         },
     }
