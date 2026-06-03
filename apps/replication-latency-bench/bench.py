@@ -305,30 +305,6 @@ def pcts(samples_ms: List[float]) -> dict:
     }
 
 
-# Fixed log2-spaced bucket edges (ms) for the client-side latency distribution.
-# Fixed across runs/versions so baseline and candidate histograms are comparable;
-# spans sub-ms reads through multi-100ms write tails. A sample lands in bucket i
-# when edges[i-1] <= x < edges[i] (bucket 0 is < edges[0], last is >= edges[-1]).
-HIST_EDGES_MS = [0.25, 0.5, 1, 2, 4, 8, 16, 32, 64, 128, 256]
-
-
-def hist_counts(samples_ms: List[float]) -> List[int]:
-    """Bucket samples into len(HIST_EDGES_MS)+1 counts (one overflow bucket)."""
-    counts = [0] * (len(HIST_EDGES_MS) + 1)
-    import bisect
-
-    for x in samples_ms:
-        counts[bisect.bisect_right(HIST_EDGES_MS, x)] += 1
-    return counts
-
-
-def add_counts(acc: List[int], more: List[int]) -> List[int]:
-    """Sum two equal-length bucket-count vectors (pool across iterations)."""
-    if not acc:
-        return list(more)
-    return [a + b for a, b in zip(acc, more)]
-
-
 def _median(xs: List[Optional[float]]) -> Optional[float]:
     vals = [x for x in xs if x is not None]
     if not vals:
@@ -440,8 +416,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     read_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
     write_tputs: List[float] = []
     read_tputs: List[float] = []
-    write_dist: List[int] = []  # client latency bucket counts, pooled over iters
-    read_dist: List[int] = []
 
     for i in range(WARMUP + ITERATIONS):
         warm = i < WARMUP
@@ -462,7 +436,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             write_runs.append(pcts(write_client_ms))
-            write_dist = add_counts(write_dist, hist_counts(write_client_ms))
             accumulate(write_srv_acc, delta(after, before))
             if write_wall:
                 write_tputs.append(OBJECTS / write_wall)
@@ -475,7 +448,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             read_runs.append(pcts(read_client_ms))
-            read_dist = add_counts(read_dist, hist_counts(read_client_ms))
             accumulate(read_srv_acc, delta(after, before))
             if read_wall:
                 read_tputs.append(READS / read_wall)
@@ -489,8 +461,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "batch_size": BATCH_SIZE,
             "objects_per_second": _median(write_tputs),
             "client_latency_ms": aggregate_runs(write_runs),
-            # client latency distribution: bucket counts pooled over timed iters
-            "client_latency_hist": {"edges_ms": HIST_EDGES_MS, "counts": write_dist},
             # server-side histograms pooled across all timed iterations
             "server_request_latency": summarize(write_srv_acc),
         },
@@ -498,7 +468,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "reads": READS,
             "reads_per_second": _median(read_tputs),
             "client_latency_ms": aggregate_runs(read_runs),
-            "client_latency_hist": {"edges_ms": HIST_EDGES_MS, "counts": read_dist},
             "server_request_latency": summarize(read_srv_acc),
         },
     }
