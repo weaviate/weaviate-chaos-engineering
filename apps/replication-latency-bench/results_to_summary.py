@@ -17,11 +17,11 @@ import math
 import sys
 from typing import Optional
 
-# Phases in display order; labels shown in tables. single_write = one PutObject
-# per request (no batching), which exposes the per-request short-circuit saving.
-PHASES = ("write", "single_write", "read")
-PHASE_LABEL = {"write": "write(batch)", "single_write": "write(1-obj)", "read": "read"}
-PHASE_SHORT = {"write": "wr-batch", "single_write": "wr-1obj", "read": "read"}
+# Writes and reads are both single-object (one request each), so every request
+# pays its own replica round-trip — the per-request cost the short-circuit removes.
+PHASES = ("write", "read")
+PHASE_LABEL = {"write": "write", "read": "read"}
+PHASE_SHORT = {"write": "write", "read": "read"}
 
 
 def _fmt(v: Optional[float]) -> str:

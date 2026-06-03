@@ -29,7 +29,7 @@
 #      images should differ ONLY by the commit under test (parent vs commit), built
 #      in the core repo with `make weaviate-image`.
 #
-# Tunables (env): OBJECTS, BATCH_SIZE, READS, DIM, CONSISTENCY (default "ONE,QUORUM,ALL"),
+# Tunables (env): OBJECTS, READS, DIM, CONSISTENCY (default "ONE,QUORUM,ALL"),
 # ITERATIONS (timed runs per level, default 3), WARMUP (untimed runs, default 1),
 # BASELINE_VERSION (enables the same-runner A/B), COMPARE_TO (path to a prior
 # results.json to print a delta against in single-version mode).
@@ -93,7 +93,6 @@ run_cluster_and_bench() {
     -v "$PWD/workdir/:/workdir" \
     -e WEAVIATE_VERSION="$version" \
     -e OBJECTS="${OBJECTS:-5000}" \
-    -e BATCH_SIZE="${BATCH_SIZE:-10}" \
     -e READS="${READS:-5000}" \
     -e DIM="${DIM:-32}" \
     -e CONSISTENCY="${CONSISTENCY:-ONE,QUORUM,ALL}" \

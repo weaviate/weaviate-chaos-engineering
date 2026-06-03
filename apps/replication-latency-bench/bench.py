@@ -62,7 +62,6 @@ from loguru import logger
 
 import weaviate
 from weaviate.classes.config import Configure, ConsistencyLevel, DataType, Property
-from weaviate.classes.data import DataObject
 from weaviate.classes.init import AdditionalConfig, Timeout
 from prometheus_client.parser import text_string_to_metric_families
 
@@ -88,14 +87,12 @@ METRICS_URL = os.getenv("METRICS_URL", f"http://{HTTP_HOST}:2112/metrics")
 COLLECTION = os.getenv("COLLECTION", "LocalReplicaLatencyBench")
 REPLICATION_FACTOR = _int("REPLICATION_FACTOR", 3)
 DIM = _int("DIM", 32)
-# Volume per timed cycle. Kept modest so a full A/B (2 versions x 3 levels x
-# iterations) finishes quickly; bump via env for a more thorough run.
+# Volume per timed cycle. Writes and reads are both single-object (one request
+# each) so every request pays its own replica round-trip — that is exactly the
+# per-request cost the short-circuit removes, which batching would hide. Kept
+# modest so a full A/B (2 versions x 3 levels x iterations) finishes quickly.
 OBJECTS = _int("OBJECTS", 2000)
-BATCH_SIZE = _int("BATCH_SIZE", 10)
 READS = _int("READS", 3000)
-# Single-object writes (one PutObject per request, no batching) — exposes the
-# per-request loopback the short-circuit removes, which batching otherwise hides.
-SINGLE_OBJECTS = _int("SINGLE_OBJECTS", 1000)
 # Consistency levels to benchmark, in order. ONE is the headline case (the local
 # leg satisfies it immediately); QUORUM and ALL still wait on remote legs.
 CONSISTENCY_LEVELS = [
@@ -362,53 +359,19 @@ def recreate_collection(client: weaviate.WeaviateClient) -> None:
 
 
 def run_writes(coll, rng: random.Random) -> Tuple[List[str], List[float]]:
-    """Batch-insert OBJECTS objects, returning their UUIDs and per-batch client latency (ms)."""
+    """Insert OBJECTS objects ONE AT A TIME (data.insert -> PutObject), returning
+    UUIDs and per-object client latency (ms). Single-object (not batched) on
+    purpose: batching amortizes the replica round-trip over many objects and hides
+    the per-request loopback this optimization removes, so each request here pays
+    — and the short-circuit saves — its own round-trip."""
     uuids: List[str] = []
     latencies: List[float] = []
-    pending: List[DataObject] = []
-
-    def flush() -> None:
-        nonlocal pending
-        if not pending:
-            return
-        t0 = time.perf_counter()
-        res = coll.data.insert_many(pending)
-        latencies.append((time.perf_counter() - t0) * 1000.0)
-        if res.has_errors:
-            # surface the first few errors loudly; a failing replica write must
-            # never be silently treated as a latency sample
-            first = list(res.errors.items())[:3]
-            raise RuntimeError(f"insert_many had errors: {first}")
-        pending = []
-
     for i in range(OBJECTS):
-        u = str(uuidlib.UUID(int=rng.getrandbits(128)))
-        uuids.append(u)
-        pending.append(
-            DataObject(
-                uuid=u,
-                properties={"payload": f"obj-{i}", "seq": i},
-                vector=rand_vec(rng),
-            )
-        )
-        if len(pending) >= BATCH_SIZE:
-            flush()
-    flush()
-    return uuids, latencies
-
-
-def run_single_writes(coll, rng: random.Random) -> Tuple[List[str], List[float]]:
-    """Insert SINGLE_OBJECTS objects ONE AT A TIME (data.insert -> PutObject),
-    returning UUIDs and per-object client latency (ms). No batching, so each
-    request pays (and the short-circuit saves) its own replica round-trip."""
-    uuids: List[str] = []
-    latencies: List[float] = []
-    for i in range(SINGLE_OBJECTS):
         u = str(uuidlib.UUID(int=rng.getrandbits(128)))
         t0 = time.perf_counter()
         coll.data.insert(
             uuid=u,
-            properties={"payload": f"single-{i}", "seq": i},
+            properties={"payload": f"obj-{i}", "seq": i},
             vector=rand_vec(rng),
         )
         latencies.append((time.perf_counter() - t0) * 1000.0)
@@ -436,13 +399,10 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     )
 
     write_runs: List[dict] = []
-    single_runs: List[dict] = []
     read_runs: List[dict] = []
     write_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
-    single_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
     read_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
     write_tputs: List[float] = []
-    single_tputs: List[float] = []
     read_tputs: List[float] = []
 
     for i in range(WARMUP + ITERATIONS):
@@ -456,7 +416,7 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         coll = client.collections.get(COLLECTION).with_consistency_level(cl)
         rng = random.Random(SEED + i)
 
-        # WRITE
+        # WRITE (one object per request, so each pays its own replica round-trip)
         before = scrape()
         t0 = time.perf_counter()
         uuids, write_client_ms = run_writes(coll, rng)
@@ -467,18 +427,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             accumulate(write_srv_acc, delta(after, before))
             if write_wall:
                 write_tputs.append(OBJECTS / write_wall)
-
-        # SINGLE-OBJECT WRITE (one PutObject per request)
-        before = scrape()
-        t0 = time.perf_counter()
-        _, single_client_ms = run_single_writes(coll, rng)
-        single_wall = time.perf_counter() - t0
-        after = scrape()
-        if not warm:
-            single_runs.append(pcts(single_client_ms))
-            accumulate(single_srv_acc, delta(after, before))
-            if single_wall:
-                single_tputs.append(SINGLE_OBJECTS / single_wall)
 
         # READ
         before = scrape()
@@ -496,16 +444,9 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         "consistency_level": level_name,
         "iterations": ITERATIONS,
         "warmup": WARMUP,
-        "single_write": {
-            "objects": SINGLE_OBJECTS,
-            "batch_size": 1,
-            "objects_per_second": _median(single_tputs),
-            "client_latency_ms": aggregate_runs(single_runs),
-            "server_request_latency": summarize(single_srv_acc),
-        },
         "write": {
             "objects": OBJECTS,
-            "batch_size": BATCH_SIZE,
+            "batch_size": 1,
             "objects_per_second": _median(write_tputs),
             "client_latency_ms": aggregate_runs(write_runs),
             # server-side histograms pooled across all timed iterations
@@ -540,7 +481,7 @@ def print_report(results: dict) -> None:
         iters = lvl.get("iterations", 1)
         warm = lvl.get("warmup", 0)
         print(f"\n--- CL={name}  (median of {iters} timed runs, {warm} warmup) ---")
-        for phase in ("write", "single_write", "read"):
+        for phase in ("write", "read"):
             p = lvl.get(phase)
             if not p:
                 continue
