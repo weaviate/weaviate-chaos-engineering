@@ -53,6 +53,10 @@ echo "Building replication-latency-bench image"
 run_cluster_and_bench() {
   local version="$1" out_file="$2" compare_file="$3"
 
+  # Start every phase from a clean slate: stale apps/weaviate/data* (e.g. from a
+  # prior run on a reused machine) carries old RAFT cluster state that prevents
+  # the fresh cluster from bootstrapping (it hangs trying to recover old peers).
+  rm -rf apps/weaviate/data* 2>/dev/null || sudo rm -rf apps/weaviate/data* || true
   rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
   mkdir workdir
 
