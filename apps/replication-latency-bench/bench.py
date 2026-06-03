@@ -54,10 +54,9 @@ import requests
 from loguru import logger
 
 import weaviate
-from weaviate.classes.config import Configure, DataType, Property
+from weaviate.classes.config import Configure, ConsistencyLevel, DataType, Property
 from weaviate.classes.data import DataObject
 from weaviate.classes.init import AdditionalConfig, Timeout
-from weaviate.config import ConsistencyLevel
 from prometheus_client.parser import text_string_to_metric_families
 
 # ── configuration (env-driven) ───────────────────────────────────────────────
