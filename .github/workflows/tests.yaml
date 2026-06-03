@@ -12,6 +12,10 @@ on:
       async_indexing:
         required: true
         type: string
+      baseline_weaviate_version:
+        required: false
+        type: string
+        default: ''
     secrets:
       AWS_ACCESS_KEY:
         required: true
@@ -279,9 +283,12 @@ jobs:
     name: Replication latency benchmark
     if: ${{ github.event.inputs.test_to_run == 'replication-latency-bench' || github.event.inputs.test_to_run == '' }}
     runs-on: ubicloud-standard-2
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{ inputs.lsm_access_strategy }}
+      # When set, the bench runs baseline vs weaviate_version back-to-back on this
+      # same runner (cancels between-host variance) and reports the delta.
+      BASELINE_VERSION: ${{ inputs.baseline_weaviate_version }}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
@@ -297,7 +304,9 @@ jobs:
         if: always()
         run: |
           if [ -f results.json ]; then
-            python3 apps/replication-latency-bench/results_to_summary.py results.json >> "$GITHUB_STEP_SUMMARY"
+            # results-baseline.json only exists in A/B mode; pass it for the delta table.
+            python3 apps/replication-latency-bench/results_to_summary.py \
+              results.json results-baseline.json >> "$GITHUB_STEP_SUMMARY"
           else
             echo "## Replication latency benchmark" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -308,7 +317,9 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: replication-latency-results-${{ inputs.lsm_access_strategy }}
-          path: results.json
+          path: |
+            results.json
+            results-baseline.json
           if-no-files-found: warn
   lint:
     runs-on: ubicloud-standard-2

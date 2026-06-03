@@ -12,6 +12,11 @@ on:
         required: false
         default: ''
         type: string
+      baseline_weaviate_version:
+        description: "Optional baseline image tag for the replication-latency-bench A/B. When set, that test runs baseline vs weaviate_version back-to-back on the same runner and reports the delta."
+        required: false
+        default: ''
+        type: string
       issue_number:
         description: "Optional: The issue number to update in the QA project board"
         type: string
@@ -50,6 +55,7 @@ jobs:
       lsm_access_strategy: ${{matrix.lsm_access_strategy}}
       weaviate_version: ${{ github.event_name == 'schedule' && 'nightly' || inputs.weaviate_version || '1.27.2' }}
       async_indexing: "true"
+      baseline_weaviate_version: ${{ inputs.baseline_weaviate_version || '' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}

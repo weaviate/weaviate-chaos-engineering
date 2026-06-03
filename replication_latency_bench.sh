@@ -14,24 +14,25 @@
 # (grpc_server_request_duration_seconds / http_request_duration_seconds) — the
 # metrics that sit above the replica fan-out and so reflect the local short-circuit.
 #
-# A single run reports absolute latency (CI uses this to surface the numbers).
-# To prove an improvement, run it A/B over the image tag — the repo's standard
-# WEAVIATE_VERSION mechanism:
+# Two modes:
 #
-#     # baseline (parent of the optimisation commit)
-#     WEAVIATE_VERSION=local-baseline ./replication_latency_bench.sh
-#     mv results.json results-baseline.json
+#   1. Single version (CI's default) — reports absolute latency for $WEAVIATE_VERSION:
+#        WEAVIATE_VERSION=1.38.0 ./replication_latency_bench.sh
 #
-#     # optimised build
-#     WEAVIATE_VERSION=local-optimized COMPARE_TO=results-baseline.json \
-#       ./replication_latency_bench.sh
-#
-# Build the two images in the weaviate core repo with `make weaviate-image`
-# (tag them, e.g. `local-baseline` / `local-optimized`) before running.
+#   2. Same-runner A/B — set BASELINE_VERSION to compare it against $WEAVIATE_VERSION.
+#      Both versions run back-to-back on the SAME host so between-host variance
+#      (the dominant noise term across separate CI runs) cancels out:
+#        BASELINE_VERSION=local-baseline WEAVIATE_VERSION=local-optimized \
+#          ./replication_latency_bench.sh
+#      Produces results-baseline.json (baseline) and results.json (candidate, with
+#      the delta printed inline via COMPARE_TO). For a clean attribution the two
+#      images should differ ONLY by the commit under test (parent vs commit), built
+#      in the core repo with `make weaviate-image`.
 #
 # Tunables (env): OBJECTS, BATCH_SIZE, READS, DIM, CONSISTENCY (default "ONE,ALL"),
 # ITERATIONS (timed runs per level, default 3), WARMUP (untimed runs, default 1),
-# COMPARE_TO (path to a prior results.json to print a delta against).
+# BASELINE_VERSION (enables the same-runner A/B), COMPARE_TO (path to a prior
+# results.json to print a delta against in single-version mode).
 
 set -e
 
@@ -47,54 +48,75 @@ fi
 echo "Building replication-latency-bench image"
 ( cd apps/replication-latency-bench/ && docker build -t replication-latency-bench . )
 
-rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
-mkdir workdir
+# Bring up the cluster on $1, run the benchmark, write results to $2. If $3 is a
+# readable results.json it is handed to the container as the COMPARE_TO baseline.
+run_cluster_and_bench() {
+  local version="$1" out_file="$2" compare_file="$3"
 
-echo "Starting 3-node replicated cluster (weaviate:$WEAVIATE_VERSION)..."
-docker compose -f "$COMPOSE" up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
-wait_weaviate 8080 180 weaviate-node-1
-wait_weaviate 8081 180 weaviate-node-2
-wait_weaviate 8082 180 weaviate-node-3
+  rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
+  mkdir workdir
 
-# Confirm monitoring is actually exposed before running the workload.
-echo "Checking metrics endpoint on node-1..."
-for i in $(seq 1 30); do
-  if curl -sf -o /dev/null localhost:2112/metrics; then
-    echo "Metrics endpoint is up"
-    break
+  local compare_env=()
+  if [ -n "$compare_file" ] && [ -f "$compare_file" ]; then
+    cp "$compare_file" workdir/baseline.json
+    compare_env=(-e COMPARE_TO=/workdir/baseline.json)
   fi
-  if [ "$i" -eq 30 ]; then
-    echo "ERROR: metrics endpoint localhost:2112/metrics never came up"
-    exit 1
-  fi
-  sleep 1
-done
 
-# Pass a baseline results file through to the container for inline delta output.
-COMPARE_MOUNT=()
-COMPARE_ENV=()
-if [ -n "$COMPARE_TO" ] && [ -f "$COMPARE_TO" ]; then
-  cp "$COMPARE_TO" workdir/baseline.json
-  COMPARE_ENV=(-e COMPARE_TO=/workdir/baseline.json)
+  export WEAVIATE_VERSION="$version"
+  echo "Starting 3-node replicated cluster (weaviate:$version)..."
+  docker compose -f "$COMPOSE" up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
+  wait_weaviate 8080 180 weaviate-node-1
+  wait_weaviate 8081 180 weaviate-node-2
+  wait_weaviate 8082 180 weaviate-node-3
+
+  # Confirm monitoring is actually exposed before running the workload.
+  echo "Checking metrics endpoint on node-1..."
+  local i
+  for i in $(seq 1 30); do
+    if curl -sf -o /dev/null localhost:2112/metrics; then
+      echo "Metrics endpoint is up"
+      break
+    fi
+    if [ "$i" -eq 30 ]; then
+      echo "ERROR: metrics endpoint localhost:2112/metrics never came up"
+      exit 1
+    fi
+    sleep 1
+  done
+
+  echo "Running benchmark against weaviate:$version..."
+  docker run --rm --network host \
+    -v "$PWD/workdir/:/workdir" \
+    -e WEAVIATE_VERSION="$version" \
+    -e OBJECTS="${OBJECTS:-5000}" \
+    -e BATCH_SIZE="${BATCH_SIZE:-10}" \
+    -e READS="${READS:-5000}" \
+    -e DIM="${DIM:-32}" \
+    -e CONSISTENCY="${CONSISTENCY:-ONE,ALL}" \
+    -e ITERATIONS="${ITERATIONS:-3}" \
+    -e WARMUP="${WARMUP:-1}" \
+    "${compare_env[@]}" \
+    --name replication-latency-bench -t replication-latency-bench
+
+  cp workdir/results.json "$out_file"
+  echo "Results written to $out_file"
+}
+
+# Tear down the cluster and wipe its data so the next version starts clean. Does
+# NOT touch results-*.json at the repo root.
+teardown_cluster() {
+  docker compose -f "$COMPOSE" down --remove-orphans || true
+  rm -rf apps/weaviate/data* 2>/dev/null || sudo rm -rf apps/weaviate/data* || true
+}
+
+if [ -n "$BASELINE_VERSION" ]; then
+  echo "=== same-runner A/B: baseline=$BASELINE_VERSION  candidate=$WEAVIATE_VERSION ==="
+  run_cluster_and_bench "$BASELINE_VERSION" "results-baseline.json" ""
+  teardown_cluster
+  run_cluster_and_bench "$WEAVIATE_VERSION" "results.json" "results-baseline.json"
+else
+  run_cluster_and_bench "$WEAVIATE_VERSION" "results.json" "$COMPARE_TO"
 fi
-
-echo "Running benchmark..."
-docker run --network host \
-  -v "$PWD/workdir/:/workdir" \
-  -e WEAVIATE_VERSION="$WEAVIATE_VERSION" \
-  -e OBJECTS="${OBJECTS:-5000}" \
-  -e BATCH_SIZE="${BATCH_SIZE:-10}" \
-  -e READS="${READS:-5000}" \
-  -e DIM="${DIM:-32}" \
-  -e CONSISTENCY="${CONSISTENCY:-ONE,ALL}" \
-  -e ITERATIONS="${ITERATIONS:-3}" \
-  -e WARMUP="${WARMUP:-1}" \
-  "${COMPARE_ENV[@]}" \
-  --name replication-latency-bench -t replication-latency-bench
-
-# Surface the machine-readable results next to the repo root for the A/B step.
-cp workdir/results.json results.json
-echo "Results written to results.json"
 
 shutdown
 echo "Success!"
