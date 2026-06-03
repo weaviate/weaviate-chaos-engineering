@@ -302,9 +302,6 @@ jobs:
     timeout-minutes: 90
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{ inputs.lsm_access_strategy }}
-      # When set, the bench runs baseline vs weaviate_version back-to-back on this
-      # same runner (cancels between-host variance) and reports the delta.
-      BASELINE_VERSION: ${{ inputs.baseline_weaviate_version }}
       # Empty values fall through to the bench defaults (see ${VAR:-default} in
       # replication_latency_bench.sh): ITERATIONS=3 WARMUP=1 OBJECTS=5000 READS=5000.
       ITERATIONS: ${{ inputs.bench_iterations }}
@@ -318,6 +315,32 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      # When no explicit baseline is given, auto-pick the previous Weaviate
+      # release to A/B against. continue-on-error so a non-semver tag (e.g.
+      # 'nightly') just falls back to single-version mode instead of failing.
+      - name: Resolve previous version for A/B baseline
+        id: prev_version
+        if: ${{ inputs.baseline_weaviate_version == '' }}
+        continue-on-error: true
+        uses: weaviate/github-common-actions/.github/actions/get-previous-version@main
+        with:
+          weaviate_version: ${{ inputs.weaviate_version }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
+          jump_type: 'patch'
+          jumps: '1'
+      - name: Determine BASELINE_VERSION
+        run: |
+          if [ -n "${{ inputs.baseline_weaviate_version }}" ]; then
+            BV="${{ inputs.baseline_weaviate_version }}"          # explicit override
+          else
+            BV="${{ steps.prev_version.outputs.previous_version }}" # auto-resolved (may be empty)
+          fi
+          if [ -n "$BV" ]; then
+            echo "Same-runner A/B baseline: $BV"
+          else
+            echo "No baseline resolved — running single-version mode."
+          fi
+          echo "BASELINE_VERSION=${BV}" >> "$GITHUB_ENV"
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run replication latency benchmark
