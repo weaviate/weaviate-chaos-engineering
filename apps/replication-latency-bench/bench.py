@@ -93,6 +93,9 @@ DIM = _int("DIM", 32)
 OBJECTS = _int("OBJECTS", 2000)
 BATCH_SIZE = _int("BATCH_SIZE", 10)
 READS = _int("READS", 3000)
+# Single-object writes (one PutObject per request, no batching) — exposes the
+# per-request loopback the short-circuit removes, which batching otherwise hides.
+SINGLE_OBJECTS = _int("SINGLE_OBJECTS", 1000)
 # Consistency levels to benchmark, in order. ONE is the headline case (the local
 # leg satisfies it immediately); QUORUM and ALL still wait on remote legs.
 CONSISTENCY_LEVELS = [
@@ -423,6 +426,25 @@ def run_writes(coll, rng: random.Random) -> Tuple[List[str], List[float]]:
     return uuids, latencies
 
 
+def run_single_writes(coll, rng: random.Random) -> Tuple[List[str], List[float]]:
+    """Insert SINGLE_OBJECTS objects ONE AT A TIME (data.insert -> PutObject),
+    returning UUIDs and per-object client latency (ms). No batching, so each
+    request pays (and the short-circuit saves) its own replica round-trip."""
+    uuids: List[str] = []
+    latencies: List[float] = []
+    for i in range(SINGLE_OBJECTS):
+        u = str(uuidlib.UUID(int=rng.getrandbits(128)))
+        t0 = time.perf_counter()
+        coll.data.insert(
+            uuid=u,
+            properties={"payload": f"single-{i}", "seq": i},
+            vector=rand_vec(rng),
+        )
+        latencies.append((time.perf_counter() - t0) * 1000.0)
+        uuids.append(u)
+    return uuids, latencies
+
+
 def run_reads(coll, uuids: List[str], rng: random.Random) -> List[float]:
     """fetch_object_by_id READS times (random existing UUIDs); returns client latency (ms)."""
     latencies: List[float] = []
@@ -443,13 +465,17 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     )
 
     write_runs: List[dict] = []
+    single_runs: List[dict] = []
     read_runs: List[dict] = []
     write_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
+    single_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
     read_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
     write_tputs: List[float] = []
+    single_tputs: List[float] = []
     read_tputs: List[float] = []
-    # Pooled raw-latency samples (for the CDF/box/violin plots), reservoir-capped.
+    # Pooled raw-latency samples (for the distribution histogram), reservoir-capped.
     write_res = Reservoir(random.Random(SEED + 101))
+    single_res = Reservoir(random.Random(SEED + 303))
     read_res = Reservoir(random.Random(SEED + 202))
 
     for i in range(WARMUP + ITERATIONS):
@@ -476,6 +502,19 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             if write_wall:
                 write_tputs.append(OBJECTS / write_wall)
 
+        # SINGLE-OBJECT WRITE (one PutObject per request)
+        before = scrape()
+        t0 = time.perf_counter()
+        _, single_client_ms = run_single_writes(coll, rng)
+        single_wall = time.perf_counter() - t0
+        after = scrape()
+        if not warm:
+            single_runs.append(pcts(single_client_ms))
+            single_res.add(single_client_ms)
+            accumulate(single_srv_acc, delta(after, before))
+            if single_wall:
+                single_tputs.append(SINGLE_OBJECTS / single_wall)
+
         # READ
         before = scrape()
         t0 = time.perf_counter()
@@ -493,6 +532,14 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         "consistency_level": level_name,
         "iterations": ITERATIONS,
         "warmup": WARMUP,
+        "single_write": {
+            "objects": SINGLE_OBJECTS,
+            "batch_size": 1,
+            "objects_per_second": _median(single_tputs),
+            "client_latency_ms": aggregate_runs(single_runs),
+            "client_latency_samples_ms": single_res.rounded(),
+            "server_request_latency": summarize(single_srv_acc),
+        },
         "write": {
             "objects": OBJECTS,
             "batch_size": BATCH_SIZE,
@@ -532,8 +579,10 @@ def print_report(results: dict) -> None:
         iters = lvl.get("iterations", 1)
         warm = lvl.get("warmup", 0)
         print(f"\n--- CL={name}  (median of {iters} timed runs, {warm} warmup) ---")
-        for phase in ("write", "read"):
-            p = lvl[phase]
+        for phase in ("write", "single_write", "read"):
+            p = lvl.get(phase)
+            if not p:
+                continue
             cl_client = p["client_latency_ms"]
             spread = ""
             lo, hi = cl_client.get("p99_ms_min"), cl_client.get("p99_ms_max")

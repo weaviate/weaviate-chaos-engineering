@@ -16,6 +16,11 @@ import json
 import sys
 from typing import Optional
 
+# Phases in display order; labels shown in tables. single_write = one PutObject
+# per request (no batching), which exposes the per-request short-circuit saving.
+PHASES = ("write", "single_write", "read")
+PHASE_LABEL = {"write": "write(batch)", "single_write": "write(1-obj)", "read": "read"}
+
 
 def _fmt(v: Optional[float]) -> str:
     return "-" if v is None else f"{v:.3f}"
@@ -25,8 +30,9 @@ def _client_index(res: dict) -> dict:
     """(consistency_level, phase) -> client_latency_ms dict."""
     out = {}
     for lvl in res.get("levels", []):
-        for phase in ("write", "read"):
-            out[(lvl["consistency_level"], phase)] = lvl[phase]["client_latency_ms"]
+        for phase in PHASES:
+            if lvl.get(phase):
+                out[(lvl["consistency_level"], phase)] = lvl[phase]["client_latency_ms"]
     return out
 
 
@@ -55,20 +61,22 @@ def render(res: dict, baseline: Optional[dict]) -> str:
     )
     for lvl in res.get("levels", []):
         name = lvl["consistency_level"]
-        for phase in ("write", "read"):
-            p = lvl[phase]
+        for phase in PHASES:
+            p = lvl.get(phase)
+            if not p:
+                continue
             c = p["client_latency_ms"]
             iters = c.get("iterations", lvl.get("iterations", 1))
-            if phase == "write":
-                tput = p.get("objects_per_second")
-                tput_s = f"{tput} obj/s" if tput is not None else "-"
-            else:
+            if phase == "read":
                 tput = p.get("reads_per_second")
                 tput_s = f"{tput} reads/s" if tput is not None else "-"
+            else:
+                tput = p.get("objects_per_second")
+                tput_s = f"{tput} obj/s" if tput is not None else "-"
             lo, hi = c.get("p99_ms_min"), c.get("p99_ms_max")
             p99_range = f"{_fmt(lo)}–{_fmt(hi)}" if lo is not None and hi is not None else "-"
             lines.append(
-                f"| {name} | {phase} | {iters} | {c.get('count', 0)} | "
+                f"| {name} | {PHASE_LABEL.get(phase, phase)} | {iters} | {c.get('count', 0)} | "
                 f"{_fmt(c.get('avg_ms'))} | {_fmt(c.get('p50_ms'))} | "
                 f"{_fmt(c.get('p95_ms'))} | {_fmt(c.get('p99_ms'))} | "
                 f"{p99_range} | {tput_s} |"
@@ -83,15 +91,18 @@ def render(res: dict, baseline: Optional[dict]) -> str:
     any_server = False
     for lvl in res.get("levels", []):
         name = lvl["consistency_level"]
-        for phase in ("write", "read"):
-            srv = lvl[phase].get("server_request_latency", {})
+        for phase in PHASES:
+            p = lvl.get(phase)
+            if not p:
+                continue
+            srv = p.get("server_request_latency", {})
             for metric, rows in srv.items():
                 for r in rows:
                     any_server = True
                     labels = r.get("labels", {})
                     mr = labels.get("method") or labels.get("route") or "?"
                     lines.append(
-                        f"| {name} | {phase} | {metric} | {mr} | "
+                        f"| {name} | {PHASE_LABEL.get(phase, phase)} | {metric} | {mr} | "
                         f"{r.get('count', 0)} | {_fmt(r.get('p50_ms'))} | "
                         f"{_fmt(r.get('p95_ms'))} | {_fmt(r.get('p99_ms'))} |"
                     )

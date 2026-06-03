@@ -26,7 +26,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 CAND_COLOR = "#1f77b4"
 BASE_COLOR = "#999999"
-PHASES = ("write", "read")
+PHASES = ("write", "single_write", "read")
+PHASE_LABEL = {"write": "write(batch)", "single_write": "write(1-obj)", "read": "read"}
 
 
 def samples_index(res: Optional[dict]) -> Dict[Tuple[str, str], List[float]]:
@@ -49,7 +50,10 @@ def plot_hist(cur, base, levels, label_cur, label_base, outdir):
     rows = [lv for lv in levels if any((lv, ph) in cur for ph in PHASES)]
     if not rows:
         return None
-    fig, axes = plt.subplots(len(rows), 2, figsize=(11, 3.1 * len(rows)), squeeze=False)
+    ncols = len(PHASES)
+    fig, axes = plt.subplots(
+        len(rows), ncols, figsize=(5.2 * ncols, 3.1 * len(rows)), squeeze=False
+    )
     for r, lv in enumerate(rows):
         for c, ph in enumerate(PHASES):
             ax = axes[r][c]
@@ -81,7 +85,7 @@ def plot_hist(cur, base, levels, label_cur, label_base, outdir):
                     histtype="step",
                     lw=1.6,
                 )
-            ax.set_title(f"CL={lv}  {ph}", fontsize=10)
+            ax.set_title(f"CL={lv}  {PHASE_LABEL.get(ph, ph)}", fontsize=10)
             ax.set_xlabel("latency (ms)")
             ax.set_ylabel("density")
             ax.set_xscale("log")
