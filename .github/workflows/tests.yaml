@@ -279,7 +279,7 @@ jobs:
     name: Replication latency benchmark
     if: ${{ github.event.inputs.test_to_run == 'replication-latency-bench' || github.event.inputs.test_to_run == '' }}
     runs-on: ubicloud-standard-2
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{ inputs.lsm_access_strategy }}
     steps:

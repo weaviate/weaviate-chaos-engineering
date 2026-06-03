@@ -30,6 +30,7 @@
 # (tag them, e.g. `local-baseline` / `local-optimized`) before running.
 #
 # Tunables (env): OBJECTS, BATCH_SIZE, READS, DIM, CONSISTENCY (default "ONE,ALL"),
+# ITERATIONS (timed runs per level, default 3), WARMUP (untimed runs, default 1),
 # COMPARE_TO (path to a prior results.json to print a delta against).
 
 set -e
@@ -86,6 +87,8 @@ docker run --network host \
   -e READS="${READS:-5000}" \
   -e DIM="${DIM:-32}" \
   -e CONSISTENCY="${CONSISTENCY:-ONE,ALL}" \
+  -e ITERATIONS="${ITERATIONS:-3}" \
+  -e WARMUP="${WARMUP:-1}" \
   "${COMPARE_ENV[@]}" \
   --name replication-latency-bench -t replication-latency-bench
 

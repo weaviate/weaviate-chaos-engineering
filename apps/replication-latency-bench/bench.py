@@ -32,9 +32,16 @@ loopback. The request-level histograms
     http_request_duration_seconds{method,route,status_code}
 
 sit above the replica fan-out and DO capture it. We snapshot those histograms
-before and after each timed phase, subtract the cumulative buckets, and derive
-p50/p95/p99 for exactly this run. Client-side latency is recorded alongside as a
+before and after each timed phase, subtract the cumulative buckets, and pool
+them across all timed iterations. Client-side latency is recorded alongside as a
 cross-check.
+
+Noise control
+-------------
+A single timed pass cannot resolve a sub-millisecond saving against RAFT/GC/
+compaction jitter, so we run WARMUP untimed cycles (discarded) then ITERATIONS
+timed cycles and report the MEDIAN across runs plus the per-run p99 spread. Each
+cycle recreates the collection so runs are independent and writes are inserts.
 
 Run the script against the baseline image and the optimised image (the chaos
 harness already parameterises this via WEAVIATE_VERSION) and compare the two
@@ -93,6 +100,15 @@ RESULTS_PATH = os.getenv("RESULTS_PATH", "/workdir/results.json")
 COMPARE_TO = os.getenv("COMPARE_TO", "").strip()
 WEAVIATE_VERSION = os.getenv("WEAVIATE_VERSION", "unknown")
 SEED = _int("SEED", 42)
+
+# A single timed pass cannot resolve a sub-millisecond local-leg saving against
+# RAFT/compaction/GC jitter — p99 over one run is dominated by noise. So we run
+# WARMUP untimed cycles (discarded; they warm caches, the gRPC pool and the JIT)
+# followed by ITERATIONS timed cycles, then report the MEDIAN across timed runs
+# plus the per-run spread. Each cycle recreates the collection so writes are
+# always fresh inserts and runs are independent.
+ITERATIONS = _int("ITERATIONS", 3)
+WARMUP = _int("WARMUP", 1)
 
 _CL = {
     "ONE": ConsistencyLevel.ONE,
@@ -217,6 +233,23 @@ def delta(
     return out
 
 
+def accumulate(acc: Dict[str, Dict[Tuple, Hist]], d: Dict[str, Dict[Tuple, Hist]]) -> None:
+    """Pool a per-iteration delta histogram set into acc (in place). Summing the
+    cumulative buckets across iterations treats all timed runs as one population,
+    so the server-side quantiles are computed over every request, not one run."""
+    for metric, series in d.items():
+        bucket = acc.setdefault(metric, {})
+        for key, h in series.items():
+            tot = bucket.get(key)
+            if tot is None:
+                tot = Hist()
+                bucket[key] = tot
+            for le, c in h.buckets.items():
+                tot.buckets[le] = tot.buckets.get(le, 0.0) + c
+            tot.sum += h.sum
+            tot.count += h.count
+
+
 def summarize(d: Dict[str, Dict[Tuple, Hist]]) -> Dict[str, List[dict]]:
     """Per metric, list the active series (count>0) with p50/p95/p99 in ms."""
     result: Dict[str, List[dict]] = {}
@@ -269,6 +302,34 @@ def pcts(samples_ms: List[float]) -> dict:
         "p99_ms": q(0.99),
         "max_ms": round(s[-1], 3),
     }
+
+
+def _median(xs: List[Optional[float]]) -> Optional[float]:
+    vals = [x for x in xs if x is not None]
+    if not vals:
+        return None
+    return round(statistics.median(vals), 3)
+
+
+def aggregate_runs(runs: List[dict]) -> dict:
+    """Collapse N per-iteration pcts dicts into the median across runs, keeping
+    the per-run spread so the noise is visible rather than hidden by the median.
+    'count' is the per-iteration sample size (identical across runs); the headline
+    fields (p50/p95/p99/avg/max) are medians of the per-run values."""
+    if not runs:
+        return {"iterations": 0, "count": 0}
+    out: dict = {
+        "iterations": len(runs),
+        "count": runs[0].get("count", 0),
+    }
+    for k in ("avg_ms", "p50_ms", "p95_ms", "p99_ms", "max_ms"):
+        out[k] = _median([r.get(k) for r in runs])
+    p99s = [r.get("p99_ms") for r in runs if r.get("p99_ms") is not None]
+    if p99s:
+        out["p99_ms_min"] = round(min(p99s), 3)
+        out["p99_ms_max"] = round(max(p99s), 3)
+        out["per_run_p99_ms"] = [round(x, 3) for x in p99s]
+    return out
 
 
 # ── workload ──────────────────────────────────────────────────────────────────
@@ -344,44 +405,69 @@ def run_reads(coll, uuids: List[str], rng: random.Random) -> List[float]:
 
 def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     cl = _CL[level_name]
-    logger.info(f"=== consistency level {level_name} ===")
-    recreate_collection(client)
-    coll = client.collections.get(COLLECTION).with_consistency_level(cl)
-    rng = random.Random(SEED)
+    logger.info(
+        f"=== consistency level {level_name} (warmup={WARMUP}, iterations={ITERATIONS}) ==="
+    )
 
-    # WRITE phase
-    before = scrape()
-    t0 = time.perf_counter()
-    uuids, write_client_ms = run_writes(coll, rng)
-    write_wall = time.perf_counter() - t0
-    after = scrape()
-    write_server = summarize(delta(after, before))
+    write_runs: List[dict] = []
+    read_runs: List[dict] = []
+    write_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
+    read_srv_acc: Dict[str, Dict[Tuple, Hist]] = {}
+    write_tputs: List[float] = []
+    read_tputs: List[float] = []
 
-    # READ phase
-    before = scrape()
-    t0 = time.perf_counter()
-    read_client_ms = run_reads(coll, uuids, rng)
-    read_wall = time.perf_counter() - t0
-    after = scrape()
-    read_server = summarize(delta(after, before))
+    for i in range(WARMUP + ITERATIONS):
+        warm = i < WARMUP
+        label = "warmup" if warm else f"iter {i - WARMUP + 1}/{ITERATIONS}"
+        logger.info(f"[CL={level_name}] {label}")
+
+        # Fresh collection each cycle: writes are always inserts (never updates),
+        # and the runs are independent. A per-cycle seed keeps it reproducible.
+        recreate_collection(client)
+        coll = client.collections.get(COLLECTION).with_consistency_level(cl)
+        rng = random.Random(SEED + i)
+
+        # WRITE
+        before = scrape()
+        t0 = time.perf_counter()
+        uuids, write_client_ms = run_writes(coll, rng)
+        write_wall = time.perf_counter() - t0
+        after = scrape()
+        if not warm:
+            write_runs.append(pcts(write_client_ms))
+            accumulate(write_srv_acc, delta(after, before))
+            if write_wall:
+                write_tputs.append(OBJECTS / write_wall)
+
+        # READ
+        before = scrape()
+        t0 = time.perf_counter()
+        read_client_ms = run_reads(coll, uuids, rng)
+        read_wall = time.perf_counter() - t0
+        after = scrape()
+        if not warm:
+            read_runs.append(pcts(read_client_ms))
+            accumulate(read_srv_acc, delta(after, before))
+            if read_wall:
+                read_tputs.append(READS / read_wall)
 
     return {
         "consistency_level": level_name,
+        "iterations": ITERATIONS,
+        "warmup": WARMUP,
         "write": {
             "objects": OBJECTS,
             "batch_size": BATCH_SIZE,
-            "requests": len(write_client_ms),
-            "wall_seconds": round(write_wall, 3),
-            "objects_per_second": round(OBJECTS / write_wall, 1) if write_wall else None,
-            "client_latency_ms": pcts(write_client_ms),
-            "server_request_latency": write_server,
+            "objects_per_second": _median(write_tputs),
+            "client_latency_ms": aggregate_runs(write_runs),
+            # server-side histograms pooled across all timed iterations
+            "server_request_latency": summarize(write_srv_acc),
         },
         "read": {
             "reads": READS,
-            "wall_seconds": round(read_wall, 3),
-            "reads_per_second": round(READS / read_wall, 1) if read_wall else None,
-            "client_latency_ms": pcts(read_client_ms),
-            "server_request_latency": read_server,
+            "reads_per_second": _median(read_tputs),
+            "client_latency_ms": aggregate_runs(read_runs),
+            "server_request_latency": summarize(read_srv_acc),
         },
     }
 
@@ -403,15 +489,22 @@ def print_report(results: dict) -> None:
     print("=" * 78)
     for lvl in results["levels"]:
         name = lvl["consistency_level"]
+        iters = lvl.get("iterations", 1)
+        warm = lvl.get("warmup", 0)
+        print(f"\n--- CL={name}  (median of {iters} timed runs, {warm} warmup) ---")
         for phase in ("write", "read"):
             p = lvl[phase]
             cl_client = p["client_latency_ms"]
+            spread = ""
+            lo, hi = cl_client.get("p99_ms_min"), cl_client.get("p99_ms_max")
+            if lo is not None and hi is not None:
+                spread = f"  [per-run p99 {lo:.3f}..{hi:.3f}]"
             print(
-                f"\n[{phase.upper()} | CL={name}] client-side  "
+                f"\n[{phase.upper()} | CL={name}] client-side (median)  "
                 f"p50={_fmt(cl_client.get('p50_ms'))}  "
                 f"p95={_fmt(cl_client.get('p95_ms'))}  "
                 f"p99={_fmt(cl_client.get('p99_ms'))} ms"
-                f"  ({cl_client.get('count', 0)} reqs)"
+                f"  ({cl_client.get('count', 0)} reqs/run){spread}"
             )
             for metric, rows in p["server_request_latency"].items():
                 for r in rows:

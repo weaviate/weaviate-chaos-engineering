@@ -43,26 +43,35 @@ def render(res: dict, baseline: Optional[dict]) -> str:
     lines.append("")
 
     # ── client-side latency (the headline numbers) ──
-    lines.append("### Client-side latency (ms)")
+    # Values are the median across timed iterations; p99 range shows the
+    # per-run spread so reviewers can see how noisy the measurement is.
+    lines.append("### Client-side latency (ms, median of timed runs)")
     lines.append("")
-    lines.append("| CL | phase | reqs | avg | p50 | p95 | p99 | max | throughput |")
-    lines.append("|----|-------|------|-----|-----|-----|-----|-----|------------|")
+    lines.append(
+        "| CL | phase | iters | reqs/run | avg | p50 | p95 | p99 | p99 range | throughput |"
+    )
+    lines.append(
+        "|----|-------|-------|----------|-----|-----|-----|-----|-----------|------------|"
+    )
     for lvl in res.get("levels", []):
         name = lvl["consistency_level"]
         for phase in ("write", "read"):
             p = lvl[phase]
             c = p["client_latency_ms"]
+            iters = c.get("iterations", lvl.get("iterations", 1))
             if phase == "write":
                 tput = p.get("objects_per_second")
                 tput_s = f"{tput} obj/s" if tput is not None else "-"
             else:
                 tput = p.get("reads_per_second")
                 tput_s = f"{tput} reads/s" if tput is not None else "-"
+            lo, hi = c.get("p99_ms_min"), c.get("p99_ms_max")
+            p99_range = f"{_fmt(lo)}–{_fmt(hi)}" if lo is not None and hi is not None else "-"
             lines.append(
-                f"| {name} | {phase} | {c.get('count', 0)} | "
+                f"| {name} | {phase} | {iters} | {c.get('count', 0)} | "
                 f"{_fmt(c.get('avg_ms'))} | {_fmt(c.get('p50_ms'))} | "
                 f"{_fmt(c.get('p95_ms'))} | {_fmt(c.get('p99_ms'))} | "
-                f"{_fmt(c.get('max_ms'))} | {tput_s} |"
+                f"{p99_range} | {tput_s} |"
             )
     lines.append("")
 
@@ -95,7 +104,7 @@ def render(res: dict, baseline: Optional[dict]) -> str:
         cur, old = _client_index(res), _client_index(baseline)
         lines.append(
             f"### Delta vs baseline (`{baseline.get('weaviate_version', 'unknown')}`) "
-            "— client-side p99"
+            "— client-side median p99"
         )
         lines.append("")
         lines.append("negative = faster on this build")
