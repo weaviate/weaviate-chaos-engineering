@@ -17,6 +17,26 @@ on:
         required: false
         default: ''
         type: string
+      bench_iterations:
+        description: "replication-latency-bench: timed runs per consistency level (default 3). More runs tighten the median."
+        required: false
+        default: ''
+        type: string
+      bench_warmup:
+        description: "replication-latency-bench: untimed warmup cycles, discarded (default 1)."
+        required: false
+        default: ''
+        type: string
+      bench_objects:
+        description: "replication-latency-bench: objects written per timed run (default 5000)."
+        required: false
+        default: ''
+        type: string
+      bench_reads:
+        description: "replication-latency-bench: reads per timed run (default 5000)."
+        required: false
+        default: ''
+        type: string
       issue_number:
         description: "Optional: The issue number to update in the QA project board"
         type: string
@@ -56,6 +76,10 @@ jobs:
       weaviate_version: ${{ github.event_name == 'schedule' && 'nightly' || inputs.weaviate_version || '1.27.2' }}
       async_indexing: "true"
       baseline_weaviate_version: ${{ inputs.baseline_weaviate_version || '' }}
+      bench_iterations: ${{ inputs.bench_iterations || '' }}
+      bench_warmup: ${{ inputs.bench_warmup || '' }}
+      bench_objects: ${{ inputs.bench_objects || '' }}
+      bench_reads: ${{ inputs.bench_reads || '' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}

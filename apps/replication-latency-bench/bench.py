@@ -91,9 +91,10 @@ DIM = _int("DIM", 32)
 OBJECTS = _int("OBJECTS", 5000)
 BATCH_SIZE = _int("BATCH_SIZE", 10)
 READS = _int("READS", 5000)
-# Consistency levels to benchmark, in order. ONE is the headline case.
+# Consistency levels to benchmark, in order. ONE is the headline case (the local
+# leg satisfies it immediately); QUORUM and ALL still wait on remote legs.
 CONSISTENCY_LEVELS = [
-    c.strip().upper() for c in os.getenv("CONSISTENCY", "ONE,ALL").split(",") if c.strip()
+    c.strip().upper() for c in os.getenv("CONSISTENCY", "ONE,QUORUM,ALL").split(",") if c.strip()
 ]
 
 RESULTS_PATH = os.getenv("RESULTS_PATH", "/workdir/results.json")

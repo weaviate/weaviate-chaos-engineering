@@ -16,6 +16,22 @@ on:
         required: false
         type: string
         default: ''
+      bench_iterations:
+        required: false
+        type: string
+        default: ''
+      bench_warmup:
+        required: false
+        type: string
+        default: ''
+      bench_objects:
+        required: false
+        type: string
+        default: ''
+      bench_reads:
+        required: false
+        type: string
+        default: ''
     secrets:
       AWS_ACCESS_KEY:
         required: true
@@ -283,12 +299,18 @@ jobs:
     name: Replication latency benchmark
     if: ${{ github.event.inputs.test_to_run == 'replication-latency-bench' || github.event.inputs.test_to_run == '' }}
     runs-on: ubicloud-standard-2
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{ inputs.lsm_access_strategy }}
       # When set, the bench runs baseline vs weaviate_version back-to-back on this
       # same runner (cancels between-host variance) and reports the delta.
       BASELINE_VERSION: ${{ inputs.baseline_weaviate_version }}
+      # Empty values fall through to the bench defaults (see ${VAR:-default} in
+      # replication_latency_bench.sh): ITERATIONS=3 WARMUP=1 OBJECTS=5000 READS=5000.
+      ITERATIONS: ${{ inputs.bench_iterations }}
+      WARMUP: ${{ inputs.bench_warmup }}
+      OBJECTS: ${{ inputs.bench_objects }}
+      READS: ${{ inputs.bench_reads }}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
