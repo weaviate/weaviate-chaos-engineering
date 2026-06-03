@@ -13,6 +13,7 @@ Kept dependency-free (stdlib only) so the CI step needs no pip install.
 """
 
 import json
+import math
 import sys
 from typing import Optional
 
@@ -20,6 +21,7 @@ from typing import Optional
 # per request (no batching), which exposes the per-request short-circuit saving.
 PHASES = ("write", "single_write", "read")
 PHASE_LABEL = {"write": "write(batch)", "single_write": "write(1-obj)", "read": "read"}
+PHASE_SHORT = {"write": "wr-batch", "single_write": "wr-1obj", "read": "read"}
 
 
 def _fmt(v: Optional[float]) -> str:
@@ -34,6 +36,55 @@ def _client_index(res: dict) -> dict:
             if lvl.get(phase):
                 out[(lvl["consistency_level"], phase)] = lvl[phase]["client_latency_ms"]
     return out
+
+
+def _mermaid_graph(res: dict, baseline: Optional[dict]) -> list:
+    """A Mermaid xychart bar graph (renders inline in the GitHub step summary).
+    With a baseline: p50 delta % per CL/phase (negative = candidate faster).
+    Without: absolute p50 ms per CL/phase."""
+    cur = _client_index(res)
+    cats, vals = [], []
+    base = _client_index(baseline) if baseline else {}
+    for lvl in res.get("levels", []):
+        nm = lvl["consistency_level"]
+        for ph in PHASES:
+            c = cur.get((nm, ph))
+            if not c or c.get("p50_ms") is None:
+                continue
+            if baseline:
+                b = base.get((nm, ph))
+                bp = b.get("p50_ms") if b else None
+                if not bp:
+                    continue
+                vals.append(round((c["p50_ms"] - bp) / bp * 100.0, 1))
+            else:
+                vals.append(round(c["p50_ms"], 3))
+            cats.append(f"{nm}/{PHASE_SHORT.get(ph, ph)}")
+    if not vals:
+        return []
+    if baseline:
+        title = "p50 latency delta % by CL/phase (negative = candidate faster)"
+        yaxis = "delta %"
+        lo, hi = math.floor(min(vals + [0]) - 5), math.ceil(max(vals + [0]) + 5)
+        yrange = f" {lo} --> {hi}"
+    else:
+        title = "p50 latency by CL/phase (ms)"
+        yaxis = "ms"
+        yrange = ""
+    xs = ", ".join(f'"{c}"' for c in cats)
+    ys = ", ".join(str(v) for v in vals)
+    return [
+        "### Latency impact graph",
+        "",
+        "```mermaid",
+        "xychart-beta",
+        f'    title "{title}"',
+        f"    x-axis [{xs}]",
+        f'    y-axis "{yaxis}"{yrange}',
+        f"    bar [{ys}]",
+        "```",
+        "",
+    ]
 
 
 def render(res: dict, baseline: Optional[dict]) -> str:
@@ -82,6 +133,9 @@ def render(res: dict, baseline: Optional[dict]) -> str:
                 f"{p99_range} | {tput_s} |"
             )
     lines.append("")
+
+    # ── latency impact graph (Mermaid, renders inline in the step summary) ──
+    lines.extend(_mermaid_graph(res, baseline))
 
     # ── server-side request latency (above the replica fan-out) ──
     lines.append("### Server-side request latency (ms, above the replica fan-out)")

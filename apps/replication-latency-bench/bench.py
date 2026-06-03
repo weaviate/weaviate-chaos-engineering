@@ -311,35 +311,6 @@ def pcts(samples_ms: List[float]) -> dict:
     }
 
 
-# Cap on retained client-latency samples per phase. We pool samples across all
-# timed iterations via reservoir sampling (uniform without replacement) so the
-# downstream CDF / box / violin plots are faithful while results.json stays small.
-SAMPLES_CAP = 5000
-
-
-class Reservoir:
-    """Size-capped uniform reservoir sample of a stream (Algorithm R)."""
-
-    def __init__(self, rng: random.Random, cap: int = SAMPLES_CAP) -> None:
-        self.rng = rng
-        self.cap = cap
-        self.seen = 0
-        self.items: List[float] = []
-
-    def add(self, xs: List[float]) -> None:
-        for x in xs:
-            self.seen += 1
-            if len(self.items) < self.cap:
-                self.items.append(x)
-            else:
-                j = self.rng.randrange(self.seen)
-                if j < self.cap:
-                    self.items[j] = x
-
-    def rounded(self) -> List[float]:
-        return [round(x, 4) for x in self.items]
-
-
 def _median(xs: List[Optional[float]]) -> Optional[float]:
     vals = [x for x in xs if x is not None]
     if not vals:
@@ -473,10 +444,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     write_tputs: List[float] = []
     single_tputs: List[float] = []
     read_tputs: List[float] = []
-    # Pooled raw-latency samples (for the distribution histogram), reservoir-capped.
-    write_res = Reservoir(random.Random(SEED + 101))
-    single_res = Reservoir(random.Random(SEED + 303))
-    read_res = Reservoir(random.Random(SEED + 202))
 
     for i in range(WARMUP + ITERATIONS):
         warm = i < WARMUP
@@ -497,7 +464,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             write_runs.append(pcts(write_client_ms))
-            write_res.add(write_client_ms)
             accumulate(write_srv_acc, delta(after, before))
             if write_wall:
                 write_tputs.append(OBJECTS / write_wall)
@@ -510,7 +476,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             single_runs.append(pcts(single_client_ms))
-            single_res.add(single_client_ms)
             accumulate(single_srv_acc, delta(after, before))
             if single_wall:
                 single_tputs.append(SINGLE_OBJECTS / single_wall)
@@ -523,7 +488,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
         after = scrape()
         if not warm:
             read_runs.append(pcts(read_client_ms))
-            read_res.add(read_client_ms)
             accumulate(read_srv_acc, delta(after, before))
             if read_wall:
                 read_tputs.append(READS / read_wall)
@@ -537,7 +501,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "batch_size": 1,
             "objects_per_second": _median(single_tputs),
             "client_latency_ms": aggregate_runs(single_runs),
-            "client_latency_samples_ms": single_res.rounded(),
             "server_request_latency": summarize(single_srv_acc),
         },
         "write": {
@@ -545,7 +508,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "batch_size": BATCH_SIZE,
             "objects_per_second": _median(write_tputs),
             "client_latency_ms": aggregate_runs(write_runs),
-            "client_latency_samples_ms": write_res.rounded(),
             # server-side histograms pooled across all timed iterations
             "server_request_latency": summarize(write_srv_acc),
         },
@@ -553,7 +515,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
             "reads": READS,
             "reads_per_second": _median(read_tputs),
             "client_latency_ms": aggregate_runs(read_runs),
-            "client_latency_samples_ms": read_res.rounded(),
             "server_request_latency": summarize(read_srv_acc),
         },
     }
