@@ -60,7 +60,6 @@ from weaviate.classes.init import AdditionalConfig, Timeout
 from weaviate.config import ConsistencyLevel
 from prometheus_client.parser import text_string_to_metric_families
 
-
 # ── configuration (env-driven) ───────────────────────────────────────────────
 
 
