@@ -115,9 +115,13 @@ teardown_cluster() {
 
 if [ -n "$BASELINE_VERSION" ]; then
   echo "=== same-runner A/B: baseline=$BASELINE_VERSION  candidate=$WEAVIATE_VERSION ==="
+  # Capture the candidate up front: run_cluster_and_bench exports WEAVIATE_VERSION
+  # for compose, so the baseline phase would otherwise clobber the global and the
+  # candidate phase would re-run the baseline image.
+  candidate_version="$WEAVIATE_VERSION"
   run_cluster_and_bench "$BASELINE_VERSION" "results-baseline.json" ""
   teardown_cluster
-  run_cluster_and_bench "$WEAVIATE_VERSION" "results.json" "results-baseline.json"
+  run_cluster_and_bench "$candidate_version" "results.json" "results-baseline.json"
 else
   run_cluster_and_bench "$WEAVIATE_VERSION" "results.json" "$COMPARE_TO"
 fi
