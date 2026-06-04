@@ -33,17 +33,23 @@ def _server_index(res: dict) -> dict:
     Weaviate-internal gRPC/HTTP request duration, above the replica fan-out).
     avg_ms is exact (_sum/_count); p99 is bucket-limited unless the image carries
     the finer RequestLatencyBuckets."""
+    grpc = "grpc_server_request_duration_seconds"
     out = {}
     for lvl in res.get("levels", []):
         for phase in PHASES:
             p = lvl.get(phase)
             if not p:
                 continue
+            srv = p.get("server_request_latency", {})
+            # The bench's ops are gRPC (BatchObjects / Search); prefer those rows so
+            # unrelated HTTP noise (readiness, schema POSTs) can't win on count.
+            pool = [(grpc, r) for r in srv.get(grpc, [])] or [
+                (m, r) for m, rs in srv.items() for r in rs
+            ]
             best = None
-            for metric, rows in p.get("server_request_latency", {}).items():
-                for r in rows:
-                    if best is None or r.get("count", 0) > best.get("count", 0):
-                        best = {**r, "metric": metric}
+            for metric, r in pool:
+                if best is None or r.get("count", 0) > best.get("count", 0):
+                    best = {**r, "metric": metric}
             if best:
                 out[(lvl["consistency_level"], phase)] = best
     return out
