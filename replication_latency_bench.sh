@@ -89,15 +89,17 @@ run_cluster_and_bench() {
   done
 
   echo "Running benchmark against weaviate:$version..."
+  # Pass tunables through as-is (empty -> bench.py applies its own defaults, so
+  # OBJECTS/READS/ITERATIONS/etc. live in ONE place: bench.py).
   docker run --rm --network host \
     -v "$PWD/workdir/:/workdir" \
     -e WEAVIATE_VERSION="$version" \
-    -e OBJECTS="${OBJECTS:-5000}" \
-    -e READS="${READS:-5000}" \
-    -e DIM="${DIM:-32}" \
-    -e CONSISTENCY="${CONSISTENCY:-ONE,QUORUM,ALL}" \
-    -e ITERATIONS="${ITERATIONS:-3}" \
-    -e WARMUP="${WARMUP:-1}" \
+    -e OBJECTS="${OBJECTS}" \
+    -e READS="${READS}" \
+    -e DIM="${DIM}" \
+    -e CONSISTENCY="${CONSISTENCY}" \
+    -e ITERATIONS="${ITERATIONS}" \
+    -e WARMUP="${WARMUP}" \
     "${compare_env[@]}" \
     --name replication-latency-bench -t replication-latency-bench
 
