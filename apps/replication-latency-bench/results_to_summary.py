@@ -87,107 +87,66 @@ def _mermaid_graph(res: dict, baseline: Optional[dict]) -> list:
     ]
 
 
+def _pct(cur: Optional[float], base: Optional[float]) -> str:
+    if not cur or not base:
+        return "-"
+    return f"{(cur - base) / base * 100.0:+.0f}%"
+
+
 def render(res: dict, baseline: Optional[dict]) -> str:
-    lines = []
-    lines.append("## Replication latency benchmark")
-    lines.append("")
-    lines.append(f"- **weaviate version:** `{res.get('weaviate_version', 'unknown')}`")
+    iters = (res.get("levels") or [{}])[0].get("iterations", "?")
+    lines = ["## Replication latency benchmark", ""]
+    if baseline:
+        lines.append(
+            f"`{baseline.get('weaviate_version', 'baseline')}` (baseline) "
+            f"→ `{res.get('weaviate_version', 'candidate')}` (candidate)"
+        )
+    else:
+        lines.append(f"`{res.get('weaviate_version', 'unknown')}`")
     lines.append(
-        f"- **cluster:** {res.get('nodes', '?')} nodes, "
-        f"rf={res.get('replication_factor', '?')}, dim={res.get('dim', '?')}, "
-        f"coordinator=node-1 (always a local replica)"
+        f"{res.get('nodes', '?')} nodes, rf={res.get('replication_factor', '?')}, "
+        f"single-object ops, median of {iters} timed runs/level. "
+        "Full numbers in the `results.json` artifact."
     )
     lines.append("")
 
-    # ── client-side latency (the headline numbers) ──
-    # Values are the median across timed iterations; p99 range shows the
-    # per-run spread so reviewers can see how noisy the measurement is.
-    lines.append("### Client-side latency (ms, median of timed runs)")
-    lines.append("")
-    lines.append(
-        "| CL | phase | iters | reqs/run | avg | p50 | p95 | p99 | p99 range | throughput |"
-    )
-    lines.append(
-        "|----|-------|-------|----------|-----|-----|-----|-----|-----------|------------|"
-    )
-    for lvl in res.get("levels", []):
-        name = lvl["consistency_level"]
-        for phase in PHASES:
-            p = lvl.get(phase)
-            if not p:
-                continue
-            c = p["client_latency_ms"]
-            iters = c.get("iterations", lvl.get("iterations", 1))
-            if phase == "read":
-                tput = p.get("reads_per_second")
-                tput_s = f"{tput} reads/s" if tput is not None else "-"
-            else:
-                tput = p.get("objects_per_second")
-                tput_s = f"{tput} obj/s" if tput is not None else "-"
-            lo, hi = c.get("p99_ms_min"), c.get("p99_ms_max")
-            p99_range = f"{_fmt(lo)}–{_fmt(hi)}" if lo is not None and hi is not None else "-"
-            lines.append(
-                f"| {name} | {PHASE_LABEL.get(phase, phase)} | {iters} | {c.get('count', 0)} | "
-                f"{_fmt(c.get('avg_ms'))} | {_fmt(c.get('p50_ms'))} | "
-                f"{_fmt(c.get('p95_ms'))} | {_fmt(c.get('p99_ms'))} | "
-                f"{p99_range} | {tput_s} |"
-            )
-    lines.append("")
-
-    # ── latency impact graph (Mermaid, renders inline in the step summary) ──
+    # graph first, then one compact table
     lines.extend(_mermaid_graph(res, baseline))
 
-    # ── server-side request latency (above the replica fan-out) ──
-    lines.append("### Server-side request latency (ms, above the replica fan-out)")
-    lines.append("")
-    lines.append("| CL | phase | metric | method/route | n | p50 | p95 | p99 |")
-    lines.append("|----|-------|--------|--------------|---|-----|-----|-----|")
-    any_server = False
-    for lvl in res.get("levels", []):
-        name = lvl["consistency_level"]
-        for phase in PHASES:
-            p = lvl.get(phase)
-            if not p:
-                continue
-            srv = p.get("server_request_latency", {})
-            for metric, rows in srv.items():
-                for r in rows:
-                    any_server = True
-                    labels = r.get("labels", {})
-                    mr = labels.get("method") or labels.get("route") or "?"
-                    lines.append(
-                        f"| {name} | {PHASE_LABEL.get(phase, phase)} | {metric} | {mr} | "
-                        f"{r.get('count', 0)} | {_fmt(r.get('p50_ms'))} | "
-                        f"{_fmt(r.get('p95_ms'))} | {_fmt(r.get('p99_ms'))} |"
-                    )
-    if not any_server:
-        lines.append("| - | - | _no server-side series scraped_ | - | - | - | - | - |")
-    lines.append("")
-
-    # ── optional delta vs a baseline run ──
-    if baseline is not None:
+    if baseline:
         cur, old = _client_index(res), _client_index(baseline)
-        lines.append(
-            f"### Delta vs baseline (`{baseline.get('weaviate_version', 'unknown')}`) "
-            "— client-side median p99"
-        )
+        lines.append("### Latency delta (negative = candidate faster)")
         lines.append("")
-        lines.append("negative = faster on this build")
+        lines.append("| CL | op | Δp50 | Δp99 |")
+        lines.append("|----|----|------|------|")
+        for lvl in res.get("levels", []):
+            name = lvl["consistency_level"]
+            for phase in PHASES:
+                c, b = cur.get((name, phase)), old.get((name, phase))
+                if not c or not b:
+                    continue
+                lines.append(
+                    f"| {name} | {PHASE_LABEL.get(phase, phase)} | "
+                    f"{_pct(c.get('p50_ms'), b.get('p50_ms'))} | "
+                    f"{_pct(c.get('p99_ms'), b.get('p99_ms'))} |"
+                )
+    else:
+        lines.append("### Latency (ms, median of timed runs)")
         lines.append("")
-        lines.append("| CL | phase | baseline p99 | current p99 | delta | delta % |")
-        lines.append("|----|-------|--------------|-------------|-------|---------|")
-        for key in sorted(cur):
-            c, b = cur[key], old.get(key, {})
-            cp, bp = c.get("p99_ms"), b.get("p99_ms")
-            if cp is None or bp is None:
-                continue
-            d = cp - bp
-            pct = (d / bp * 100.0) if bp else 0.0
-            lines.append(
-                f"| {key[0]} | {key[1]} | {_fmt(bp)} | {_fmt(cp)} | " f"{d:+.3f} | {pct:+.1f}% |"
-            )
-        lines.append("")
-
+        lines.append("| CL | op | p50 | p99 |")
+        lines.append("|----|----|-----|-----|")
+        for lvl in res.get("levels", []):
+            name = lvl["consistency_level"]
+            for phase in PHASES:
+                p = lvl.get(phase)
+                if not p:
+                    continue
+                c = p["client_latency_ms"]
+                lines.append(
+                    f"| {name} | {PHASE_LABEL.get(phase, phase)} | "
+                    f"{_fmt(c.get('p50_ms'))} | {_fmt(c.get('p99_ms'))} |"
+                )
+    lines.append("")
     return "\n".join(lines) + "\n"
 
 
