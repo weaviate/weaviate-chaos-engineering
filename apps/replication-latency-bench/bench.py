@@ -95,8 +95,12 @@ OBJECTS = _int("OBJECTS", 2000)
 READS = _int("READS", 3000)
 # Consistency levels to benchmark, in order. ONE is the headline case (the local
 # leg satisfies it immediately); QUORUM and ALL still wait on remote legs.
+# `or` (not getenv default) so a set-but-empty env var — as the shell wrapper
+# passes when CONSISTENCY is unset — still falls back to the default.
 CONSISTENCY_LEVELS = [
-    c.strip().upper() for c in os.getenv("CONSISTENCY", "ONE,QUORUM,ALL").split(",") if c.strip()
+    c.strip().upper()
+    for c in (os.getenv("CONSISTENCY") or "ONE,QUORUM,ALL").split(",")
+    if c.strip()
 ]
 
 RESULTS_PATH = os.getenv("RESULTS_PATH", "/workdir/results.json")
@@ -544,6 +548,9 @@ def print_compare(current: dict, baseline_path: str) -> None:
 
 
 def main() -> int:
+    if not CONSISTENCY_LEVELS:
+        logger.error("no valid CONSISTENCY levels parsed; nothing to benchmark")
+        return 2
     logger.info(
         f"connecting to {HTTP_HOST}:{HTTP_PORT} (grpc {GRPC_PORT}); " f"metrics at {METRICS_URL}"
     )
