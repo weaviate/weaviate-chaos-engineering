@@ -28,47 +28,58 @@ def _fmt(v: Optional[float]) -> str:
     return "-" if v is None else f"{v:.3f}"
 
 
-def _client_index(res: dict) -> dict:
-    """(consistency_level, phase) -> client_latency_ms dict."""
+def _server_index(res: dict) -> dict:
+    """(CL, phase) -> the highest-count server-side request-duration row (the
+    Weaviate-internal gRPC/HTTP request duration, above the replica fan-out).
+    avg_ms is exact (_sum/_count); p99 is bucket-limited unless the image carries
+    the finer RequestLatencyBuckets."""
     out = {}
     for lvl in res.get("levels", []):
         for phase in PHASES:
-            if lvl.get(phase):
-                out[(lvl["consistency_level"], phase)] = lvl[phase]["client_latency_ms"]
+            p = lvl.get(phase)
+            if not p:
+                continue
+            best = None
+            for metric, rows in p.get("server_request_latency", {}).items():
+                for r in rows:
+                    if best is None or r.get("count", 0) > best.get("count", 0):
+                        best = {**r, "metric": metric}
+            if best:
+                out[(lvl["consistency_level"], phase)] = best
     return out
 
 
 def _mermaid_graph(res: dict, baseline: Optional[dict]) -> list:
-    """A Mermaid xychart bar graph (renders inline in the GitHub step summary).
-    With a baseline: p50 delta % per CL/phase (negative = candidate faster).
-    Without: absolute p50 ms per CL/phase."""
-    cur = _client_index(res)
+    """A Mermaid xychart bar graph (renders inline in the GitHub step summary) of
+    the Weaviate-internal server-side average latency. With a baseline: delta %
+    per CL/phase (negative = candidate faster). Without: absolute avg ms."""
+    cur = _server_index(res)
     cats, vals = [], []
-    base = _client_index(baseline) if baseline else {}
+    base = _server_index(baseline) if baseline else {}
     for lvl in res.get("levels", []):
         nm = lvl["consistency_level"]
         for ph in PHASES:
             c = cur.get((nm, ph))
-            if not c or c.get("p50_ms") is None:
+            if not c or c.get("avg_ms") is None:
                 continue
             if baseline:
                 b = base.get((nm, ph))
-                bp = b.get("p50_ms") if b else None
+                bp = b.get("avg_ms") if b else None
                 if not bp:
                     continue
-                vals.append(round((c["p50_ms"] - bp) / bp * 100.0, 1))
+                vals.append(round((c["avg_ms"] - bp) / bp * 100.0, 1))
             else:
-                vals.append(round(c["p50_ms"], 3))
+                vals.append(round(c["avg_ms"], 3))
             cats.append(f"{nm}/{PHASE_SHORT.get(ph, ph)}")
     if not vals:
         return []
     if baseline:
-        title = "p50 latency delta % by CL/phase (negative = candidate faster)"
+        title = "server-side avg latency delta % by CL/phase (negative = candidate faster)"
         yaxis = "delta %"
         lo, hi = math.floor(min(vals + [0]) - 5), math.ceil(max(vals + [0]) + 5)
         yrange = f" {lo} --> {hi}"
     else:
-        title = "p50 latency by CL/phase (ms)"
+        title = "server-side avg latency by CL/phase (ms)"
         yaxis = "ms"
         yrange = ""
     xs = ", ".join(f'"{c}"' for c in cats)
@@ -106,18 +117,20 @@ def render(res: dict, baseline: Optional[dict]) -> str:
     lines.append(
         f"{res.get('nodes', '?')} nodes, rf={res.get('replication_factor', '?')}, "
         f"single-object ops, median of {iters} timed runs/level. "
-        "Full numbers in the `results.json` artifact."
+        "Metric = Weaviate-internal server-side request duration (above the replica "
+        "fan-out). `avg` is exact (from _sum/_count); `p99` is bucket-limited unless "
+        "the image carries the finer RequestLatencyBuckets. Full data in the artifact."
     )
     lines.append("")
 
-    # graph first, then one compact table
+    # graph first (internal avg), then one compact table
     lines.extend(_mermaid_graph(res, baseline))
 
     if baseline:
-        cur, old = _client_index(res), _client_index(baseline)
-        lines.append("### Latency delta (negative = candidate faster)")
+        cur, old = _server_index(res), _server_index(baseline)
+        lines.append("### Server-side latency delta (negative = candidate faster)")
         lines.append("")
-        lines.append("| CL | op | Δp50 | Δp99 |")
+        lines.append("| CL | op | Δavg | Δp99 |")
         lines.append("|----|----|------|------|")
         for lvl in res.get("levels", []):
             name = lvl["consistency_level"]
@@ -127,24 +140,23 @@ def render(res: dict, baseline: Optional[dict]) -> str:
                     continue
                 lines.append(
                     f"| {name} | {PHASE_LABEL.get(phase, phase)} | "
-                    f"{_pct(c.get('p50_ms'), b.get('p50_ms'))} | "
+                    f"{_pct(c.get('avg_ms'), b.get('avg_ms'))} | "
                     f"{_pct(c.get('p99_ms'), b.get('p99_ms'))} |"
                 )
     else:
-        lines.append("### Latency (ms, median of timed runs)")
+        lines.append("### Server-side latency (ms)")
         lines.append("")
-        lines.append("| CL | op | p50 | p99 |")
+        lines.append("| CL | op | avg | p99 |")
         lines.append("|----|----|-----|-----|")
         for lvl in res.get("levels", []):
             name = lvl["consistency_level"]
             for phase in PHASES:
-                p = lvl.get(phase)
-                if not p:
+                c = _server_index(res).get((name, phase))
+                if not c:
                     continue
-                c = p["client_latency_ms"]
                 lines.append(
                     f"| {name} | {PHASE_LABEL.get(phase, phase)} | "
-                    f"{_fmt(c.get('p50_ms'))} | {_fmt(c.get('p99_ms'))} |"
+                    f"{_fmt(c.get('avg_ms'))} | {_fmt(c.get('p99_ms'))} |"
                 )
     lines.append("")
     return "\n".join(lines) + "\n"

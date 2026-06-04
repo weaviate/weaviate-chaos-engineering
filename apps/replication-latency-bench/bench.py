@@ -62,6 +62,7 @@ from loguru import logger
 
 import weaviate
 from weaviate.classes.config import Configure, ConsistencyLevel, DataType, Property
+from weaviate.classes.data import DataObject
 from weaviate.classes.init import AdditionalConfig, Timeout
 from prometheus_client.parser import text_string_to_metric_families
 
@@ -87,10 +88,7 @@ METRICS_URL = os.getenv("METRICS_URL", f"http://{HTTP_HOST}:2112/metrics")
 COLLECTION = os.getenv("COLLECTION", "LocalReplicaLatencyBench")
 REPLICATION_FACTOR = _int("REPLICATION_FACTOR", 3)
 DIM = _int("DIM", 32)
-# Volume per timed cycle. Writes and reads are both single-object (one request
-# each) so every request pays its own replica round-trip — that is exactly the
-# per-request cost the short-circuit removes, which batching would hide. Kept
-# modest so a full A/B (2 versions x 3 levels x iterations) finishes quickly.
+# Per-cycle volume (single-object writes + reads). Modest so a full A/B finishes fast.
 OBJECTS = _int("OBJECTS", 2000)
 READS = _int("READS", 3000)
 # Consistency levels to benchmark, in order. ONE is the headline case (the local
@@ -108,13 +106,9 @@ COMPARE_TO = os.getenv("COMPARE_TO", "").strip()
 WEAVIATE_VERSION = os.getenv("WEAVIATE_VERSION", "unknown")
 SEED = _int("SEED", 42)
 
-# A single timed pass cannot resolve a sub-millisecond local-leg saving against
-# RAFT/compaction/GC jitter — p99 over one run is dominated by noise. So we run
-# WARMUP untimed cycles (discarded; they warm caches, the gRPC pool and the JIT)
-# followed by ITERATIONS timed cycles, then report the MEDIAN across timed runs
-# plus the per-run spread. Each cycle recreates the collection so writes are
-# always fresh inserts and runs are independent. 10 same-runner iterations
-# resolves the effect we care about; bump via env when chasing tighter tails.
+# WARMUP untimed cycles (discarded) then ITERATIONS timed cycles; report the
+# median across runs to damp RAFT/GC/compaction jitter. Each cycle recreates the
+# collection so runs are independent.
 ITERATIONS = _int("ITERATIONS", 10)
 WARMUP = _int("WARMUP", 1)
 
@@ -363,22 +357,20 @@ def recreate_collection(client: weaviate.WeaviateClient) -> None:
 
 
 def run_writes(coll, rng: random.Random) -> Tuple[List[str], List[float]]:
-    """Insert OBJECTS objects ONE AT A TIME (data.insert -> PutObject), returning
-    UUIDs and per-object client latency (ms). Single-object (not batched) on
-    purpose: batching amortizes the replica round-trip over many objects and hides
-    the per-request loopback this optimization removes, so each request here pays
-    — and the short-circuit saves — its own round-trip."""
+    """Insert OBJECTS objects, one per gRPC BatchObjects request (batch of 1).
+    Single-object so each write pays its own replica round-trip (no batch
+    amortization), but over gRPC so it shows up in the same clean server-side
+    metric as reads (Search) rather than the noisy HTTP POST path."""
     uuids: List[str] = []
     latencies: List[float] = []
     for i in range(OBJECTS):
         u = str(uuidlib.UUID(int=rng.getrandbits(128)))
+        obj = DataObject(uuid=u, properties={"payload": f"obj-{i}", "seq": i}, vector=rand_vec(rng))
         t0 = time.perf_counter()
-        coll.data.insert(
-            uuid=u,
-            properties={"payload": f"obj-{i}", "seq": i},
-            vector=rand_vec(rng),
-        )
+        res = coll.data.insert_many([obj])
         latencies.append((time.perf_counter() - t0) * 1000.0)
+        if res.has_errors:
+            raise RuntimeError(f"insert_many had errors: {list(res.errors.items())[:3]}")
         uuids.append(u)
     return uuids, latencies
 
