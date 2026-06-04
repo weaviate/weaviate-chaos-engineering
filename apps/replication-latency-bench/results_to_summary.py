@@ -121,23 +121,22 @@ def render(res: dict, baseline: Optional[dict]) -> str:
     else:
         lines.append(f"`{res.get('weaviate_version', 'unknown')}`")
     lines.append(
-        f"{res.get('nodes', '?')} nodes, rf={res.get('replication_factor', '?')}, "
-        f"single-object ops, median of {iters} timed runs/level. "
-        "Metric = Weaviate-internal server-side request duration (above the replica "
-        "fan-out). `avg` is exact (from _sum/_count); `p99` is bucket-limited unless "
-        "the image carries the finer RequestLatencyBuckets. Full data in the artifact."
+        f"{res.get('nodes', '?')} nodes · rf={res.get('replication_factor', '?')} · "
+        f"single-object ops · median of {iters} runs. "
+        "Latency measured **inside Weaviate** (server-side request duration, above the "
+        "replica fan-out). Lower = faster."
     )
     lines.append("")
 
-    # graph first (internal avg), then one compact table
     lines.extend(_mermaid_graph(res, baseline))
 
+    cur = _server_index(res)
     if baseline:
-        cur, old = _server_index(res), _server_index(baseline)
-        lines.append("### Server-side latency delta (negative = candidate faster)")
+        old = _server_index(baseline)
+        lines.append("### Server-side avg latency (ms)")
         lines.append("")
-        lines.append("| CL | op | Δavg | Δp99 |")
-        lines.append("|----|----|------|------|")
+        lines.append("| CL | op | baseline | candidate | change |")
+        lines.append("|----|----|----------|-----------|--------|")
         for lvl in res.get("levels", []):
             name = lvl["consistency_level"]
             for phase in PHASES:
@@ -146,23 +145,22 @@ def render(res: dict, baseline: Optional[dict]) -> str:
                     continue
                 lines.append(
                     f"| {name} | {PHASE_LABEL.get(phase, phase)} | "
-                    f"{_pct(c.get('avg_ms'), b.get('avg_ms'))} | "
-                    f"{_pct(c.get('p99_ms'), b.get('p99_ms'))} |"
+                    f"{_fmt(b.get('avg_ms'))} | {_fmt(c.get('avg_ms'))} | "
+                    f"{_pct(c.get('avg_ms'), b.get('avg_ms'))} |"
                 )
     else:
-        lines.append("### Server-side latency (ms)")
+        lines.append("### Server-side avg latency (ms)")
         lines.append("")
-        lines.append("| CL | op | avg | p99 |")
-        lines.append("|----|----|-----|-----|")
+        lines.append("| CL | op | avg |")
+        lines.append("|----|----|-----|")
         for lvl in res.get("levels", []):
             name = lvl["consistency_level"]
             for phase in PHASES:
-                c = _server_index(res).get((name, phase))
+                c = cur.get((name, phase))
                 if not c:
                     continue
                 lines.append(
-                    f"| {name} | {PHASE_LABEL.get(phase, phase)} | "
-                    f"{_fmt(c.get('avg_ms'))} | {_fmt(c.get('p99_ms'))} |"
+                    f"| {name} | {PHASE_LABEL.get(phase, phase)} | {_fmt(c.get('avg_ms'))} |"
                 )
     lines.append("")
     return "\n".join(lines) + "\n"
