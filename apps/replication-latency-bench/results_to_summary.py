@@ -13,7 +13,6 @@ Kept dependency-free (stdlib only) so the CI step needs no pip install.
 """
 
 import json
-import math
 import sys
 from typing import Optional
 
@@ -21,7 +20,6 @@ from typing import Optional
 # pays its own replica round-trip — the per-request cost the short-circuit removes.
 PHASES = ("write", "read")
 PHASE_LABEL = {"write": "write", "read": "read"}
-PHASE_SHORT = {"write": "write", "read": "read"}
 
 
 def _fmt(v: Optional[float]) -> str:
@@ -63,55 +61,6 @@ def _server_index(res: dict) -> dict:
             if best:
                 out[(lvl["consistency_level"], phase)] = best
     return out
-
-
-def _mermaid_graph(res: dict, baseline: Optional[dict]) -> list:
-    """A Mermaid xychart bar graph (renders inline in the GitHub step summary) of
-    the Weaviate-internal server-side average latency. With a baseline: delta %
-    per CL/phase (negative = candidate faster). Without: absolute avg ms."""
-    cur = _server_index(res)
-    cats, vals = [], []
-    base = _server_index(baseline) if baseline else {}
-    for lvl in res.get("levels", []):
-        nm = lvl["consistency_level"]
-        for ph in PHASES:
-            c = cur.get((nm, ph))
-            if not c or c.get("avg_ms") is None:
-                continue
-            if baseline:
-                b = base.get((nm, ph))
-                bp = b.get("avg_ms") if b else None
-                if not bp:
-                    continue
-                vals.append(round((c["avg_ms"] - bp) / bp * 100.0, 1))
-            else:
-                vals.append(round(c["avg_ms"], 3))
-            cats.append(f"{nm}/{PHASE_SHORT.get(ph, ph)}")
-    if not vals:
-        return []
-    if baseline:
-        title = "server-side avg latency delta % by CL/phase (negative = candidate faster)"
-        yaxis = "delta %"
-        lo, hi = math.floor(min(vals + [0]) - 5), math.ceil(max(vals + [0]) + 5)
-        yrange = f" {lo} --> {hi}"
-    else:
-        title = "server-side avg latency by CL/phase (ms)"
-        yaxis = "ms"
-        yrange = ""
-    xs = ", ".join(f'"{c}"' for c in cats)
-    ys = ", ".join(str(v) for v in vals)
-    return [
-        "### Latency impact graph",
-        "",
-        "```mermaid",
-        "xychart-beta",
-        f'    title "{title}"',
-        f"    x-axis [{xs}]",
-        f'    y-axis "{yaxis}"{yrange}',
-        f"    bar [{ys}]",
-        "```",
-        "",
-    ]
 
 
 def _pct(cur: Optional[float], base: Optional[float]) -> str:
@@ -170,8 +119,7 @@ def render(res: dict, baseline: Optional[dict]) -> str:
     )
     lines.append("")
 
-    # graph + server-side table (the headline / attributable metric)
-    lines.extend(_mermaid_graph(res, baseline))
+    # server-side table (the headline / attributable metric)
     lines.extend(
         _avg_table(
             res,
