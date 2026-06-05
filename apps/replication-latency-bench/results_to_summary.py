@@ -28,6 +28,16 @@ def _fmt(v: Optional[float]) -> str:
     return "-" if v is None else f"{v:.3f}"
 
 
+def _client_index(res: dict) -> dict:
+    """(CL, phase) -> client_latency_ms (end-to-end, as the bench client sees it)."""
+    out = {}
+    for lvl in res.get("levels", []):
+        for phase in PHASES:
+            if lvl.get(phase):
+                out[(lvl["consistency_level"], phase)] = lvl[phase]["client_latency_ms"]
+    return out
+
+
 def _server_index(res: dict) -> dict:
     """(CL, phase) -> the highest-count server-side request-duration row (the
     Weaviate-internal gRPC/HTTP request duration, above the replica fan-out).
@@ -110,31 +120,12 @@ def _pct(cur: Optional[float], base: Optional[float]) -> str:
     return f"{(cur - base) / base * 100.0:+.0f}%"
 
 
-def render(res: dict, baseline: Optional[dict]) -> str:
-    iters = (res.get("levels") or [{}])[0].get("iterations", "?")
-    lines = ["## Replication latency benchmark", ""]
+def _avg_table(res, baseline, index_fn, heading, note):
+    """Render one avg-latency table (baseline → candidate → change, or absolute)."""
+    lines = [heading, "", f"_{note}_", ""]
+    cur = index_fn(res)
     if baseline:
-        lines.append(
-            f"`{baseline.get('weaviate_version', 'baseline')}` (baseline) "
-            f"→ `{res.get('weaviate_version', 'candidate')}` (candidate)"
-        )
-    else:
-        lines.append(f"`{res.get('weaviate_version', 'unknown')}`")
-    lines.append(
-        f"{res.get('nodes', '?')} nodes · rf={res.get('replication_factor', '?')} · "
-        f"single-object ops · median of {iters} runs. "
-        "Latency measured **inside Weaviate** (server-side request duration, above the "
-        "replica fan-out). Lower = faster."
-    )
-    lines.append("")
-
-    lines.extend(_mermaid_graph(res, baseline))
-
-    cur = _server_index(res)
-    if baseline:
-        old = _server_index(baseline)
-        lines.append("### Server-side avg latency (ms)")
-        lines.append("")
+        old = index_fn(baseline)
         lines.append("| CL | op | baseline | candidate | change |")
         lines.append("|----|----|----------|-----------|--------|")
         for lvl in res.get("levels", []):
@@ -149,20 +140,57 @@ def render(res: dict, baseline: Optional[dict]) -> str:
                     f"{_pct(c.get('avg_ms'), b.get('avg_ms'))} |"
                 )
     else:
-        lines.append("### Server-side avg latency (ms)")
-        lines.append("")
         lines.append("| CL | op | avg |")
         lines.append("|----|----|-----|")
         for lvl in res.get("levels", []):
             name = lvl["consistency_level"]
             for phase in PHASES:
                 c = cur.get((name, phase))
-                if not c:
-                    continue
-                lines.append(
-                    f"| {name} | {PHASE_LABEL.get(phase, phase)} | {_fmt(c.get('avg_ms'))} |"
-                )
+                if c:
+                    lines.append(
+                        f"| {name} | {PHASE_LABEL.get(phase, phase)} | {_fmt(c.get('avg_ms'))} |"
+                    )
     lines.append("")
+    return lines
+
+
+def render(res: dict, baseline: Optional[dict]) -> str:
+    iters = (res.get("levels") or [{}])[0].get("iterations", "?")
+    lines = ["## Replication latency benchmark", ""]
+    if baseline:
+        lines.append(
+            f"`{baseline.get('weaviate_version', 'baseline')}` (baseline) "
+            f"→ `{res.get('weaviate_version', 'candidate')}` (candidate)"
+        )
+    else:
+        lines.append(f"`{res.get('weaviate_version', 'unknown')}`")
+    lines.append(
+        f"{res.get('nodes', '?')} nodes · rf={res.get('replication_factor', '?')} · "
+        f"single-object ops · median of {iters} runs. Lower = faster."
+    )
+    lines.append("")
+
+    # graph + server-side table (the headline / attributable metric)
+    lines.extend(_mermaid_graph(res, baseline))
+    lines.extend(
+        _avg_table(
+            res,
+            baseline,
+            _server_index,
+            "### Server-side avg latency (ms)",
+            "inside Weaviate: request duration above the replica fan-out (avg is exact)",
+        )
+    )
+    # client-side table (context: does the saving reach the caller?)
+    lines.extend(
+        _avg_table(
+            res,
+            baseline,
+            _client_index,
+            "### Client-side avg latency (ms)",
+            "end-to-end as the benchmark client sees it (incl. client + transport)",
+        )
+    )
     return "\n".join(lines) + "\n"
 
 
