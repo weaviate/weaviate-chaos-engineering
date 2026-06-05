@@ -38,7 +38,7 @@ set -e
 
 source common.sh
 
-export COMPOSE="apps/weaviate/docker-compose-replication-metrics.yml"
+export COMPOSE="apps/weaviate/docker-compose-replication.yml"
 
 if [ -z "$WEAVIATE_VERSION" ]; then
   echo "ERROR: WEAVIATE_VERSION must be set (e.g. WEAVIATE_VERSION=local-optimized $0)"
