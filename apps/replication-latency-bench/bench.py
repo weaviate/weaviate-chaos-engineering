@@ -1,51 +1,11 @@
 """
-replication-latency-bench
-==========================
+replication-latency-bench: drive single-object writes/reads against the
+coordinator of a 3-node RF=3 cluster and scrape the server-side request-duration
+histograms (above the replica fan-out) to measure the local-replica short-circuit
+(perf(replica): short-circuit local-node replica calls in-process).
 
-Measures replication request latency on a replicated Weaviate cluster, and in
-particular the impact of the weaviate-core change
-
-    perf(replica): short-circuit local-node replica calls in-process
-
-by driving a replicated write/read workload against the *coordinator* node and
-reading the latency that weaviate already exports for it.
-
-Why this setup exercises the optimisation
-------------------------------------------
-The collection is created with replication factor 3 on a 3-node cluster, so the
-single shard lives on every node. The client talks only to node-1, which is
-therefore always one of the shard's replicas. Before the change, node-1's own
-replica leg (Pull on reads, Push on writes) still went over a loopback
-HTTP/gRPC round-trip; after it, that leg is served in-process via *DB.
-
-At consistency level ONE the effect is largest: the in-process local leg
-satisfies the consistency requirement immediately, so the coordinator can ack
-without waiting on any network leg.
-
-Which metric proves it
------------------------
-The per-shard write metrics (objects_durations_ms / batch_durations_ms) measure
-work *after* a request reaches a shard, so they do NOT see the coordinator-side
-loopback. The request-level histograms
-
-    grpc_server_request_duration_seconds{grpc_service,method,status}
-    http_request_duration_seconds{method,route,status_code}
-
-sit above the replica fan-out and DO capture it. We snapshot those histograms
-before and after each timed phase, subtract the cumulative buckets, and pool
-them across all timed iterations. Client-side latency is recorded alongside as a
-cross-check.
-
-Noise control
--------------
-A single timed pass cannot resolve a sub-millisecond saving against RAFT/GC/
-compaction jitter, so we run WARMUP untimed cycles (discarded) then ITERATIONS
-timed cycles and report the MEDIAN across runs plus the per-run p99 spread. Each
-cycle recreates the collection so runs are independent and writes are inserts.
-
-Run the script against the baseline image and the optimised image (the chaos
-harness already parameterises this via WEAVIATE_VERSION) and compare the two
-result files; pass COMPARE_TO=<old results.json> to print the delta inline.
+WARMUP untimed cycles then ITERATIONS timed cycles; report the median across runs.
+Client-side latency is recorded too as a cross-check.
 """
 
 import json
@@ -107,7 +67,6 @@ CONSISTENCY_LEVELS = [
 ]
 
 RESULTS_PATH = os.getenv("RESULTS_PATH", "/workdir/results.json")
-COMPARE_TO = os.getenv("COMPARE_TO", "").strip()
 WEAVIATE_VERSION = os.getenv("WEAVIATE_VERSION", "unknown")
 SEED = _int("SEED", 42)
 
@@ -123,14 +82,8 @@ _CL = {
     "ALL": ConsistencyLevel.ALL,
 }
 
-# Request-level histograms that sit above the replica fan-out. We scrape every
-# series of these and report per method/route, so we never depend on a guessed
-# label value (e.g. exact gRPC method name).
-#
-# weaviate registers these with the metrics namespace ("weaviate"), so the names
-# actually exposed at /metrics are "weaviate_<name>" — NOT the bare names the
-# docs table lists. We match on suffix below so the scrape works regardless of
-# the namespace prefix and never silently returns zero series.
+# Request-duration histograms above the replica fan-out. weaviate prefixes them
+# with the metrics namespace ("weaviate_"), so we match by suffix.
 REQUEST_HISTOGRAMS = [
     "grpc_server_request_duration_seconds",
     "http_request_duration_seconds",
@@ -138,9 +91,8 @@ REQUEST_HISTOGRAMS = [
 
 
 def _canonical_metric(name: str) -> Optional[str]:
-    """Map an exposed metric family name to its canonical (bare) form, honouring
-    an optional namespace prefix such as "weaviate_". Returns None if it is not
-    one of the request histograms we care about."""
+    """Exposed metric family name -> canonical (bare) name, ignoring a namespace
+    prefix; None if not a request histogram."""
     for m in REQUEST_HISTOGRAMS:
         if name == m or name.endswith("_" + m):
             return m
@@ -241,9 +193,8 @@ def delta(
 
 
 def accumulate(acc: Dict[str, Dict[Tuple, Hist]], d: Dict[str, Dict[Tuple, Hist]]) -> None:
-    """Pool a per-iteration delta histogram set into acc (in place). Summing the
-    cumulative buckets across iterations treats all timed runs as one population,
-    so the server-side quantiles are computed over every request, not one run."""
+    """Pool a per-iteration delta histogram into acc (in place), so quantiles span
+    all timed runs."""
     for metric, series in d.items():
         bucket = acc.setdefault(metric, {})
         for key, h in series.items():
@@ -319,10 +270,7 @@ def _median(xs: List[Optional[float]]) -> Optional[float]:
 
 
 def aggregate_runs(runs: List[dict]) -> dict:
-    """Collapse N per-iteration pcts dicts into the median across runs, keeping
-    the per-run spread so the noise is visible rather than hidden by the median.
-    'count' is the per-iteration sample size (identical across runs); the headline
-    fields (p50/p95/p99/avg/max) are medians of the per-run values."""
+    """Median across runs of each percentile, plus the per-run p99 spread."""
     if not runs:
         return {"iterations": 0, "count": 0}
     out: dict = {
@@ -462,85 +410,6 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     }
 
 
-# ── reporting ─────────────────────────────────────────────────────────────────
-
-
-def _fmt(v: Optional[float]) -> str:
-    return "-" if v is None else f"{v:8.3f}"
-
-
-def print_report(results: dict) -> None:
-    print("\n" + "=" * 78)
-    print(f" local-replica latency benchmark — weaviate {results['weaviate_version']}")
-    print(
-        f" cluster: {results['nodes']} nodes, rf={results['replication_factor']}, "
-        f"coordinator=node-1 (always a local replica)"
-    )
-    print("=" * 78)
-    for lvl in results["levels"]:
-        name = lvl["consistency_level"]
-        iters = lvl.get("iterations", 1)
-        warm = lvl.get("warmup", 0)
-        print(f"\n--- CL={name}  (median of {iters} timed runs, {warm} warmup) ---")
-        for phase in ("write", "read"):
-            p = lvl.get(phase)
-            if not p:
-                continue
-            cl_client = p["client_latency_ms"]
-            spread = ""
-            lo, hi = cl_client.get("p99_ms_min"), cl_client.get("p99_ms_max")
-            if lo is not None and hi is not None:
-                spread = f"  [per-run p99 {lo:.3f}..{hi:.3f}]"
-            print(
-                f"\n[{phase.upper()} | CL={name}] client-side (median)  "
-                f"p50={_fmt(cl_client.get('p50_ms'))}  "
-                f"p95={_fmt(cl_client.get('p95_ms'))}  "
-                f"p99={_fmt(cl_client.get('p99_ms'))} ms"
-                f"  ({cl_client.get('count', 0)} reqs/run){spread}"
-            )
-            for metric, rows in p["server_request_latency"].items():
-                for r in rows:
-                    method = r["labels"].get("method") or r["labels"].get("route") or "?"
-                    print(
-                        f"    server {metric} method/route={method:<22} "
-                        f"p50={_fmt(r['p50_ms'])} p95={_fmt(r['p95_ms'])} "
-                        f"p99={_fmt(r['p99_ms'])} ms  (n={r['count']})"
-                    )
-
-
-def print_compare(current: dict, baseline_path: str) -> None:
-    try:
-        with open(baseline_path) as f:
-            base = json.load(f)
-    except Exception as e:  # noqa: BLE001
-        logger.warning(f"COMPARE_TO={baseline_path!r} not usable: {e}")
-        return
-
-    def idx(res: dict) -> Dict[Tuple[str, str], dict]:
-        m = {}
-        for lvl in res["levels"]:
-            for phase in ("write", "read"):
-                m[(lvl["consistency_level"], phase)] = lvl[phase]["client_latency_ms"]
-        return m
-
-    cur, old = idx(current), idx(base)
-    print("\n" + "=" * 78)
-    print(f" DELTA vs baseline ({base.get('weaviate_version')}) — client-side p99 (ms)")
-    print(" negative = faster on this build")
-    print("=" * 78)
-    for key in sorted(cur):
-        c, b = cur[key], old.get(key, {})
-        cp, bp = c.get("p99_ms"), b.get("p99_ms")
-        if cp is None or bp is None:
-            continue
-        d = cp - bp
-        pct = (d / bp * 100.0) if bp else 0.0
-        print(
-            f"  CL={key[0]:<6} {key[1]:<6} "
-            f"baseline={bp:8.3f}  current={cp:8.3f}  delta={d:+8.3f} ({pct:+6.1f}%)"
-        )
-
-
 # ── main ──────────────────────────────────────────────────────────────────────
 
 
@@ -581,11 +450,7 @@ def main() -> int:
     }
     with open(RESULTS_PATH, "w") as f:
         json.dump(results, f, indent=2)
-    logger.info(f"wrote {RESULTS_PATH}")
-
-    print_report(results)
-    if COMPARE_TO:
-        print_compare(results, COMPARE_TO)
+    logger.info(f"wrote {RESULTS_PATH} ({len(levels)} levels)")
     return 0
 
 

@@ -2,7 +2,7 @@
 
 # Replication latency bench. Set BASELINE_VERSION to run a same-runner A/B against
 # $WEAVIATE_VERSION; otherwise single-version. Env: OBJECTS READS DIM CONSISTENCY
-# ITERATIONS WARMUP BASELINE_VERSION COMPARE_TO.
+# ITERATIONS WARMUP BASELINE_VERSION.
 
 set -e
 
@@ -18,23 +18,15 @@ fi
 echo "Building replication-latency-bench image"
 ( cd apps/replication-latency-bench/ && docker build -t replication-latency-bench . )
 
-# Bring up the cluster on $1, run the benchmark, write results to $2. If $3 is a
-# readable results.json it is handed to the container as the COMPARE_TO baseline.
+# Bring up the cluster on $1, run the benchmark, write results to $2.
 run_cluster_and_bench() {
-  local version="$1" out_file="$2" compare_file="$3"
+  local version="$1" out_file="$2"
 
-  # Start every phase from a clean slate: stale apps/weaviate/data* (e.g. from a
-  # prior run on a reused machine) carries old RAFT cluster state that prevents
-  # the fresh cluster from bootstrapping (it hangs trying to recover old peers).
+  # Clean slate: stale apps/weaviate/data* carries old RAFT state that stops the
+  # fresh cluster from bootstrapping.
   rm -rf apps/weaviate/data* 2>/dev/null || sudo rm -rf apps/weaviate/data* || true
   rm -rf workdir 2>/dev/null || sudo rm -rf workdir || true
   mkdir workdir
-
-  local compare_env=()
-  if [ -n "$compare_file" ] && [ -f "$compare_file" ]; then
-    cp "$compare_file" workdir/baseline.json
-    compare_env=(-e COMPARE_TO=/workdir/baseline.json)
-  fi
 
   export WEAVIATE_VERSION="$version"
   echo "Starting 3-node replicated cluster (weaviate:$version)..."
@@ -70,7 +62,6 @@ run_cluster_and_bench() {
     -e CONSISTENCY="${CONSISTENCY}" \
     -e ITERATIONS="${ITERATIONS}" \
     -e WARMUP="${WARMUP}" \
-    "${compare_env[@]}" \
     --name replication-latency-bench -t replication-latency-bench
 
   cp workdir/results.json "$out_file"
@@ -90,11 +81,11 @@ if [ -n "$BASELINE_VERSION" ]; then
   # for compose, so the baseline phase would otherwise clobber the global and the
   # candidate phase would re-run the baseline image.
   candidate_version="$WEAVIATE_VERSION"
-  run_cluster_and_bench "$BASELINE_VERSION" "results-baseline.json" ""
+  run_cluster_and_bench "$BASELINE_VERSION" "results-baseline.json"
   teardown_cluster
-  run_cluster_and_bench "$candidate_version" "results.json" "results-baseline.json"
+  run_cluster_and_bench "$candidate_version" "results.json"
 else
-  run_cluster_and_bench "$WEAVIATE_VERSION" "results.json" "$COMPARE_TO"
+  run_cluster_and_bench "$WEAVIATE_VERSION" "results.json"
 fi
 
 shutdown
