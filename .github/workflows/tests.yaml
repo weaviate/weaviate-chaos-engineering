@@ -16,22 +16,6 @@ on:
         required: false
         type: string
         default: ''
-      bench_iterations:
-        required: false
-        type: string
-        default: ''
-      bench_warmup:
-        required: false
-        type: string
-        default: ''
-      bench_objects:
-        required: false
-        type: string
-        default: ''
-      bench_reads:
-        required: false
-        type: string
-        default: ''
     secrets:
       AWS_ACCESS_KEY:
         required: true
@@ -302,12 +286,6 @@ jobs:
     timeout-minutes: 90
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{ inputs.lsm_access_strategy }}
-      # Empty values fall through to the bench defaults (see ${VAR:-default} in
-      # replication_latency_bench.sh): ITERATIONS=3 WARMUP=1 OBJECTS=5000 READS=5000.
-      ITERATIONS: ${{ inputs.bench_iterations }}
-      WARMUP: ${{ inputs.bench_warmup }}
-      OBJECTS: ${{ inputs.bench_objects }}
-      READS: ${{ inputs.bench_reads }}
     steps:
       - uses: actions/checkout@v5
       - name: Login to Docker Hub
