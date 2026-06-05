@@ -354,15 +354,17 @@ def bench_level(client: weaviate.WeaviateClient, level_name: str) -> dict:
     write_tputs: List[float] = []
     read_tputs: List[float] = []
 
+    # Recreate the collection once per level, not per iteration: per-iteration
+    # delete+create churns RAFT schema fast enough that a CL=ALL write can fail
+    # while a replica catches up ("waiting for schema version N: deadline
+    # exceeded"). Each iteration uses a fresh seed so writes stay unique inserts.
+    recreate_collection(client)
+    coll = client.collections.get(COLLECTION).with_consistency_level(cl)
+
     for i in range(WARMUP + ITERATIONS):
         warm = i < WARMUP
         label = "warmup" if warm else f"iter {i - WARMUP + 1}/{ITERATIONS}"
         logger.info(f"[CL={level_name}] {label}")
-
-        # Fresh collection each cycle: writes are always inserts (never updates),
-        # and the runs are independent. A per-cycle seed keeps it reproducible.
-        recreate_collection(client)
-        coll = client.collections.get(COLLECTION).with_consistency_level(cl)
         rng = random.Random(SEED + i)
 
         # WRITE (one object per request, so each pays its own replica round-trip)
