@@ -1,38 +1,8 @@
 #!/bin/bash
 
-# replication_latency_bench.sh
-# -----------------------------
-# Measures replication request latency on a replicated Weaviate cluster, and in
-# particular the impact of the weaviate-core change
-#
-#     perf(replica): short-circuit local-node replica calls in-process
-#
-# Brings up a 3-node replicated cluster with Prometheus monitoring enabled,
-# drives a write + read workload against the coordinator (node-1, which always
-# hosts the RF=3 shard and is therefore always a local replica leg), and reads
-# the request-level latency histograms weaviate already exports
-# (grpc_server_request_duration_seconds / http_request_duration_seconds) — the
-# metrics that sit above the replica fan-out and so reflect the local short-circuit.
-#
-# Two modes:
-#
-#   1. Single version (CI's default) — reports absolute latency for $WEAVIATE_VERSION:
-#        WEAVIATE_VERSION=1.38.0 ./replication_latency_bench.sh
-#
-#   2. Same-runner A/B — set BASELINE_VERSION to compare it against $WEAVIATE_VERSION.
-#      Both versions run back-to-back on the SAME host so between-host variance
-#      (the dominant noise term across separate CI runs) cancels out:
-#        BASELINE_VERSION=local-baseline WEAVIATE_VERSION=local-optimized \
-#          ./replication_latency_bench.sh
-#      Produces results-baseline.json (baseline) and results.json (candidate, with
-#      the delta printed inline via COMPARE_TO). For a clean attribution the two
-#      images should differ ONLY by the commit under test (parent vs commit), built
-#      in the core repo with `make weaviate-image`.
-#
-# Tunables (env): OBJECTS, READS, DIM, CONSISTENCY (default "ONE,QUORUM,ALL"),
-# ITERATIONS (timed runs per level, default 3), WARMUP (untimed runs, default 1),
-# BASELINE_VERSION (enables the same-runner A/B), COMPARE_TO (path to a prior
-# results.json to print a delta against in single-version mode).
+# Replication latency bench. Set BASELINE_VERSION to run a same-runner A/B against
+# $WEAVIATE_VERSION; otherwise single-version. Env: OBJECTS READS DIM CONSISTENCY
+# ITERATIONS WARMUP BASELINE_VERSION COMPARE_TO.
 
 set -e
 
