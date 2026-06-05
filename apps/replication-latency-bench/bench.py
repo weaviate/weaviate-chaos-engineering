@@ -87,10 +87,15 @@ METRICS_URL = os.getenv("METRICS_URL", f"http://{HTTP_HOST}:2112/metrics")
 
 COLLECTION = os.getenv("COLLECTION", "LocalReplicaLatencyBench")
 REPLICATION_FACTOR = _int("REPLICATION_FACTOR", 3)
-DIM = _int("DIM", 32)
-# Per-cycle volume (single-object writes + reads). Modest so a full A/B finishes fast.
-OBJECTS = _int("OBJECTS", 2000)
-READS = _int("READS", 3000)
+# Realistic embedding dimension (OpenAI-scale) so each object carries a real ~6KB
+# vector — the loopback the short-circuit removes serializes that payload, so a
+# realistic size lifts the saving above the runner's noise floor (and pushes
+# writes above the 5ms histogram bucket).
+DIM = _int("DIM", 1536)
+# Per-cycle volume (single-object writes + reads). Lower than for tiny objects
+# since each op is now heavier; a full A/B still finishes in a few minutes.
+OBJECTS = _int("OBJECTS", 1000)
+READS = _int("READS", 2000)
 # Consistency levels to benchmark, in order. ONE is the headline case (the local
 # leg satisfies it immediately); QUORUM and ALL still wait on remote legs.
 # `or` (not getenv default) so a set-but-empty env var — as the shell wrapper
