@@ -23,6 +23,7 @@ services:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
@@ -67,6 +68,7 @@ services:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
@@ -112,6 +114,7 @@ services:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'backup-s3'
       BACKUP_FILESYSTEM_PATH: '/var/lib/backups'
