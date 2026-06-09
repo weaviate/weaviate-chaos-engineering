@@ -98,11 +98,34 @@ validate_object_count() {
 wait_for_hnsw_snapshot() {
     local retries=150
     local attempt=1
-    
+
+    # Detect Weaviate version to determine which log pattern to look for.
+    # In 1.38+, the old snapshot mechanism was replaced by compactv2 which emits different log messages.
+    local version
+    version=$(curl -sf localhost:8080/v1/meta | jq -r '.version' | grep -oE '^[0-9]+\.[0-9]+')
+    local version_major version_minor
+    version_major=$(echo "$version" | cut -d. -f1)
+    version_minor=$(echo "$version" | cut -d. -f2)
+
+    local use_compactv2=false
+    if [ "$version_major" -gt 1 ] || { [ "$version_major" -eq 1 ] && [ "$version_minor" -ge 38 ]; }; then
+        use_compactv2=true
+        echo "Weaviate >= 1.38 detected (${version}), waiting for compactv2 snapshot"
+    else
+        echo "Weaviate < 1.38 detected (${version}), waiting for legacy snapshot"
+    fi
+
     while [ $attempt -le $retries ]; do
-        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "create_snapshot" | grep "started"; then
-            echo "hnsw snapshot detected"
-            return 0
+        if [ "$use_compactv2" = true ]; then
+            if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep -E "hnsw_compactor_snapshot"; then
+                echo "hnsw snapshot detected"
+                return 0
+            fi
+        else
+            if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "create_snapshot" | grep "started"; then
+                echo "hnsw snapshot detected"
+                return 0
+            fi
         fi
         sleep 3
         attempt=$((attempt + 1))

@@ -68,17 +68,34 @@ validate_object_count() {
 wait_for_condensing() {
     local retries=150
     local attempt=1
-    
+
+    # Detect Weaviate version to determine which log pattern to look for.
+    # In 1.38+, the old condensor was replaced by compactv2 which emits different log messages.
+    local version
+    version=$(curl -sf localhost:8080/v1/meta | jq -r '.version' | grep -oE '^[0-9]+\.[0-9]+')
+    local version_major version_minor
+    version_major=$(echo "$version" | cut -d. -f1)
+    version_minor=$(echo "$version" | cut -d. -f2)
+
+    local grep_pattern
+    if [ "$version_major" -gt 1 ] || { [ "$version_major" -eq 1 ] && [ "$version_minor" -ge 38 ]; }; then
+        grep_pattern="hnsw_compactor_merge|hnsw_compactor_snapshot|hnsw_compactor_convert"
+        echo "Weaviate >= 1.38 detected (${version}), waiting for compactv2 activity"
+    else
+        grep_pattern="start hnsw condensing"
+        echo "Weaviate < 1.38 detected (${version}), waiting for condensing"
+    fi
+
     while [ $attempt -le $retries ]; do
-        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep "start hnsw condensing"; then
-            echo "Condensing begin detected"
+        if docker compose -f apps/weaviate/docker-compose.yml logs weaviate | grep -E "$grep_pattern"; then
+            echo "Compaction/condensing activity detected"
             return 0
         fi
         sleep 3
         attempt=$((attempt + 1))
     done
 
-    echo "Failed to detect condensing begin after $retries attempts"
+    echo "Failed to detect compaction/condensing after $retries attempts"
     return 1
 }
 
