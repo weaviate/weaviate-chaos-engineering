@@ -1,4 +1,4 @@
-weaviate-client
+weaviate-client>=4.20.4
 loguru==0.5.3
 seaborn==0.12.2
 h5py==3.13.0

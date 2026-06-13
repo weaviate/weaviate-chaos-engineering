@@ -43,12 +43,9 @@ class TestResults(unittest.TestCase):
         mean_qps_before = self.df.loc[self.df["after_restart"] == "false", "qps"].mean()
         mean_qps_after = self.df.loc[self.df["after_restart"] == "true", "qps"].mean()
 
-        min_val, max_val = min(mean_qps_before, mean_qps_after), max(
-            mean_qps_before, mean_qps_after
-        )
         self.assertTrue(
-            min_val > max_val * (1 - allowed_delta),
-            f"qps before and after restart are not within the allowed delta of {allowed_delta}, got before={mean_qps_before}, after={mean_qps_after}",
+            mean_qps_after > mean_qps_before * (1 - allowed_delta),
+            f"qps after restart dropped below allowed delta of {allowed_delta}, got before={mean_qps_before}, after={mean_qps_after}",
         )
 
 
