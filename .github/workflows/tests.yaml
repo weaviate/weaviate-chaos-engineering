@@ -567,7 +567,7 @@ jobs:
 
   ann-benchmarks-sift-gcp:
     name: "[bench GCP] SIFT1M pq=false"
-    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-sift-gcp' || github.event.inputs.test_to_run == '' }}
+    if: false # disabled: use ann-benchmarks-sift-aws instead
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -604,7 +604,7 @@ jobs:
           glob: '*.json'
   ann-benchmarks-pq-sift-gcp:
     name: "[bench GCP] SIFT1M pq=true"
-    if: ${{ github.event.inputs.test_to_run == 'ann-benchmarks-pq-sift-gcp' || github.event.inputs.test_to_run == '' }}
+    if: false # disabled: use ann-benchmarks-pq-sift-aws instead
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -643,7 +643,7 @@ jobs:
 
   ann-benchmarks-rq-sift-gcp:
     needs: [newer-or-equal-than-1_32]
-    if: ${{ (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-rq-sift-gcp' || github.event.inputs.test_to_run == '') }}
+    if: false # disabled: duplicate GCP SIFT job retired in favor of AWS
     name: "[bench GCP] SIFT1M rq=true"
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
