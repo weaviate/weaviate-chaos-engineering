@@ -108,7 +108,7 @@ wait_for_hnsw_snapshot() {
     version_minor=$(echo "$version" | cut -d. -f2)
 
     local use_compactv2=false
-    if [ "$version_major" -gt 1 ] || { [ "$version_major" -eq 1 ] && [ "$version_minor" -ge 38 ]; }; then
+    if [ "$version_major" -gt 1 ] || { [ "$version_major" -eq 1 ] && [ "$version_minor" -ge 39 ]; }; then
         use_compactv2=true
         echo "Weaviate >= 1.39 detected (${version}), waiting for compactv2 snapshot"
     else
