@@ -78,7 +78,7 @@ wait_for_condensing() {
     version_minor=$(echo "$version" | cut -d. -f2)
 
     local grep_pattern
-    if [ "$version_major" -gt 1 ] || { [ "$version_major" -eq 1 ] && [ "$version_minor" -ge 38 ]; }; then
+    if [ "$version_major" -gt 1 ] || { [ "$version_major" -eq 1 ] && [ "$version_minor" -ge 39 ]; }; then
         grep_pattern="hnsw_compactor_merge|hnsw_compactor_snapshot|hnsw_compactor_convert"
         echo "Weaviate >= 1.39 detected (${version}), waiting for compactv2 activity"
     else
