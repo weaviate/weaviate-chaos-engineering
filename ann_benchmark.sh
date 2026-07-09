@@ -8,12 +8,13 @@ readonly DISTANCE="${DISTANCE:-l2-squared}"
 readonly QUANTIZATION="${QUANTIZATION:-none}"
 readonly MULTIVECTOR_DATASET="${MULTIVECTOR_DATASET:-false}"
 readonly MULTIVECTOR_IMPLEMENTATION="${MULTIVECTOR_IMPLEMENTATION:-regular}"
+readonly CUSTOM_DATASET="${CUSTOM_DATASET:-false}"
 readonly WEAVIATE_VERSION="${WEAVIATE_VERSION:-}"
 readonly CLOUD_PROVIDER="${CLOUD_PROVIDER:-}"
 readonly MACHINE_TYPE="${MACHINE_TYPE:-}"
 readonly OS="${OS:-}"
 readonly REQUIRED_RECALL="${REQUIRED_RECALL:-}"
-
+readonly INDEX_TYPE="${INDEX_TYPE:-hnsw}"
 # Constants
 readonly WEAVIATE_COMPOSE_FILE="apps/weaviate-no-restart-on-crash/docker-compose.yml"
 readonly ANNBENCHMARKS_IMAGE="ann_benchmarks"
@@ -117,6 +118,9 @@ download_dataset() {
     if [ "$MULTIVECTOR_DATASET" = "true" ]; then
         log_info "Downloading multivector dataset"
         curl -LO "https://storage.googleapis.com/ann-datasets/custom/Multivector/${DATASET}.hdf5"
+    elif [ "$CUSTOM_DATASET" = "true" ]; then
+        log_info "Downloading custom dataset"
+        curl -LO "https://storage.googleapis.com/ann-datasets/custom/${DATASET}.hdf5"
     else
         log_info "Downloading single vector dataset"
         curl -LO "http://ann-benchmarks.com/${DATASET}.hdf5"
@@ -140,7 +144,7 @@ get_multivector_flag() {
 # Build benchmark labels
 build_benchmark_labels() {
     local after_restart="$1"
-    echo "after_restart=$after_restart,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS"
+    echo "after_restart=$after_restart,weaviate_version=$WEAVIATE_VERSION,cloud_provider=$CLOUD_PROVIDER,machine_type=$MACHINE_TYPE,os=$OS,index_type=$INDEX_TYPE"
 }
 
 # Run benchmark
@@ -171,6 +175,7 @@ run_benchmark() {
         -m $max_connections \
         $dim_to_segment_arg \
         --quantization "$QUANTIZATION" \
+        --index-type "$INDEX_TYPE" \
         --labels "$labels" \
         $additional_args
 }
@@ -227,6 +232,7 @@ run_chaos_testing() {
     done
     
     # Final restart
+    log_info "Final restart of Weaviate..."
     docker compose -f "$WEAVIATE_COMPOSE_FILE" start weaviate
     wait_for_weaviate
 }
