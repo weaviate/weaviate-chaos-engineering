@@ -24,7 +24,12 @@ FLAT_VECTORS=(flat_plain flat_bq flat_rq1)
 # Flat vectors that also have a compressed vectors bucket in LSM
 FLAT_COMPRESSED_LSM_VECTORS=(flat_bq flat_rq1)
 
-# All HNSW vectors (have commitlog.d and snapshot.d at shard level)
+# All HNSW vectors (have a commitlog.d directory at shard level).
+# Note: as of Weaviate 1.39 the HNSW snapshot is no longer a separate
+# <vector>.hnsw.snapshot.d directory - it is written as a <timestamp>.snapshot
+# file inside the commitlog.d directory. Dropping the index removes the whole
+# commitlog.d directory (snapshot file included), so checking commitlog.d fully
+# covers HNSW on-disk cleanup.
 VECTORIZER_HNSW_VECTORS=(
   hnsw_plain
   hnsw_pq hnsw_bq hnsw_sq hnsw_rq1 hnsw_rq8
@@ -43,7 +48,7 @@ done
 
 VECTORIZER_SHARD_FOLDERS=()
 for v in "${VECTORIZER_HNSW_VECTORS[@]}"; do
-  VECTORIZER_SHARD_FOLDERS+=("vectors_${v}.hnsw.commitlog.d" "vectors_${v}.hnsw.snapshot.d")
+  VECTORIZER_SHARD_FOLDERS+=("vectors_${v}.hnsw.commitlog.d")
 done
 
 # Step 1
@@ -59,7 +64,7 @@ for SHARD in $MOVIES_SHARDS; do
 done
 
 # Step 3
-run_step "Check HNSW commitlog/snapshot dirs exist for Movies collection"
+run_step "Check HNSW commitlog dirs exist for Movies collection"
 for SHARD in $MOVIES_SHARDS; do
   echo "Checking shard: $SHARD"
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard movies "$SHARD" exists "${VECTORIZER_SHARD_FOLDERS[@]}"
@@ -77,7 +82,7 @@ for SHARD in $MOVIES_SHARDS; do
 done
 
 # Step 6
-run_step "Check HNSW commitlog/snapshot dirs removed for Movies collection"
+run_step "Check HNSW commitlog dirs removed for Movies collection"
 for SHARD in $MOVIES_SHARDS; do
   echo "Checking shard: $SHARD"
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard movies "$SHARD" absent "${VECTORIZER_SHARD_FOLDERS[@]}"
@@ -100,7 +105,7 @@ done
 
 MV_SHARD_FOLDERS=()
 for v in "${MV_VECTORS[@]}"; do
-  MV_SHARD_FOLDERS+=("vectors_${v}.hnsw.commitlog.d" "vectors_${v}.hnsw.snapshot.d")
+  MV_SHARD_FOLDERS+=("vectors_${v}.hnsw.commitlog.d")
 done
 
 # Step 7
@@ -116,7 +121,7 @@ for SHARD in $MVMOVIES_SHARDS; do
 done
 
 # Step 9
-run_step "Check HNSW commitlog/snapshot dirs exist for MVMovies collection"
+run_step "Check HNSW commitlog dirs exist for MVMovies collection"
 for SHARD in $MVMOVIES_SHARDS; do
   echo "Checking shard: $SHARD"
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard mvmovies "$SHARD" exists "${MV_SHARD_FOLDERS[@]}"
@@ -134,7 +139,7 @@ for SHARD in $MVMOVIES_SHARDS; do
 done
 
 # Step 12
-run_step "Check HNSW commitlog/snapshot dirs removed for MVMovies collection"
+run_step "Check HNSW commitlog dirs removed for MVMovies collection"
 for SHARD in $MVMOVIES_SHARDS; do
   echo "Checking shard: $SHARD"
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard mvmovies "$SHARD" absent "${MV_SHARD_FOLDERS[@]}"
@@ -150,8 +155,8 @@ MT_LSM_FOLDERS=(
 )
 
 MT_SHARD_FOLDERS=(
-  vectors_hnsw_plain.hnsw.commitlog.d vectors_hnsw_plain.hnsw.snapshot.d
-  vectors_hnsw_rq8.hnsw.commitlog.d vectors_hnsw_rq8.hnsw.snapshot.d
+  vectors_hnsw_plain.hnsw.commitlog.d
+  vectors_hnsw_rq8.hnsw.commitlog.d
 )
 
 MT_TENANTS=(tenant1 tenant2 tenant3)
@@ -165,7 +170,7 @@ for TENANT in "${MT_TENANTS[@]}"; do
   "$SCRIPT_DIR/check_folder_existence.sh" moviesmt "$TENANT" exists "${MT_LSM_FOLDERS[@]}"
 done
 
-run_step "Check HNSW commitlog/snapshot dirs exist for MoviesMT tenants"
+run_step "Check HNSW commitlog dirs exist for MoviesMT tenants"
 for TENANT in "${MT_TENANTS[@]}"; do
   echo "Checking tenant: $TENANT"
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt "$TENANT" exists "${MT_SHARD_FOLDERS[@]}"
@@ -183,7 +188,7 @@ for TENANT in tenant1 tenant2; do
   "$SCRIPT_DIR/check_folder_existence.sh" moviesmt "$TENANT" absent "${MT_LSM_FOLDERS[@]}"
 done
 
-run_step "Check HNSW commitlog/snapshot dirs removed for MoviesMT tenant1 and tenant2"
+run_step "Check HNSW commitlog dirs removed for MoviesMT tenant1 and tenant2"
 for TENANT in tenant1 tenant2; do
   echo "Checking tenant: $TENANT"
   "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt "$TENANT" absent "${MT_SHARD_FOLDERS[@]}"
@@ -192,7 +197,7 @@ done
 run_step "Check vector index LSM buckets still exist for MoviesMT tenant3 (was inactive)"
 "$SCRIPT_DIR/check_folder_existence.sh" moviesmt tenant3 exists "${MT_LSM_FOLDERS[@]}"
 
-run_step "Check HNSW commitlog/snapshot dirs still exist for MoviesMT tenant3 (was inactive)"
+run_step "Check HNSW commitlog dirs still exist for MoviesMT tenant3 (was inactive)"
 "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt tenant3 exists "${MT_SHARD_FOLDERS[@]}"
 
 run_step "Activate tenant3 and verify search fails + folders removed"
@@ -204,7 +209,7 @@ sleep 30
 run_step "Check vector index LSM buckets removed for MoviesMT tenant3"
 "$SCRIPT_DIR/check_folder_existence.sh" moviesmt tenant3 absent "${MT_LSM_FOLDERS[@]}"
 
-run_step "Check HNSW commitlog/snapshot dirs removed for MoviesMT tenant3"
+run_step "Check HNSW commitlog dirs removed for MoviesMT tenant3"
 "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt tenant3 absent "${MT_SHARD_FOLDERS[@]}"
 
 echo ""
