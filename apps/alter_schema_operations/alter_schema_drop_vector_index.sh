@@ -71,7 +71,7 @@ for SHARD in $MOVIES_SHARDS; do
 done
 
 # Step 4
-run_step "Drop all vector indexes from Movies collection"
+run_step "Drop all vector indexes from Movies collection (verify vectors present before, removed from objects after)"
 go test -count 1 -v -run '^TestDropVectorIndicesMovies$' ./... -timeout 600s
 
 # Step 5
@@ -128,7 +128,7 @@ for SHARD in $MVMOVIES_SHARDS; do
 done
 
 # Step 10
-run_step "Drop all vector indexes from MVMovies collection"
+run_step "Drop all vector indexes from MVMovies collection (verify vectors present before, removed from objects after)"
 go test -count 1 -v -run '^TestDropVectorIndicesMVMovies$' ./... -timeout 600s
 
 # Step 11
@@ -179,7 +179,7 @@ done
 run_step "Deactivate tenant3 in MoviesMT"
 go test -count 1 -v -run '^TestDeactivateTenant3MoviesMT$' ./... -timeout 60s
 
-run_step "Drop all vector indexes from MoviesMT and verify search fails for active tenants"
+run_step "Drop all vector indexes from MoviesMT (verify vectors present before, search fails + vectors removed from objects after for active tenants)"
 go test -count 1 -v -run '^TestDropVectorIndicesMoviesMT$' ./... -timeout 600s
 
 run_step "Check vector index LSM buckets removed for MoviesMT tenant1 and tenant2"
@@ -200,8 +200,8 @@ run_step "Check vector index LSM buckets still exist for MoviesMT tenant3 (was i
 run_step "Check HNSW commitlog dirs still exist for MoviesMT tenant3 (was inactive)"
 "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt tenant3 exists "${MT_SHARD_FOLDERS[@]}"
 
-run_step "Activate tenant3 and verify search fails + folders removed"
-go test -count 1 -v -run '^TestActivateTenant3MoviesMT$' ./... -timeout 600s
+run_step "Activate tenant3 and verify search fails + dropped vectors removed from objects (cold-tenant cleanup)"
+go test -count 1 -v -run '^TestActivateTenant3MoviesMT$' ./... -timeout 900s
 
 echo "Waiting 30s for async cleanup of tenant3 folders..."
 sleep 30
@@ -211,6 +211,11 @@ run_step "Check vector index LSM buckets removed for MoviesMT tenant3"
 
 run_step "Check HNSW commitlog dirs removed for MoviesMT tenant3"
 "$SCRIPT_DIR/check_folder_existence.sh" --location shard moviesmt tenant3 absent "${MT_SHARD_FOLDERS[@]}"
+
+# Final assertion: every dropped vector index must also be removed from the
+# collection schema (vectorConfig) across all three collections.
+run_step "Verify all dropped vector indexes are removed from collection schemas"
+go test -count 1 -v -run '^TestVerifyVectorConfigsDroppedFromSchema$' ./... -timeout 300s
 
 echo ""
 echo "======================================"
