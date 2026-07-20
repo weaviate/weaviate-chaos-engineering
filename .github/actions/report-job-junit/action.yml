@@ -1,0 +1,42 @@
+name: 'Report job result as JUnit'
+description: >-
+  Records the whole job's outcome as a single JUnit <testcase> named after the
+  job key in test-results.xml. Meant for multi-step journey jobs where any of
+  many steps (including uses: steps that cannot be wrapped) may fail: place it
+  as the LAST step with `if: always()`. On failure it downloads this job's own
+  log through the GitHub API (the failed step has already completed, so its
+  log section is available mid-run) and extracts the culprit (python
+  traceback, go panic, docker build error, ...) as the failure body. Never
+  fails the job.
+inputs:
+  job-status:
+    description: 'Pass ${{ job.status }}'
+    required: true
+  lsm-access-strategy:
+    description: mmap or pread; names the JUnit suite and the artifact
+    required: true
+  github-token:
+    description: 'Pass ${{ github.token }} (needs actions: read)'
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Record JUnit result
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        python3 "$GITHUB_WORKSPACE/.github/scripts/chaos_junit.py" report-job \
+          --file "$GITHUB_WORKSPACE/test-results.xml" \
+          --suite 'chaos-${{ inputs.lsm-access-strategy }}' \
+          --name '${{ github.job }}' \
+          --job-status '${{ inputs.job-status }}' \
+          || echo "::warning::chaos_junit report-job failed; no JUnit result recorded"
+    - name: Upload JUnit artifact
+      uses: actions/upload-artifact@v5
+      continue-on-error: true
+      with:
+        name: junit-${{ github.job }}-${{ inputs.lsm-access-strategy }}
+        path: test-results.xml
+        overwrite: true
+        if-no-files-found: warn

@@ -31,7 +31,7 @@ function cleanup {
   echo "Running cleanup via cleanup_gcp_resources.sh..."
   bash ./cleanup_gcp_resources.sh
 }
-trap cleanup EXIT
+trap cleanup EXIT SIGINT SIGTERM ERR
 
 # Busy loop to wait for SSH to be ready with a timeout of 5 minutes
 echo "Waiting for SSH to be ready..."

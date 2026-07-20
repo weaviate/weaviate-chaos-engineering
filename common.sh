@@ -142,12 +142,17 @@ _LOGGED_DIAGNOSTICS=0
 function run_failure_diagnostics() {
   if [[ $_LOGGED_DIAGNOSTICS -eq 0 ]]; then
     _LOGGED_DIAGNOSTICS=1
+    # machine-readable marker consumed by .github/scripts/chaos_junit.py to
+    # separate the test's own output (the failure cause) from this dump
+    echo "===CHAOS-DIAGNOSTICS-BEGIN==="
     logs
     report_container_state
   fi
 }
 
-trap 'run_failure_diagnostics; shutdown; exit 1' SIGINT ERR
+# SIGTERM is what the CI wrapper's soft timeout sends; without trapping it,
+# bash would skip the EXIT trap and leave containers + data dirs behind
+trap 'run_failure_diagnostics; shutdown; exit 1' SIGINT SIGTERM ERR
 trap 'exit_code=$?; if [[ $exit_code -ne 0 ]]; then run_failure_diagnostics; fi; shutdown' EXIT
 
 
