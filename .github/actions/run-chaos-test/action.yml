@@ -1,0 +1,93 @@
+name: 'Run chaos test'
+description: >-
+  Runs a chaos test command, records the result as a JUnit <testcase> in
+  test-results.xml at the workspace root, uploads it as an artifact, and exits
+  with the command's original exit code. test-results.xml is the contract the
+  weaviate-test-reporter step (added per job in a follow-up) consumes in-job,
+  which is required for it to resolve the correct run/job URLs.
+inputs:
+  command:
+    description: Shell command that runs the test (executed via bash -ec)
+    required: true
+  lsm-access-strategy:
+    description: mmap or pread; names the JUnit suite and the artifact
+    required: true
+  test-name-suffix:
+    description: >-
+      Appended to the job key to name the JUnit testcase (e.g. "panic-check"
+      -> "<job>-panic-check"). Required when a job wraps more than one
+      command; empty means the testcase is named after the job key alone.
+    required: false
+    default: ''
+  timeout:
+    description: >-
+      Soft timeout (GNU timeout duration, e.g. 55m); "0" disables it. Keep it
+      below the job-level timeout-minutes so a hung test still produces a
+      JUnit result instead of being hard-killed with no report.
+    required: false
+    default: '55m'
+runs:
+  using: composite
+  steps:
+    - name: Resolve test name
+      id: meta
+      shell: bash
+      run: |
+        name='${{ github.job }}'
+        suffix='${{ inputs.test-name-suffix }}'
+        [ -n "$suffix" ] && name="$name-$suffix"
+        echo "name=$name" >> "$GITHUB_OUTPUT"
+    - name: Run test
+      id: run
+      shell: bash
+      env:
+        CHAOS_COMMAND: ${{ inputs.command }}
+        CHAOS_TIMEOUT: ${{ inputs.timeout }}
+        # inside the workspace so the artifact keeps a flat layout (multi-root
+        # upload paths would nest test-results.xml under the workspace path)
+        CHAOS_LOG: ${{ github.workspace }}/chaos-output-${{ steps.meta.outputs.name }}.log
+      run: |
+        set +e
+        start_epoch=$(date +%s)
+        echo "start_iso=$(date -u +%Y-%m-%dT%H:%M:%S)" >> "$GITHUB_OUTPUT"
+        if [ "$CHAOS_TIMEOUT" = "0" ]; then
+          bash -ec "$CHAOS_COMMAND" 2>&1 | tee "$CHAOS_LOG"
+        else
+          # --kill-after must outlast common.sh's TERM trap (diagnostics dump
+          # + docker teardown) or the dump gets cut short by SIGKILL
+          timeout --signal=TERM --kill-after=60s "$CHAOS_TIMEOUT" \
+            bash -ec "$CHAOS_COMMAND" 2>&1 | tee "$CHAOS_LOG"
+        fi
+        exit_code=${PIPESTATUS[0]}
+        # the raw log is only uploaded for failed tests; green output is
+        # already in the step log
+        [ "$exit_code" = "0" ] && rm -f "$CHAOS_LOG"
+        echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+        echo "duration=$(( $(date +%s) - start_epoch ))" >> "$GITHUB_OUTPUT"
+        exit 0
+    - name: Record JUnit result
+      shell: bash
+      run: |
+        python3 "$GITHUB_WORKSPACE/.github/scripts/chaos_junit.py" append \
+          --file "$GITHUB_WORKSPACE/test-results.xml" \
+          --suite 'chaos-${{ inputs.lsm-access-strategy }}' \
+          --name '${{ steps.meta.outputs.name }}' \
+          --exit-code '${{ steps.run.outputs.exit_code }}' \
+          --time '${{ steps.run.outputs.duration }}' \
+          --timestamp '${{ steps.run.outputs.start_iso }}' \
+          --timeout-label '${{ inputs.timeout }}' \
+          --output-log '${{ github.workspace }}/chaos-output-${{ steps.meta.outputs.name }}.log' \
+          || echo "::warning::chaos_junit append failed; no JUnit result recorded"
+    - name: Upload JUnit artifact
+      uses: actions/upload-artifact@v5
+      continue-on-error: true
+      with:
+        name: junit-${{ github.job }}-${{ inputs.lsm-access-strategy }}
+        path: |
+          test-results.xml
+          chaos-output-*.log
+        overwrite: true
+        if-no-files-found: warn
+    - name: Propagate test exit code
+      shell: bash
+      run: exit '${{ steps.run.outputs.exit_code }}'

@@ -274,7 +274,11 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./filter_memory_leak.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./filter_memory_leak.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '0'
   lint:
     runs-on: ubicloud-standard-2
     steps:
@@ -308,7 +312,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -346,7 +353,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -385,7 +395,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_quantization_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -425,7 +438,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_quantization_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -464,7 +480,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_quantization_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -504,7 +523,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_quantization_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -547,13 +569,22 @@ jobs:
         if: always()
         env:
           RQ_BITS: 8
-        run: ./ann_benchmark_quantization_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '35m'
       - name: Run chaos test with RQ with one bit
         if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
           REQUIRED_RECALL: 0.55
-        run: ./ann_benchmark_quantization_aws.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_aws.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          test-name-suffix: rq-1bit
+          timeout: '20m'
       - name: Cleanup AWS resources
         if: always()
         run: ./cleanup_aws_resources.sh
@@ -719,7 +750,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup GCP resources
         if: always()
         run: ./cleanup_gcp_resources.sh
@@ -759,7 +793,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup GCP resources
         if: always()
         run: ./cleanup_gcp_resources.sh
@@ -799,7 +836,10 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup GCP resources
         if: always()
         run: ./cleanup_gcp_resources.sh
@@ -841,12 +881,21 @@ jobs:
         if: always()
         env:
           RQ_BITS: 8
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '30m'
       - name: Run chaos test with RQ with one bit
         if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           RQ_BITS: 1
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          test-name-suffix: rq-1bit
+          timeout: '25m'
       - name: Cleanup GCP resources
         if: always()
         run: ./cleanup_gcp_resources.sh
@@ -887,14 +936,23 @@ jobs:
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
         if: always()
-        run: ./ann_benchmark_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '27m'
 
       - name: Run chaos test with PQ
         if: always()
         env:
           QUANTIZATION: pq
           REQUIRED_RECALL: 0.60
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          test-name-suffix: pq
+          timeout: '27m'
 
       - name: Cleanup GCP resources
         if: always()
@@ -940,7 +998,10 @@ jobs:
         if: always()
         env:
           QUANTIZATION: sq
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Cleanup GCP resources
         if: always()
         run: ./cleanup_gcp_resources.sh
@@ -987,13 +1048,22 @@ jobs:
         env:
           QUANTIZATION: rq
           RQ_BITS: 8
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '27m'
       - name: Run chaos test with RQ with one bit
         if: ${{ needs.newer-or-equal-than-1_33.outputs.check == 'true' }}
         env:
           QUANTIZATION: rq
           RQ_BITS: 1
-        run: ./ann_benchmark_quantization_gcp.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./ann_benchmark_quantization_gcp.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          test-name-suffix: rq-1bit
+          timeout: '27m'
       - name: Cleanup GCP resources
         if: always()
         run: ./cleanup_gcp_resources.sh
@@ -1027,7 +1097,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./batch_import_many_classes.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./batch_import_many_classes.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   upgrade-journey:
     name: Rolling updates in single-node setup from min to target version
     if: ${{ github.event.inputs.test_to_run == 'upgrade-journey' || github.event.inputs.test_to_run == '' }}
@@ -1059,7 +1132,10 @@ jobs:
       - name: Run chaos test
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: ./upgrade_journey.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./upgrade_journey.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   upgrade-journey-cluster:
     name: Rolling updates in multi-node setup from min to target version
     if: ${{ github.event.inputs.test_to_run == 'upgrade-journey-cluster' || github.event.inputs.test_to_run == '' }}
@@ -1090,7 +1166,10 @@ jobs:
       - name: Run chaos test
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: ./upgrade_journey.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./upgrade_journey.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   replicated-imports-with-chaos-killing:
     name: Replicated imports with chaos killing
     if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-chaos-killing' || github.event.inputs.test_to_run == '' }}
@@ -1115,7 +1194,10 @@ jobs:
       #- name: Setup tmate session
       #uses: mxschmitt/action-tmate@v3
       - name: Run chaos test
-        run: ./replication_importing_while_crashing.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./replication_importing_while_crashing.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   replicated-imports-with-backup:
     name: Replicated imports with backup loop
     if: ${{ github.event.inputs.test_to_run == 'replicated-imports-with-backup' || github.event.inputs.test_to_run == '' }}
@@ -1138,7 +1220,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./replication_importing_with_backup.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./replication_importing_with_backup.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   replication-tunable-consistency:
     name: Replication tunable consistency
     if: ${{ github.event.inputs.test_to_run == 'replication-tunable-consistency' || github.event.inputs.test_to_run == '' }}
@@ -1161,7 +1246,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./replication_tunable_consistency.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./replication_tunable_consistency.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   counting-while-compacting:
     name: Counting while compacting
     if: ${{ github.event.inputs.test_to_run == 'counting-while-compacting' || github.event.inputs.test_to_run == '' }}
@@ -1184,7 +1272,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./counting_while_compacting.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./counting_while_compacting.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   compaction-and-cleanup:
     name: Compaction and cleanup
     if: ${{ github.event.inputs.test_to_run == 'compaction-and-cleanup' || github.event.inputs.test_to_run == '' }}
@@ -1207,7 +1298,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./compaction_and_cleanup.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./compaction_and_cleanup.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   segfault-on-batch-ref:
     name: Segfault on batch ref
     if: ${{ github.event.inputs.test_to_run == 'segfault-on-batch-ref' || github.event.inputs.test_to_run == '' }}
@@ -1230,7 +1324,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./segfault_batch_ref.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./segfault_batch_ref.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   import-with-kills:
     name: Import during constant kills/crashes
     if: ${{ github.event.inputs.test_to_run == 'import-with-kills' || github.event.inputs.test_to_run == '' }}
@@ -1253,7 +1350,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./import_while_crashing.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./import_while_crashing.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   heavy-imports-crashing:
     name: Heavy object store imports while crashing
     if: ${{ github.event.inputs.test_to_run == 'heavy-imports-crashing' || github.event.inputs.test_to_run == '' }}
@@ -1276,7 +1376,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./import_while_crashing_no_vector.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./import_while_crashing_no_vector.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   segfault-filtered-search:
     name: Segfault on filtered vector search (race with hash bucket compaction)
     runs-on: ubicloud-standard-2
@@ -1299,7 +1402,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./segfault_filtered_vector_search.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./segfault_filtered_vector_search.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   backup-restore-crud:
     name: Backup & Restore CRUD
     runs-on: ubicloud-standard-4
@@ -1322,7 +1428,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./backup_and_restore_crud.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./backup_and_restore_crud.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   backup-restore-crud-multi-node:
     name: Backup & Restore multi node CRUD
     runs-on: ubicloud-standard-4
@@ -1345,7 +1454,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./backup_and_restore_multi_node_crud.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./backup_and_restore_multi_node_crud.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   backup-restore-node-mapping:
     name: Backup & Restore 3-node with node mapping
     runs-on: ubicloud-standard-4
@@ -1363,7 +1475,11 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./backup_and_restore_node_mapping.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./backup_and_restore_node_mapping.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '0'
   backup-restore-version-compat:
     name: Backup & Restore version compatibility
     runs-on: ubicloud-standard-8
@@ -1386,7 +1502,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./backup_and_restore_version_compatibility.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./backup_and_restore_version_compatibility.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   compare-recall:
     name: Compare Recall after import to after restart
     runs-on: ubicloud-standard-2
@@ -1409,7 +1528,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./compare_recall_after_restart.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./compare_recall_after_restart.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   concurrent-read-write:
     name: Concurrent inverted index read/write
     runs-on: ubicloud-standard-2
@@ -1432,7 +1554,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./concurrent_inverted_index_read_write.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./concurrent_inverted_index_read_write.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   consecutive-create-update:
     name: Consecutive create and update operations
     runs-on: ubicloud-standard-2
@@ -1455,7 +1580,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./consecutive_create_and_update_operations.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./consecutive_create_and_update_operations.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   batch-insert-mismatch:
     name: Batch insert mismatch
     runs-on: ubicloud-standard-4
@@ -1478,7 +1606,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./consecutive_create_and_update_operations.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./consecutive_create_and_update_operations.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   rest-patch-restart:
     name: REST PATCH requests stop working after restart
     runs-on: ubicloud-standard-4
@@ -1501,7 +1632,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./rest_patch_stops_working_after_restart.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./rest_patch_stops_working_after_restart.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   delete-recreate-updates:
     name: Delete and recreate class with frequent updates
     runs-on: ubicloud-standard-4
@@ -1524,7 +1658,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./delete_and_recreate_class.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./delete_and_recreate_class.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   deletes-with_node-out-of-sync:
     # Fixed in 1.24.18 and 1.25.4
     name: Delete objects with CL ONE on a node out of sync
@@ -1543,7 +1680,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./deletes_with_node_out_of_sync.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./deletes_with_node_out_of_sync.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   geo-crash:
     name: Preventing crashing of geo properties during HNSW maintenance cycles
     if: ${{ github.event.inputs.test_to_run == 'geo-crash' || github.event.inputs.test_to_run == '' }}
@@ -1567,7 +1707,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./geo_crash.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./geo_crash.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   compaction-roaringset:
     name: Preventing panic on compaction of roaringsets
     runs-on: ubicloud-standard-4
@@ -1590,7 +1733,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./compaction_roaringset.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./compaction_roaringset.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   multi-node-references:
     name: Large batches with many cross-refs on a multi-node cluster
     runs-on: ubicloud-standard-4
@@ -1613,7 +1759,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./multi_node_ref_imports.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./multi_node_ref_imports.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   multi-tenancy-concurrent-imports:
     name: Concurrent clients importing into multi-node cluster
     if: ${{ github.event.inputs.test_to_run == 'multi-tenancy-concurrent-imports' || github.event.inputs.test_to_run == '' }}
@@ -1636,7 +1785,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./multi_tenancy_concurrent_importing.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./multi_tenancy_concurrent_importing.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   multi_tenancy_activate_deactivate_v1_24:
     needs: [equal-to-1_24]
     if: ${{ (needs.equal-to-1_24.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate_v1_24' || github.event.inputs.test_to_run == '') }}
@@ -1660,7 +1812,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./multi_tenancy_activate_deactivate_v1_24.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./multi_tenancy_activate_deactivate_v1_24.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   multi_tenancy_activate_deactivate:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check ) && ( github.event.inputs.test_to_run == 'multi_tenancy_activate_deactivate' || github.event.inputs.test_to_run == '') }}
@@ -1684,7 +1839,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./multi_tenancy_activate_deactivate.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./multi_tenancy_activate_deactivate.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   goroutine_leak_class_delete:
     name: Check for degraded performance from goroutine leak on class delete
     runs-on: ubuntu-latest
@@ -1707,7 +1865,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./goroutine_leak_on_class_delete.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./goroutine_leak_on_class_delete.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   bm25_corruption:
     name: Validate that the BM25 (and other indexes) index does not corrupt when crashes occur during batch delete
     runs-on: ubicloud-standard-2
@@ -1730,7 +1891,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./bm25_corruption.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./bm25_corruption.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   backup_and_flush:
     # https://github.com/weaviate/weaviate/issues/4418
     name: Test that flushing is reestablished after a backup is performed
@@ -1754,7 +1918,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./backup_and_flush.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./backup_and_flush.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   backup_and_restore_out_of_sync:
     # https://github.com/weaviate/weaviate/pull/4541
     name: Test that restoring a backup without data presence ensures schema consistency across nodes
@@ -1778,7 +1945,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./backup_and_restore_multi_node_out_of_sync.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./backup_and_restore_multi_node_out_of_sync.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   # Commented only because this chaos pipeline was able to interrupt save operation
   # just in the middle of it being performed and since Weaviate doesn't have a transaction
   # mechanism implemented then this was causing an error which is a different error then
@@ -1820,7 +1990,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./upgrade_single_node_journey.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./upgrade_single_node_journey.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   upgrade-journey-raft:
     needs: [newer-or-equal-than-1_25, older-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ((needs.older-than-1_30.outputs.check == 'true')) && ( github.event.inputs.test_to_run == 'upgrade-journey-raft' || github.event.inputs.test_to_run == '')}}
@@ -1925,6 +2098,13 @@ jobs:
           path: |
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
+      - name: Report job result as JUnit
+        if: always()
+        uses: ./.github/actions/report-job-junit
+        with:
+          job-status: ${{ job.status }}
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          github-token: ${{ github.token }}
   upgrade-journey-raft-1_30:
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-1_30' || github.event.inputs.test_to_run == '')}}
@@ -2043,6 +2223,13 @@ jobs:
           path: |
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
+      - name: Report job result as JUnit
+        if: always()
+        uses: ./.github/actions/report-job-junit
+        with:
+          job-status: ${{ job.status }}
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          github-token: ${{ github.token }}
   upgrade-journey-raft-metadata-only-voters:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-metadata-only-voters' || github.event.inputs.test_to_run == '') }}
@@ -2112,6 +2299,13 @@ jobs:
         with:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
           path: apps/upgrade-journey-raft/logs/
+      - name: Report job result as JUnit
+        if: always()
+        uses: ./.github/actions/report-job-junit
+        with:
+          job-status: ${{ job.status }}
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          github-token: ${{ github.token }}
   rbac-upgrade-journey:
     needs: [real-version-in-tag, newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
@@ -2324,6 +2518,13 @@ jobs:
           path: |
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
+      - name: Report job result as JUnit
+        if: always()
+        uses: ./.github/actions/report-job-junit
+        with:
+          job-status: ${{ job.status }}
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          github-token: ${{ github.token }}
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     needs: [newer-or-equal-than-1_26]
@@ -2348,7 +2549,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./async_repair.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./async_repair.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   update-stability:
     name: Recall Stability on object updates
     runs-on: ubicloud-standard-2
@@ -2379,7 +2583,10 @@ jobs:
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
-        run: ./update_stability.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./update_stability.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   debug-reindexing-endpoint-journey-tests:
     needs: [newer-or-equal-than-1_24]
     if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'debug-reindexing-endpoint-journey-tests' || github.event.inputs.test_to_run == '' )}}
@@ -2402,8 +2609,11 @@ jobs:
         with:
           go-version: '1.22'
       - name: Run reindexing chaos tests
-        run: |
-          ./debug-reindexing.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            ./debug-reindexing.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   upgrade-journey-object-nested-properties:
     needs: [newer-or-equal-than-1_26]
     if: ${{ (needs.newer-or-equal-than-1_26.outputs.check == 'true') && (github.event.inputs.test_to_run == 'upgrade-journey-object-nested-properties' || github.event.inputs.test_to_run == '' )}}
@@ -2426,8 +2636,11 @@ jobs:
         with:
           go-version: '1.22'
       - name: Run upgrade journey object nested properties tests
-        run: |
-          ./upgrade_journey_object_nested_properties.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            ./upgrade_journey_object_nested_properties.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   compaction-optimization:
     needs: [newer-or-equal-than-1_24]
     if: ${{ (needs.newer-or-equal-than-1_24.outputs.check == 'true') && (github.event.inputs.test_to_run == 'compaction-optimization' || github.event.inputs.test_to_run == '' ) }}
@@ -2450,8 +2663,11 @@ jobs:
         with:
           go-version: '1.22'
       - name: Run compaction-optimization chaos tests
-        run: |
-          ./compaction_optimization.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            ./compaction_optimization.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   downgrade-journey-raft-schema:
     needs: [newer-or-equal-than-1_28]
     name: Downgrade journey Raft schema - single node
@@ -2478,7 +2694,10 @@ jobs:
       - name: Run chaos test
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: ./downgrade_journey_raft_schema.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./downgrade_journey_raft_schema.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   downgrade-journey-raft-schema-cluster:
     needs: [newer-or-equal-than-1_28]
     name: Downgrade journey Raft schema - cluster
@@ -2505,7 +2724,10 @@ jobs:
       - name: Run chaos test
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: ./downgrade_journey_raft_schema.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./downgrade_journey_raft_schema.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
 
   tombstones-cleanup-while-crash:
     needs: [newer-or-equal-than-1_28]
@@ -2529,8 +2751,11 @@ jobs:
         with:
           go-version: '1.22'
       - name: Run tombstones-cleanup-while-crash chaos tests
-        run: |
-          ./tombstones_cleanup_while_crash.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            ./tombstones_cleanup_while_crash.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
 
   condensing-while-crash:
     needs: [newer-or-equal-than-1_28]
@@ -2554,8 +2779,11 @@ jobs:
         with:
           go-version: '1.22'
       - name: Run condensing-while-crash chaos tests
-        run: |
-          ./condensing_while_crash.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            ./condensing_while_crash.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
 
   hnsw-snapshotting-while-crash:
     needs: [newer-or-equal-than-1_31]
@@ -2579,8 +2807,11 @@ jobs:
         with:
           go-version: '1.22'
       - name: Run hnsw-snapshotting-while-crash chaos tests
-        run: |
-          ./hnsw_snapshotting_while_crash.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            ./hnsw_snapshotting_while_crash.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
   
   server-side-batching-with-rolling-restart-without-async-indexing:
     needs: [equal-to-1_36_rc]
@@ -2611,7 +2842,10 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
       - name: Run chaos test
-        run: ./server_side_batching_with_rolling_restart.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./server_side_batching_with_rolling_restart.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
 
   server-side-batching-with-rolling-restart-with-async-indexing:
     needs: [equal-to-1_36_rc]
@@ -2638,7 +2872,10 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
       - name: Run chaos test
-        run: ./server_side_batching_with_rolling_restart.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: ./server_side_batching_with_rolling_restart.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
 
   module-conflicting-vectorizer-settings:
     needs: [newer-or-equal-than-1_33]
@@ -2661,9 +2898,12 @@ jobs:
         env:
           WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-        run: |
-          cd apps/module-conflicting-vectorizer-settings
-          bash ./test.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            cd apps/module-conflicting-vectorizer-settings
+            bash ./test.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2704,7 +2944,10 @@ jobs:
           modules: 'text2vec-model2vec'
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
       - name: Run alter schema drop property index tests
-        run: apps/alter_schema_operations/alter_schema_drop_property_index.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: apps/alter_schema_operations/alter_schema_drop_property_index.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2743,7 +2986,10 @@ jobs:
           modules: 'text2vec-model2vec'
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true'
       - name: Run alter schema drop vector index tests
-        run: apps/alter_schema_operations/alter_schema_drop_vector_index.sh
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: apps/alter_schema_operations/alter_schema_drop_vector_index.sh
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2801,9 +3047,13 @@ jobs:
         with:
           action: start
       - name: Weaviate - create collections and ingest data in the background
-        run: |
-          cd apps/restart-highly-available-qps-benchmark
-          python3 ingest_and_benchmark_qps.py rolling-restart
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            cd apps/restart-highly-available-qps-benchmark
+            python3 ingest_and_benchmark_qps.py rolling-restart
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '50m'
       - name: Stop stern
         if: always()
         uses: weaviate/github-common-actions/.github/actions/capture-logs@main
@@ -2819,13 +3069,18 @@ jobs:
             /tmp/weaviate*
       - name: Check for panics in logs
         if: always()
-        run: |
-          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log; then
-            echo "::error::Found panic in weaviate logs"
-            echo "Panic context:"
-            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
-            exit 1
-          fi
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log; then
+              echo "::error::Found panic in weaviate logs"
+              echo "Panic context:"
+              grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
+              exit 1
+            fi
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          test-name-suffix: panic-check
+          timeout: '5m'
   single-pod-restart-highly-available-qps-benchmark:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'single-pod-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == '')}}
@@ -2874,9 +3129,13 @@ jobs:
         with:
           action: start
       - name: Weaviate - create collections and ingest data in the background
-        run: |
-          cd apps/restart-highly-available-qps-benchmark
-          python3 ingest_and_benchmark_qps.py single-pod-restart
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            cd apps/restart-highly-available-qps-benchmark
+            python3 ingest_and_benchmark_qps.py single-pod-restart
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          timeout: '50m'
       - name: Stop stern
         if: always()
         uses: weaviate/github-common-actions/.github/actions/capture-logs@main
@@ -2892,10 +3151,15 @@ jobs:
             /tmp/weaviate*
       - name: Check for panics in logs
         if: always()
-        run: |
-          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log; then
-            echo "::error::Found panic in weaviate logs"
-            echo "Panic context:"
-            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
-            exit 1
-          fi
+        uses: ./.github/actions/run-chaos-test
+        with:
+          command: |
+            if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log; then
+              echo "::error::Found panic in weaviate logs"
+              echo "Panic context:"
+              grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
+              exit 1
+            fi
+          lsm-access-strategy: ${{ inputs.lsm_access_strategy }}
+          test-name-suffix: panic-check
+          timeout: '5m'

@@ -22,7 +22,7 @@ function shutdown() {
   docker compose -f apps/debug-reindexing-endpoint/docker-compose.yml down --remove-orphans
   sudo rm -rf apps/weaviate/data* || true
 }
-trap 'shutdown; exit 1' SIGINT ERR
+trap 'shutdown; exit 1' SIGINT SIGTERM ERR
 
 echo "Starting Weaviate..."
 docker compose -f apps/debug-reindexing-endpoint/docker-compose.yml up -d \
