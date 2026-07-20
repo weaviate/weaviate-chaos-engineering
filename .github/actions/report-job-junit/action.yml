@@ -10,13 +10,13 @@ description: >-
   fails the job.
 inputs:
   job-status:
-    description: 'Pass ${{ job.status }}'
+    description: The caller's job.status expression
     required: true
   lsm-access-strategy:
     description: mmap or pread; names the JUnit suite and the artifact
     required: true
   github-token:
-    description: 'Pass ${{ github.token }} (needs actions: read)'
+    description: A token with actions:read (the caller's github.token)
     required: true
 runs:
   using: composite
