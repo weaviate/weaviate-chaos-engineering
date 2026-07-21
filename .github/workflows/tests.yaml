@@ -2015,6 +2015,9 @@ jobs:
           ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
+      - name: Simulated failure for JUnit validation (test branch only)
+        run: |
+          python3 -c "raise RuntimeError('Simulated journey failure for JUnit validation')"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2127,6 +2130,9 @@ jobs:
           ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
+      - name: Simulated failure for JUnit validation (test branch only)
+        run: |
+          python3 -c "raise RuntimeError('Simulated journey failure for JUnit validation')"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2251,6 +2257,9 @@ jobs:
           ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
+      - name: Simulated failure for JUnit validation (test branch only)
+        run: |
+          python3 -c "raise RuntimeError('Simulated journey failure for JUnit validation')"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2325,6 +2334,9 @@ jobs:
           ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
       - uses: actions/checkout@v5
+      - name: Simulated failure for JUnit validation (test branch only)
+        run: |
+          python3 -c "raise RuntimeError('Simulated journey failure for JUnit validation')"
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:

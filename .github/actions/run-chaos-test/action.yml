@@ -50,6 +50,14 @@ runs:
         set +e
         start_epoch=$(date +%s)
         echo "start_iso=$(date -u +%Y-%m-%dT%H:%M:%S)" >> "$GITHUB_OUTPUT"
+        # === TEST BRANCH ONLY (test/chaos-junit-all-fail): force every wrapped
+        # test to fail. Overwrites the real command so no test/cloud VM ever
+        # runs, and emits a Python traceback so the JUnit culprit extractor has
+        # realistic input. REVERT before merging anything from this branch. ===
+        CHAOS_COMMAND=$(cat <<'SIMEOF'
+        python3 -c "raise RuntimeError('Simulated chaos test failure for JUnit validation')"
+        SIMEOF
+        )
         if [ "$CHAOS_TIMEOUT" = "0" ]; then
           bash -ec "$CHAOS_COMMAND" 2>&1 | tee "$CHAOS_LOG"
         else
