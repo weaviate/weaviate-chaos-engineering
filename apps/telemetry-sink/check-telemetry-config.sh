@@ -15,6 +15,7 @@ set -eu
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
 
 python3 - <<'PY'
+import os
 import re
 import subprocess
 import sys
@@ -88,6 +89,18 @@ for path in tracked("*.yml", "*.yaml"):
         url = env.get("TELEMETRY_URL", "")
         disabled = env.get("DISABLE_TELEMETRY", "").strip("'\"").lower()
 
+        # `- DISABLE_TELEMETRY` passes the host value through, and compose reads
+        # a sibling .env, so the real setting can live there
+        if "DISABLE_TELEMETRY" in env and not disabled:
+            envfile = os.path.join(os.path.dirname(path), ".env")
+            if os.path.exists(envfile):
+                for entry in open(envfile).read().split("\n"):
+                    k, _, v = entry.partition("=")
+                    if k.strip() == "DISABLE_TELEMETRY":
+                        disabled = v.strip().strip("'\"").lower()
+                    elif k.strip() == "TELEMETRY_URL" and not url:
+                        url = v.strip().strip("'\"")
+
         if points_elsewhere(url):
             bad.append(f"{path}: service '{name}' sends telemetry to {url}, not the local sink")
         elif disabled in ("false", "0", "off") and not url:
@@ -122,6 +135,21 @@ for path in tracked("*.go"):
         via_holder = any(re.search(rf"\b{h}\b", fn) for h in holders)
         if (literal or via_holder) and "TELEMETRY" not in fn and "telemetryFor" not in fn:
             bad.append(f"{path}: {fn.splitlines()[0].strip()} starts weaviate with no telemetry setting")
+
+# --- shell scripts ----------------------------------------------------------
+# `docker run` bypasses compose entirely
+for path in tracked("*.sh"):
+    try:
+        src = open(path).read()
+    except (OSError, UnicodeDecodeError):
+        continue
+    joined = src.replace("\\\n", " ")
+    for line in joined.split("\n"):
+        if "docker run" not in line:
+            continue
+        images = re.findall(r"(\S*weaviate:\S+)", line)
+        if any(is_weaviate_image(i) for i in images) and "TELEMETRY" not in line:
+            bad.append(f"{path}: docker run starts weaviate with no telemetry setting")
 
 # --- CI workflows ------------------------------------------------------------
 # weaviate-local-k8s sets DISABLE_TELEMETRY=true itself and appends values-inline
