@@ -2,11 +2,8 @@
 
 set -e
 
-# every root test script sources this file, so it is the one place to decide it
-function configure_telemetry_for() {
-  eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${1:-}")"
-}
-configure_telemetry_for "${WEAVIATE_VERSION:-}"
+# telemetry: local sink from v1.36, off below that (apps/telemetry-sink)
+eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${WEAVIATE_VERSION:-}")"
 
 function logs() {
   echo "======================================"
