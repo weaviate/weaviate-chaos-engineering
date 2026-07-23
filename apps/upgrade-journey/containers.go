@@ -24,20 +24,25 @@ const (
 	telemetryURL      = "http://" + telemetrySinkHost + ":8080/weaviate-telemetry"
 
 	// TELEMETRY_URL landed in this version; older nodes cannot be redirected
-	telemetryMinVersion = "1.36.0"
+	telemetryMinMajor = 1
+	telemetryMinMinor = 36
 )
 
 // telemetryFor keeps a node from reporting to the production endpoint: nodes new
 // enough to honour TELEMETRY_URL push to the local sink, older ones (and any
-// version that does not parse) run with telemetry off instead.
+// version that does not parse) run with telemetry off instead. Compared on
+// major.minor, so a prerelease such as 1.36.0-rc.0 counts as 1.36 rather than
+// sorting below it, matching apps/telemetry-sink/telemetry-config.sh.
 func telemetryFor(version string) (disable, url string) {
-	min := hashicorpversion.Must(hashicorpversion.NewVersion(telemetryMinVersion))
-
-	if v, err := hashicorpversion.NewVersion(version); err == nil && !v.LessThan(min) {
-		return "", telemetryURL
+	if v, err := hashicorpversion.NewVersion(version); err == nil {
+		s := v.Segments()
+		if s[0] > telemetryMinMajor || (s[0] == telemetryMinMajor && s[1] >= telemetryMinMinor) {
+			return "", telemetryURL
+		}
 	}
 
-	log.Printf("telemetry: disabled for %s, TELEMETRY_URL needs v%s or newer", version, telemetryMinVersion)
+	log.Printf("telemetry: disabled for %s, TELEMETRY_URL needs v%d.%d or newer",
+		version, telemetryMinMajor, telemetryMinMinor)
 	return "true", ""
 }
 
