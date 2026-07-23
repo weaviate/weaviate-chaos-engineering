@@ -89,6 +89,12 @@ print(f"{summary}\n{verdict}\n")
 for line in sorted(bad):
     print(line)
 
+# annotate the offending file in the PR's Files changed view
+if os.environ.get("GITHUB_ACTIONS"):
+    for line in sorted(bad):
+        path, _, message = line.partition(": ")
+        print(f"::error file={path}::{message}")
+
 # surface the same thing on the PR rather than only in the raw log
 if step_summary := os.environ.get("GITHUB_STEP_SUMMARY"):
     with open(step_summary, "a") as fh:
