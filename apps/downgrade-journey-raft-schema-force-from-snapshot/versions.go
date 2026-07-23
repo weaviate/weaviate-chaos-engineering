@@ -252,8 +252,7 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 		"CLUSTER_HOSTNAME":          "weaviate-test",
 		"RAFT_JOIN":                 "weaviate-test:8300",
 		"RAFT_BOOTSTRAP_EXPECT":     "1",
-		// short-lived, but it still pushes on boot; this journey downgrades, so
-		// telemetry can never be on here (see the node env in containers.go)
+		// throwaway probe, but it still reported to production just to read /v1/meta
 		"DISABLE_TELEMETRY": "true",
 	}
 	req := testcontainers.ContainerRequest{

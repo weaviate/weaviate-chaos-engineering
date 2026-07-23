@@ -63,9 +63,7 @@ for pair in "${!filtered_version_pairs[@]}"; do
 
   export COMPOSE="apps/weaviate/docker-compose-backup.yml"
 
-  # this pair walks historical releases and both nodes share one compose-level
-  # setting, so the older of the two decides: anything that cannot honour
-  # TELEMETRY_URL means telemetry is off for the whole pair
+  # both nodes share one compose-level setting, so the older version decides
   configure_telemetry_for "$(printf '%s\n%s\n' "$backup_version" "$restore_version" | sort -V | head -1)"
 
   echo "Starting Weaviate cluster..."

@@ -2,11 +2,10 @@
 services:
   telemetry-sink:
     build: .
-    # without an init process the server runs as PID 1, where the default SIGTERM
-    # handling does not apply, so every `compose stop` waits out the 10s timeout
+    # as PID 1 the server would ignore SIGTERM, so every stop waits out 10s
     init: true
-    # pinned: the default <project>-<service>-1 name would contain "weaviate" in
-    # some projects, and the chaos killers pick victims with `ps -qf name=weaviate`
+    # pinned: the default name contains "weaviate" in some projects, and the
+    # chaos killers pick victims with `docker ps -qf name=weaviate`
     container_name: telemetry-sink
     environment:
       PORT: 8080

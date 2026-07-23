@@ -47,7 +47,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// sink first, so even the version probe below has somewhere local to push to
+	// sink first, so the version probe below has somewhere local to push to
 	c := newCluster(numNodes)
 	if err := c.startNetwork(ctx); err != nil {
 		log.Fatal(err)

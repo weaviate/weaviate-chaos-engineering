@@ -132,9 +132,9 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"RAFT_JOIN":                               fmt.Sprintf("%s:8300", c.hostname(nodeId)),
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
-				// must stay off: this journey rolls back to older versions on the
-				// same data dir, and a telemetry-enabled node commits a
-				// TYPE_CLUSTER_ID_SET raft entry the older ones panic replaying
+				// off while this journey still rolls back below v1.36: on the shared data
+				// dir, older nodes panic replaying a telemetry-enabled node's cluster-id
+				// raft entry. Safe to enable once the oldest version here is v1.36+.
 				"DISABLE_TELEMETRY": "true",
 				// for raft snapshots
 				"RAFT_SNAPSHOT_THRESHOLD": "1",

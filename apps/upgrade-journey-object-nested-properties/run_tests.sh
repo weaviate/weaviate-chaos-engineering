@@ -44,24 +44,12 @@ function prepare_env() {
   go mod tidy && go mod vendor
 }
 
-function compose_up() {
-  local version="$1" compose_type="$2"
-  # Telemetry stays off for every version here, including the new one. With it
-  # on, the newer node commits a TYPE_CLUSTER_ID_SET raft entry (see
-  # maybeCommitClusterID in weaviate cluster/store.go), and this journey then
-  # starts an older version on the same data directory, which panics replaying
-  # a command type it does not know. Version-gating cannot help: the entry is
-  # written by the *newer* node, before the older one ever starts.
-  export DISABLE_TELEMETRY=true
-  DOCKER_COMPOSE_VERSION=$version docker compose -f docker-compose-$compose_type.yml up -d
-}
-
 function upgrade_journey_test() {
   compose_type=$1
   echo_green "Upgrade journey test: $compose_type"
   echo "Start Weaviate v1.25.24"
 
-  compose_up 1.25.24 "$compose_type"
+  DOCKER_COMPOSE_VERSION=1.25.24 docker compose -f docker-compose-$compose_type.yml up -d
   wait_weaviates $compose_type
 
   echo "Create a class with nested properties using Weaviate v1.25"
@@ -71,7 +59,7 @@ function upgrade_journey_test() {
 
   echo "Start Weaviate with fixed image"
 
-  compose_up $weaviate_version "$compose_type"
+  DOCKER_COMPOSE_VERSION=$weaviate_version docker compose -f docker-compose-$compose_type.yml up -d
   wait_weaviates $compose_type
 
   go test -count 1 -v -run TestRangeFiltersExists ./
@@ -84,7 +72,7 @@ function upgrade_journey_with_fixed_image_test() {
   echo_green "Upgrade journey test with fixed image in between: $compose_type"
   echo "Start Weaviate v1.25.24"
 
-  compose_up 1.25.24 "$compose_type"
+  DOCKER_COMPOSE_VERSION=1.25.24 docker compose -f docker-compose-$compose_type.yml up -d
   wait_weaviates $compose_type
 
   echo "Create a class with nested properties using Weaviate v1.25"
@@ -94,7 +82,7 @@ function upgrade_journey_with_fixed_image_test() {
 
   echo "Start Weaviate v1.26.7 without a fix"
 
-  compose_up 1.26.7 "$compose_type"
+  DOCKER_COMPOSE_VERSION=1.26.7 docker compose -f docker-compose-$compose_type.yml up -d
   wait_weaviates $compose_type
 
   echo "Create a class with nested properties using Weaviate v1.25"
@@ -104,7 +92,7 @@ function upgrade_journey_with_fixed_image_test() {
 
   echo "Start Weaviate with fixed image"
 
-  compose_up $weaviate_version "$compose_type"
+  DOCKER_COMPOSE_VERSION=$weaviate_version docker compose -f docker-compose-$compose_type.yml up -d
   wait_weaviates $compose_type
 
   go test -count 1 -v -run TestRangeFiltersExists ./

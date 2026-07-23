@@ -41,8 +41,7 @@ echo "Done generating."
 
 echo "Starting Weaviate 1.25..."
 export WEAVIATE_NODE_VERSION=1.25.0
-# common.sh decided telemetry for $WEAVIATE_VERSION; this node runs an older
-# one, which cannot honour TELEMETRY_URL, so re-decide for the version at hand
+# common.sh decided for $WEAVIATE_VERSION; this node runs a different one
 configure_telemetry_for "$WEAVIATE_NODE_VERSION"
 docker compose -f $COMPOSE up -d weaviate-node-1
 wait_weaviate 8080 120 weaviate-node-1

@@ -228,9 +228,8 @@ func getTargetVersion(ctx context.Context, cl *cluster, version string) (string,
 		"CLUSTER_HOSTNAME":          "weaviate-test",
 		"RAFT_JOIN":                 "weaviate-test:8300",
 		"RAFT_BOOTSTRAP_EXPECT":     "1",
-		// short-lived, but it still pushes an INIT payload on boot
-		"DISABLE_TELEMETRY": telemetryDisable,
-		"TELEMETRY_URL":     telemetryPush,
+		"DISABLE_TELEMETRY":         telemetryDisable,
+		"TELEMETRY_URL":             telemetryPush,
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        weaviateImage,

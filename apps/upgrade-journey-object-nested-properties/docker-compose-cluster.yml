@@ -2,7 +2,6 @@
 version: '3.4'
 services:
   weaviate-node-1:
-    depends_on: [telemetry-sink]
     image: semitechnologies/weaviate:${DOCKER_COMPOSE_VERSION}
     restart: on-failure:0
     ports:
@@ -21,13 +20,13 @@ services:
       RAFT_INTERNAL_RPC_PORT: "8301"
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
-      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+      # keep off: v1.25/v1.26 run on this data dir and panic replaying a
+      # telemetry-enabled node's cluster-id raft entry
+      DISABLE_TELEMETRY: 'true'
       DEFAULT_VECTORIZER_MODULE: "none"
       PERSISTENCE_LSM_ACCESS_STRATEGY: "${PERSISTENCE_LSM_ACCESS_STRATEGY}"
 
   weaviate-node-2:
-    depends_on: [telemetry-sink]
     init: true
     command:
       - --host
@@ -56,14 +55,12 @@ services:
       RAFT_INTERNAL_RPC_PORT: "8301"
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
-      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+      DISABLE_TELEMETRY: 'true'
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: "none"
       PERSISTENCE_LSM_ACCESS_STRATEGY: "${PERSISTENCE_LSM_ACCESS_STRATEGY}"
 
   weaviate-node-3:
-    depends_on: [telemetry-sink]
     init: true
     command:
       - --host
@@ -92,14 +89,8 @@ services:
       RAFT_INTERNAL_RPC_PORT: "8301"
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
-      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+      DISABLE_TELEMETRY: 'true'
       CONTEXTIONARY_URL: contextionary:9999
       DEFAULT_VECTORIZER_MODULE: "none"
       PERSISTENCE_LSM_ACCESS_STRATEGY: "${PERSISTENCE_LSM_ACCESS_STRATEGY}"
-
-  telemetry-sink:
-    extends:
-      file: ../telemetry-sink/docker-compose.yml
-      service: telemetry-sink
 ...

@@ -28,11 +28,9 @@ const (
 	telemetryMinMinor = 36
 )
 
-// telemetryFor keeps a node from reporting to the production endpoint: nodes new
-// enough to honour TELEMETRY_URL push to the local sink, older ones (and any
-// version that does not parse) run with telemetry off instead. Compared on
-// major.minor, so a prerelease such as 1.36.0-rc.0 counts as 1.36 rather than
-// sorting below it, matching apps/telemetry-sink/telemetry-config.sh.
+// telemetryFor points a node at the local sink, or turns telemetry off when it
+// is too old to honour TELEMETRY_URL. Compared on major.minor so a prerelease
+// such as 1.36.0-rc.0 counts as 1.36 rather than sorting below it.
 func telemetryFor(version string) (disable, url string) {
 	if v, err := hashicorpversion.NewVersion(version); err == nil {
 		s := v.Segments()
@@ -126,8 +124,7 @@ func (c *cluster) startNetwork(ctx context.Context) error {
 	return nil
 }
 
-// startTelemetrySink must run before any Weaviate container, which pushes an
-// INIT payload as soon as it boots.
+// startTelemetrySink must run before any Weaviate container, which pushes on boot.
 func (c *cluster) startTelemetrySink(ctx context.Context) error {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
