@@ -2,6 +2,9 @@
 services:
   telemetry-sink:
     build: .
+    # without an init process the server runs as PID 1, where the default SIGTERM
+    # handling does not apply, so every `compose stop` waits out the 10s timeout
+    init: true
     # pinned: the default <project>-<service>-1 name would contain "weaviate" in
     # some projects, and the chaos killers pick victims with `ps -qf name=weaviate`
     container_name: telemetry-sink
