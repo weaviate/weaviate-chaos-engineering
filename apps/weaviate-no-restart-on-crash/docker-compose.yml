@@ -1,7 +1,6 @@
 ---
 services:
   weaviate:
-    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -29,7 +28,6 @@ services:
       - DISK_USE_READONLY_PERCENTAGE
       - PERSISTENCE_LSM_ACCESS_STRATEGY
       - DISABLE_TELEMETRY
-      - TELEMETRY_URL
       - DEBUG_ENDPOINTS_ENABLED=true
       - PROMETHEUS_MONITORING_ENABLED
       - PERSISTENCE_LSM_MAX_SEGMENT_SIZE
@@ -37,9 +35,4 @@ services:
       - PERSISTENCE_HNSW_MAX_LOG_SIZE
       - PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS
       - PERSISTENCE_HNSW_DISABLE_SNAPSHOTS
-
-  telemetry-sink:
-    extends:
-      file: ../telemetry-sink/docker-compose.yml
-      service: telemetry-sink
 ...

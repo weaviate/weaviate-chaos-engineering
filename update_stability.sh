@@ -2,9 +2,6 @@
 
 set -e
 
-# telemetry: local sink from v1.36, off below that (apps/telemetry-sink)
-eval "$(apps/telemetry-sink/telemetry-config.sh "${WEAVIATE_VERSION:-}")"
-
 ############################################
 ############# To test locally ##############
 # export WEAVIATE_VERSION="1.26.1"

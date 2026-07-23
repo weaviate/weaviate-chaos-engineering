@@ -1,7 +1,6 @@
 ---
 services:
   weaviate:
-    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -27,15 +26,12 @@ services:
       CLUSTER_HOSTNAME: 'node1' 
       DISK_USE_READONLY_PERCENTAGE: 99
       GOMEMLIMIT: '4096MiB'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
-      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+      # this app is copied wholesale to the ann-benchmark VMs, which have no
+      # telemetry-sink, so nothing here may depend on one
+      DISABLE_TELEMETRY: 'true'
+
     deploy:
       resources:
         limits:
           memory: '4096M'
-
-  telemetry-sink:
-    extends:
-      file: ../telemetry-sink/docker-compose.yml
-      service: telemetry-sink
 ...

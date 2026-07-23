@@ -2,9 +2,6 @@
 
 set -euo pipefail
 
-# telemetry: local sink from v1.36, off below that (apps/telemetry-sink)
-eval "$(apps/telemetry-sink/telemetry-config.sh "${WEAVIATE_VERSION:-}")"
-
 # Configuration
 readonly DATASET="${DATASET:-sift-128-euclidean}"
 readonly DISTANCE="${DISTANCE:-l2-squared}"
