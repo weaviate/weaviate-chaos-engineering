@@ -133,7 +133,8 @@ services:
       file: ../telemetry-sink/docker-compose.yml
       service: telemetry-sink
     networks:
-      - replication_single_low_network_pressure
+      replication_single_low_network_pressure:
+        ipv4_address: 172.30.0.20
 
 networks:
   replication_single_low_network_pressure:

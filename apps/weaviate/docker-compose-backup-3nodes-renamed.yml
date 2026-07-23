@@ -195,7 +195,8 @@ services:
       file: ../telemetry-sink/docker-compose.yml
       service: telemetry-sink
     networks:
-      - weaviate_backup_3nodes_renamed
+      weaviate_backup_3nodes_renamed:
+        ipv4_address: 172.21.0.20
 
 networks:
   weaviate_backup_3nodes_renamed:

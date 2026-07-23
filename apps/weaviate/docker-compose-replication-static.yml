@@ -128,7 +128,8 @@ services:
       file: ../telemetry-sink/docker-compose.yml
       service: telemetry-sink
     networks:
-      - weaviate_replication_static
+      weaviate_replication_static:
+        ipv4_address: 172.31.0.20
 
 networks:
   weaviate_replication_static:
