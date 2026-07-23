@@ -46,9 +46,13 @@ function prepare_env() {
 
 function compose_up() {
   local version="$1" compose_type="$2"
-  # this test pins a different version per step, so the telemetry decision has
-  # to be made per start rather than once per run
-  eval "$(../telemetry-sink/telemetry-config.sh "$version")"
+  # Telemetry stays off for every version here, including the new one. With it
+  # on, the newer node commits a TYPE_CLUSTER_ID_SET raft entry (see
+  # maybeCommitClusterID in weaviate cluster/store.go), and this journey then
+  # starts an older version on the same data directory, which panics replaying
+  # a command type it does not know. Version-gating cannot help: the entry is
+  # written by the *newer* node, before the older one ever starts.
+  export DISABLE_TELEMETRY=true
   DOCKER_COMPOSE_VERSION=$version docker compose -f docker-compose-$compose_type.yml up -d
 }
 

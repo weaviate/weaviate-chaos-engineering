@@ -3,7 +3,10 @@
 set -e
 
 # every root test script sources this file, so it is the one place to decide it
-eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${WEAVIATE_VERSION:-}")"
+function configure_telemetry_for() {
+  eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${1:-}")"
+}
+configure_telemetry_for "${WEAVIATE_VERSION:-}"
 
 function logs() {
   echo "======================================"
