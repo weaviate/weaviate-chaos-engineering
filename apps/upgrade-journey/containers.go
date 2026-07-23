@@ -132,6 +132,7 @@ func (c *cluster) startTelemetrySink(ctx context.Context) error {
 			Hostname:       telemetrySinkHost,
 			Networks:       []string{c.networkName},
 			NetworkAliases: map[string][]string{c.networkName: {telemetrySinkHost}},
+			ExposedPorts:   []string{"8080/tcp"},
 			WaitingFor: wait.
 				ForHTTP("/").
 				WithPort(nat.Port("8080")).
