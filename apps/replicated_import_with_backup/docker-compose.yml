@@ -12,8 +12,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
-    depends_on:
-      - backup-s3
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+    depends_on: [telemetry-sink, backup-s3]
 
   weaviate-node-2: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -27,8 +28,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
-    depends_on:
-      - backup-s3
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+    depends_on: [telemetry-sink, backup-s3]
 
   weaviate-node-3: # same as extended service to avoid reconfiguring cluster comm
     extends:
@@ -42,8 +44,9 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
-    depends_on:
-      - backup-s3
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+    depends_on: [telemetry-sink, backup-s3]
 
   backup-s3:
     image: minio/minio
@@ -126,3 +129,8 @@ services:
     environment:
       - CONFIG_HOST=http://localhost:8080
       - CONFIG_BACKUP_BACKEND=s3
+
+  telemetry-sink:
+    extends:
+      file: ../telemetry-sink/docker-compose.yml
+      service: telemetry-sink

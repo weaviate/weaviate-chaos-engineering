@@ -27,6 +27,8 @@ on:
         required: true
 
 env:
+  # pinned pre-1.36 releases cannot honour TELEMETRY_URL, so switch it off there
+  TELEMETRY_VALUES_LEGACY: '--set env.DISABLE_TELEMETRY=true'
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
   DISABLE_RECOVERY_ON_PANIC: true
   ASYNC_INDEXING: ${{ inputs.async_indexing }}
@@ -1853,6 +1855,9 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1862,7 +1867,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
-          values-inline: '--set podManagementPolicy=OrderedReady' 
+          values-inline: '--set podManagementPolicy=OrderedReady ${{env.TELEMETRY_VALUES_LEGACY}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1881,6 +1890,7 @@ jobs:
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
+          values-inline: '${{env.TELEMETRY_VALUES_LEGACY}}'
       - name: Weaviate v1.25.0 - check data after upgrade to Raft version
         run: |
           cd apps/upgrade-journey-raft
@@ -1894,6 +1904,7 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES}}'
       - name: Weaviate preview image - check old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1913,6 +1924,7 @@ jobs:
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
+          values-inline: '${{env.TELEMETRY_VALUES}}'
       - name: Weaviate preview image - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
@@ -1958,6 +1970,9 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -1967,7 +1982,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_NON_RAFT_VERSION}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
-          values-inline: '--set podManagementPolicy=OrderedReady'
+          values-inline: '--set podManagementPolicy=OrderedReady ${{env.TELEMETRY_VALUES_LEGACY}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1986,6 +2005,7 @@ jobs:
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
+          values-inline: '${{env.TELEMETRY_VALUES_LEGACY}}'
       - name: Weaviate v1.25.0 - check data after upgrade to Raft version
         run: |
           cd apps/upgrade-journey-raft
@@ -1999,6 +2019,7 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1_29}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES_LEGACY}}'
       - name: Weaviate v1.29.0 image - check old data
         run: |
           cd apps/upgrade-journey-raft
@@ -2018,6 +2039,7 @@ jobs:
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
           delete-sts: 'true'
+          values-inline: '${{env.TELEMETRY_VALUES_LEGACY}}'
       - name: Weaviate preview image - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
@@ -2031,6 +2053,7 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES}}'
       - name: Weaviate preview image - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
@@ -2075,6 +2098,9 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Weaviate v1.25 with metadata only voters setting - setup K8s 6-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2084,6 +2110,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES_LEGACY}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Weaviate v1.25 with metadata only voters setting - import data and additional data
         run: |
           cd apps/upgrade-journey-raft
@@ -2102,6 +2133,7 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES}}'
       - name: Weaviate preview image with metadata only voters setting - check if data has been saved only in non-voter nodes
         run: |
           cd apps/upgrade-journey-raft
@@ -2178,6 +2210,10 @@ jobs:
               root_users:
                 - admin-user
           EOF
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
+          echo "TELEMETRY_VALUES_INITIAL=$(apps/telemetry-sink/telemetry-config.sh helm "${WEAVIATE_INITIAL_VERSION:-}")" >> $GITHUB_ENV
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - setup K8s 3-node cluster with low RAFT snapshot threshold
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2189,6 +2225,11 @@ jobs:
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES_INITIAL}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - create roles
         run: |
           cd apps/rbac-upgrade-journey
@@ -2236,6 +2277,7 @@ jobs:
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES}}'
       - name: Weaviate ${{ env.WEAVIATE_VERSION}} - check data after upgrade
         run: |
           cd apps/upgrade-journey-raft
@@ -2308,6 +2350,7 @@ jobs:
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES_INITIAL}}'
       - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - check additional and old data
         run: |
           cd apps/upgrade-journey-raft
@@ -2602,6 +2645,9 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Spin-up 3 node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2609,7 +2655,11 @@ jobs:
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}} ${{env.TELEMETRY_VALUES}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
 
@@ -2629,6 +2679,9 @@ jobs:
         with:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Spin-up 3 node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2636,7 +2689,11 @@ jobs:
           workers: '1'
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}} ${{env.TELEMETRY_VALUES}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
 
@@ -2694,6 +2751,9 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Setup 3-node Weaviate cluster with model2vec
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2702,7 +2762,11 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-model2vec'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} ${{env.TELEMETRY_VALUES}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Run alter schema drop property index tests
         run: apps/alter_schema_operations/alter_schema_drop_property_index.sh
       - name: Archive logs
@@ -2733,6 +2797,9 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25'
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Setup 3-node Weaviate cluster with model2vec
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2741,7 +2808,11 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-model2vec'
-          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true'
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true ${{env.TELEMETRY_VALUES}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Run alter schema drop vector index tests
         run: apps/alter_schema_operations/alter_schema_drop_vector_index.sh
       - name: Archive logs
@@ -2787,6 +2858,9 @@ jobs:
         run: |
           cd apps/restart-highly-available-qps-benchmark
           pip3 install -r requirements.txt
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Weaviate - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2796,6 +2870,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-transformers-model2vec'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Start stern to capture logs
         uses: weaviate/github-common-actions/.github/actions/capture-logs@main
         with:
@@ -2860,6 +2939,9 @@ jobs:
         run: |
           cd apps/restart-highly-available-qps-benchmark
           pip3 install -r requirements.txt
+      - name: Configure telemetry
+        run: |
+          echo "TELEMETRY_VALUES=$(apps/telemetry-sink/telemetry-config.sh helm "$WEAVIATE_VERSION")" >> $GITHUB_ENV
       - name: Weaviate - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2869,6 +2951,11 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-transformers-model2vec'
           values-override: ${{env.VALUES_OVERRIDE}}
+          values-inline: '${{env.TELEMETRY_VALUES}}'
+      - name: Deploy telemetry sink
+        run: |
+          kubectl -n weaviate create configmap telemetry-sink --from-file=run.py=apps/telemetry-sink/run.py --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n weaviate apply -f apps/telemetry-sink/k8s.yaml
       - name: Start stern to capture logs
         uses: weaviate/github-common-actions/.github/actions/capture-logs@main
         with:

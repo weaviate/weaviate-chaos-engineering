@@ -47,7 +47,16 @@ func main() {
 		log.Fatal(err)
 	}
 
-	versions, err = buildVersionList(ctx, minimumW, targetW)
+	// sink first, so even the version probe below has somewhere local to push to
+	c := newCluster(numNodes)
+	if err := c.startNetwork(ctx); err != nil {
+		log.Fatal(err)
+	}
+	if err := c.startTelemetrySink(ctx); err != nil {
+		log.Fatal(err)
+	}
+
+	versions, err = buildVersionList(ctx, c, minimumW, targetW)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -63,7 +72,7 @@ func main() {
 	}
 	client := weaviate.New(cfg)
 
-	if cluster, err := do(ctx, client, numNodes); err != nil {
+	if cluster, err := do(ctx, client, c); err != nil {
 		log.Fatal(err)
 		ctx := context.Background()
 		for _, c := range cluster.containers {
@@ -77,14 +86,8 @@ func main() {
 	}
 }
 
-func do(ctx context.Context, client *weaviate.Client, numNodes int) (*cluster, error) {
+func do(ctx context.Context, client *weaviate.Client, c *cluster) (*cluster, error) {
 	rand.Seed(time.Now().UnixNano())
-
-	c := newCluster(numNodes)
-
-	if err := c.startNetwork(ctx); err != nil {
-		return c, err
-	}
 
 	previousVersion := ""
 	for i, version := range versions {

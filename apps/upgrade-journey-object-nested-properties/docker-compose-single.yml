@@ -1,6 +1,7 @@
 ---
 services:
   weaviate:
+    depends_on: [telemetry-sink]
     command:
     - --host
     - 0.0.0.0
@@ -22,6 +23,12 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_API_BASED_MODULES: 'true'
       CLUSTER_HOSTNAME: 'node1'
-      DISABLE_TELEMETRY: 'true'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
       PERSISTENCE_LSM_ACCESS_STRATEGY: "${PERSISTENCE_LSM_ACCESS_STRATEGY}"
+
+  telemetry-sink:
+    extends:
+      file: ../telemetry-sink/docker-compose.yml
+      service: telemetry-sink
 ...

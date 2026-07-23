@@ -1,6 +1,7 @@
 ---
 services:
   weaviate-0:
+    depends_on: [telemetry-sink]
     command:
     - --host
     - 0.0.0.0
@@ -34,7 +35,10 @@ services:
       ENABLE_API_BASED_MODULES: "true"
       ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,text2vec-weaviate,text2vec-jinaai,text2vec-voyageai,text2vec-jinaai,text2vec-weaviate"
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
   weaviate-1:
+    depends_on: [telemetry-sink]
     init: true
     command:
       - --host
@@ -71,7 +75,10 @@ services:
       ENABLE_API_BASED_MODULES: "true"
       ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,text2vec-weaviate,text2vec-jinaai,text2vec-voyageai,text2vec-jinaai,text2vec-weaviate"
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
   weaviate-2:
+    depends_on: [telemetry-sink]
     init: true
     command:
       - --host
@@ -108,4 +115,11 @@ services:
       ENABLE_API_BASED_MODULES: "true"
       ENABLE_MODULES: "text2vec-openai,text2vec-cohere,text2vec-huggingface,text2vec-weaviate,text2vec-jinaai,text2vec-voyageai,text2vec-jinaai,text2vec-weaviate"
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
+
+  telemetry-sink:
+    extends:
+      file: ../telemetry-sink/docker-compose.yml
+      service: telemetry-sink
 ...

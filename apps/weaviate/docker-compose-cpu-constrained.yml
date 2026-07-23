@@ -1,6 +1,7 @@
 ---
 services:
   weaviate:
+    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -27,7 +28,8 @@ services:
       CLUSTER_GOSSIP_BIND_PORT: '7100'
       CLUSTER_DATA_BIND_PORT: '7101'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
-      DISABLE_TELEMETRY: 'true'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
@@ -37,3 +39,8 @@ services:
           # used in a chaos pipeline that tries to reproduce degrading
           # performance because of a goroutine leak
           cpus: '1'
+
+  telemetry-sink:
+    extends:
+      file: ../telemetry-sink/docker-compose.yml
+      service: telemetry-sink

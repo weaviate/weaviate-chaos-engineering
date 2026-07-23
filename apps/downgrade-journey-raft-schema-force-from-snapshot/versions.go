@@ -241,8 +241,9 @@ func (s semverList) toStringList() []string {
 }
 
 // Spawn a Weaviate container to get the version as it is not possible to infer the version from the container image
-func getTargetVersion(ctx context.Context, version string) (string, error) {
+func getTargetVersion(ctx context.Context, cl *cluster, version string) (string, error) {
 	weaviateImage := fmt.Sprintf("semitechnologies/weaviate:%s", version)
+	telemetryDisable, telemetryPush := telemetryFor(version)
 	env := map[string]string{
 		"AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
 		"LOG_LEVEL":                 "debug",
@@ -252,10 +253,14 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 		"CLUSTER_HOSTNAME":          "weaviate-test",
 		"RAFT_JOIN":                 "weaviate-test:8300",
 		"RAFT_BOOTSTRAP_EXPECT":     "1",
+		// short-lived, but it still pushes an INIT payload on boot
+		"DISABLE_TELEMETRY": telemetryDisable,
+		"TELEMETRY_URL":     telemetryPush,
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        weaviateImage,
 		ExposedPorts: []string{"8080/tcp"},
+		Networks:     []string{cl.networkName},
 		Env:          env,
 		WaitingFor: wait.
 			ForHTTP("/v1/.well-known/ready").

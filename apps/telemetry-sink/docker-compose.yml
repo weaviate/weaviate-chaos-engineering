@@ -1,0 +1,9 @@
+---
+services:
+  telemetry-sink:
+    build: .
+    # pinned: the default <project>-<service>-1 name would contain "weaviate" in
+    # some projects, and the chaos killers pick victims with `ps -qf name=weaviate`
+    container_name: telemetry-sink
+    environment:
+      PORT: 8080

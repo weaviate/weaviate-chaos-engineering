@@ -2,6 +2,9 @@
 
 set -e
 
+# every root test script sources this file, so it is the one place to decide it
+eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" env "${WEAVIATE_VERSION:-}")"
+
 function logs() {
   echo "======================================"
   echo "ABBREVIATED LOGS (first 30 + last 100 lines per service)"
