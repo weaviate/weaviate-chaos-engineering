@@ -8,7 +8,7 @@ services:
     environment:
       ASYNC_INDEXING: 'true'
       GRPC_MAX_MESSAGE_SIZE: '12000000'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
       TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
 
   weaviate-node-2: # same as extended service to avoid reconfiguring cluster comm
@@ -20,7 +20,7 @@ services:
     environment:
       ASYNC_INDEXING: 'true'
       GRPC_MAX_MESSAGE_SIZE: '12000000'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
       TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
 
   weaviate-node-3: # same as extended service to avoid reconfiguring cluster comm
@@ -32,7 +32,7 @@ services:
     environment:
       ASYNC_INDEXING: 'true'
       GRPC_MAX_MESSAGE_SIZE: '12000000'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
       TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
 
   telemetry-sink:

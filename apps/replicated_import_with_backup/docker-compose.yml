@@ -12,7 +12,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
       TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
     depends_on: [telemetry-sink, backup-s3]
 
@@ -28,7 +28,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
       TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
     depends_on: [telemetry-sink, backup-s3]
 
@@ -44,7 +44,7 @@ services:
       BACKUP_S3_USE_SSL: 'false'
       AWS_ACCESS_KEY_ID: 'aws_access_key'
       AWS_SECRET_KEY: 'aws_secret_key'
-      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
       TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
     depends_on: [telemetry-sink, backup-s3]
 
