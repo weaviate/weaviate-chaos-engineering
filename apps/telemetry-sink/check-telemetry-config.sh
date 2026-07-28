@@ -29,6 +29,33 @@ scanned = 0
 service_count = 0
 sources = set()
 
+
+def service_env(svc):
+    """compose environment as a dict, from either the mapping or list form"""
+    env = svc.get("environment")
+    if isinstance(env, dict):
+        return {k: str(v) for k, v in env.items()}
+    if isinstance(env, list):
+        out = {}
+        for item in env:
+            k, _, v = str(item).partition("=")
+            out[k.strip()] = v
+        return out
+    return {}
+
+
+def dotenv(path):
+    """KEY=VALUE pairs from a .env file, if it exists"""
+    out = {}
+    try:
+        for line in open(path):
+            k, sep, v = line.partition("=")
+            if sep:
+                out[k.strip()] = v.strip()
+    except OSError:
+        pass
+    return out
+
 # file types that can actually start a container; docs mention images too
 KINDS = (".yml", ".yaml", ".go", ".sh", ".env")
 
@@ -41,8 +68,11 @@ for path in subprocess.run(["git", "ls-files"], capture_output=True, text=True).
         continue
     scanned += 1
 
-    # 1. every weaviate service declares telemetry itself, so a node copied into
-    #    a file that already mentions it elsewhere is still caught
+    # 1. per service: a weaviate service must either hard-disable telemetry or
+    #    name the sink. A ${DISABLE_TELEMETRY:-...} passthrough can resolve to
+    #    enabled at runtime, so a node copy-pasted without its TELEMETRY_URL is
+    #    caught even though the block still mentions TELEMETRY.
+    had_service = False
     if path.endswith((".yml", ".yaml")):
         try:
             doc = yaml.safe_load(src)
@@ -60,8 +90,29 @@ for path in subprocess.run(["git", "ls-files"], capture_output=True, text=True).
                 continue
             service_count += 1
             sources.add(path)
-            if "TELEMETRY" not in yaml.safe_dump(svc):
-                bad.append(f"{path}: service '{name}' declares no telemetry setting")
+            had_service = True
+
+            env = service_env(svc)
+            # a list-form `- DISABLE_TELEMETRY` passes the value through from the
+            # sibling .env, so resolve it there
+            if "DISABLE_TELEMETRY" in env and not env["DISABLE_TELEMETRY"]:
+                env = {**dotenv(os.path.join(os.path.dirname(path), ".env")), **{k: v for k, v in env.items() if v}}
+            disable = env.get("DISABLE_TELEMETRY", "").strip("'\"").lower()
+            url = env.get("TELEMETRY_URL", "")
+            # extends pulls telemetry from the referenced service, not visible here
+            if extends:
+                continue
+            if disable in ("true", "1", "on"):
+                continue  # hard-disabled, no destination needed
+            if not url:
+                bad.append(f"{path}: service '{name}' may enable telemetry but names no TELEMETRY_URL")
+            elif "$" not in url and SINK not in url:
+                bad.append(f"{path}: service '{name}' sends telemetry to {url}, not the local sink")
+
+    # rule 1 fully covers a compose file's services; the file-level rules below
+    # are for the other shapes (Go, shell, .env, non-compose yaml)
+    if had_service:
+        continue
 
     # 2. whatever the shape - compose, testcontainer, docker run, an image held in
     #    a const or a shell variable - the file has to mention telemetry

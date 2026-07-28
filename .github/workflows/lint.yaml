@@ -11,5 +11,10 @@ jobs:
     runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v5
+      - uses: ubicloud/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install PyYAML
+        run: pip install pyyaml
       - name: Check every weaviate service declares where telemetry goes
         run: ./apps/telemetry-sink/check-telemetry-config.sh

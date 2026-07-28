@@ -12,7 +12,10 @@
 
 set -eu
 
+# strip a leading v so this agrees with the Go gate (hashicorp/go-version, which
+# accepts v1.36.0) on the same inputs
 version="${1:-}"
+version="${version#v}"
 
 url='http://telemetry-sink:8080/weaviate-telemetry'
 

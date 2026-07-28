@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # telemetry: local sink from v1.36, off below that (apps/telemetry-sink)
-eval "$(apps/telemetry-sink/telemetry-config.sh "${WEAVIATE_VERSION:-}")"
+eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${WEAVIATE_VERSION:-}")"
 
 
 function wait_weaviate() {

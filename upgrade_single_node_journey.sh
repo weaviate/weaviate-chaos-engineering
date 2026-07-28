@@ -42,7 +42,7 @@ echo "Done generating."
 echo "Starting Weaviate 1.25..."
 export WEAVIATE_NODE_VERSION=1.25.0
 # common.sh decided for $WEAVIATE_VERSION; this node runs a different one
-eval "$(apps/telemetry-sink/telemetry-config.sh "$WEAVIATE_NODE_VERSION")"
+eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "$WEAVIATE_NODE_VERSION")"
 docker compose -f $COMPOSE up -d weaviate-node-1
 wait_weaviate 8080 120 weaviate-node-1
 
@@ -54,7 +54,7 @@ validateObjects
 
 echo "Upgrade Weaviate..."
 export WEAVIATE_NODE_VERSION=$WEAVIATE_VERSION
-eval "$(apps/telemetry-sink/telemetry-config.sh "$WEAVIATE_NODE_VERSION")"
+eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "$WEAVIATE_NODE_VERSION")"
 docker compose -f $COMPOSE up -d --force-recreate  weaviate-node-1
 wait_weaviate 8080 120 weaviate-node-1
 
