@@ -73,16 +73,17 @@ func main() {
 	client := weaviate.New(cfg)
 
 	if cluster, err := do(ctx, client, c); err != nil {
-		log.Fatal(err)
 		ctx := context.Background()
 		for _, c := range cluster.containers {
 			logReader, logErr := c.Logs(ctx)
 			if logErr != nil {
 				name, _ := c.Name(ctx)
-				log.Fatal(fmt.Sprintf("can't get container %s logs, err: %v", name, logErr))
+				log.Printf("can't get container %s logs, err: %v", name, logErr)
+				continue
 			}
 			io.Copy(os.Stdout, logReader)
 		}
+		log.Fatal(err)
 	}
 }
 
