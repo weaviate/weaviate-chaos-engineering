@@ -6,6 +6,11 @@ on:
       weaviate_version:
         required: true
         type: string
+      weaviate_real_version:
+        description: "The real semver behind weaviate_version, used only by the telemetry gate. Falls back to the tag if unset."
+        required: false
+        type: string
+        default: ""
       lsm_access_strategy:
         required: true
         type: string
@@ -28,6 +33,7 @@ on:
 
 env:
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
+  WEAVIATE_REAL_VERSION: ${{ inputs.weaviate_real_version }}
   DISABLE_RECOVERY_ON_PANIC: true
   ASYNC_INDEXING: ${{ inputs.async_indexing }}
 

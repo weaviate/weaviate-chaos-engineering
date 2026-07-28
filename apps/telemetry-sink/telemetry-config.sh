@@ -2,15 +2,23 @@
 #
 # Points the Weaviate under test at the local telemetry sink. TELEMETRY_URL only
 # landed in v1.36.0; older versions cannot be redirected, so telemetry is turned
-# off for them instead. An unparseable version counts as old, so it never leaks.
+# off for them instead.
 #
 #   eval "$(apps/telemetry-sink/telemetry-config.sh 1.36.0)"
+#
+# WEAVIATE_VERSION in CI is a Docker tag, not a version. When the argument does
+# not parse and WEAVIATE_REAL_VERSION is set, fall back to it so nightly/preview
+# builds resolve; an argument that is already a version is used as-is.
 
 set -eu
 
 version="${1:-}"
 
 url='http://telemetry-sink:8080/weaviate-telemetry'
+
+if ! [[ "$version" =~ ^[0-9]+\.[0-9]+ ]] && [ -n "${WEAVIATE_REAL_VERSION:-}" ]; then
+  version="$WEAVIATE_REAL_VERSION"
+fi
 
 major="${version%%.*}"
 rest="${version#*.}"
