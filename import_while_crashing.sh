@@ -24,6 +24,8 @@ docker run \
   -v "$PWD:$PWD" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
+  -e "DISABLE_TELEMETRY=${DISABLE_TELEMETRY:-true}" \
+  -e "TELEMETRY_URL=${TELEMETRY_URL:-}" \
   --name killer \
   killer
 

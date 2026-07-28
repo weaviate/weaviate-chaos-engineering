@@ -44,17 +44,46 @@ def service_env(svc):
     return {}
 
 
-def dotenv(path):
-    """KEY=VALUE pairs from a .env file, if it exists"""
-    out = {}
-    try:
-        for line in open(path):
-            k, sep, v = line.partition("=")
-            if sep:
-                out[k.strip()] = v.strip()
-    except OSError:
-        pass
-    return out
+docs = {}
+
+
+def compose_doc(path):
+    """parsed compose file, cached; None when it can't be read or parsed"""
+    if path not in docs:
+        try:
+            docs[path] = yaml.safe_load(open(path).read())
+        except (OSError, UnicodeDecodeError, yaml.YAMLError):
+            docs[path] = None
+    return docs[path]
+
+
+def resolved_env(path, svc, depth=0):
+    """service environment with `extends` merged in, the local block winning.
+
+    Returns (env, resolved); resolved is False when a referenced base could not
+    be read, leaving the merged env incomplete.
+    """
+    env = service_env(svc)
+    extends = svc.get("extends") if isinstance(svc.get("extends"), dict) else {}
+    if not extends or depth > 5:
+        return env, True
+    target = extends.get("file")
+    if target:
+        # $PWD is the repo root - compose is always invoked from there
+        target = target.replace("${PWD}", os.getcwd()).replace("$PWD", os.getcwd())
+        base_path = (
+            target if os.path.isabs(target) else os.path.normpath(os.path.join(os.path.dirname(path), target))
+        )
+    else:
+        base_path = path  # same-file extends
+    doc = compose_doc(base_path)
+    services = doc.get("services") if isinstance(doc, dict) else None
+    base = (services or {}).get(extends.get("service"))
+    if not isinstance(base, dict):
+        return env, False
+    base_env, resolved = resolved_env(base_path, base, depth + 1)
+    return {**base_env, **env}, resolved
+
 
 # file types that can actually start a container; docs mention images too
 KINDS = (".yml", ".yaml", ".go", ".sh", ".env")
@@ -68,10 +97,7 @@ for path in subprocess.run(["git", "ls-files"], capture_output=True, text=True).
         continue
     scanned += 1
 
-    # 1. per service: a weaviate service must either hard-disable telemetry or
-    #    name the sink. A ${DISABLE_TELEMETRY:-...} passthrough can resolve to
-    #    enabled at runtime, so a node copy-pasted without its TELEMETRY_URL is
-    #    caught even though the block still mentions TELEMETRY.
+    # 1. per service: unless it hard-disables telemetry it must name the sink
     had_service = False
     if path.endswith((".yml", ".yaml")):
         try:
@@ -92,30 +118,25 @@ for path in subprocess.run(["git", "ls-files"], capture_output=True, text=True).
             sources.add(path)
             had_service = True
 
-            env = service_env(svc)
-            # a list-form `- DISABLE_TELEMETRY` passes the value through from the
-            # sibling .env, so resolve it there
-            if "DISABLE_TELEMETRY" in env and not env["DISABLE_TELEMETRY"]:
-                env = {**dotenv(os.path.join(os.path.dirname(path), ".env")), **{k: v for k, v in env.items() if v}}
+            env, resolved = resolved_env(path, svc)
+            # only a literal value disables; a passthrough can be flipped on by
+            # the shell env (which outranks .env), so it still owes a URL
             disable = env.get("DISABLE_TELEMETRY", "").strip("'\"").lower()
             url = env.get("TELEMETRY_URL", "")
-            # extends pulls telemetry from the referenced service, not visible here
-            if extends:
-                continue
-            if disable in ("true", "1", "on"):
+            if not resolved:
+                bad.append(f"{path}: service '{name}' extends a service that could not be resolved")
+            elif disable in ("true", "1", "on"):
                 continue  # hard-disabled, no destination needed
-            if not url:
+            elif not url:
                 bad.append(f"{path}: service '{name}' may enable telemetry but names no TELEMETRY_URL")
             elif "$" not in url and SINK not in url:
                 bad.append(f"{path}: service '{name}' sends telemetry to {url}, not the local sink")
 
-    # rule 1 fully covers a compose file's services; the file-level rules below
-    # are for the other shapes (Go, shell, .env, non-compose yaml)
+    # rule 1 covers compose services; the rest are for Go, shell, non-compose yaml
     if had_service:
         continue
 
-    # 2. whatever the shape - compose, testcontainer, docker run, an image held in
-    #    a const or a shell variable - the file has to mention telemetry
+    # 2. any other shape naming a weaviate image has to mention telemetry
     if IMAGE.search(src):
         sources.add(path)
         if "TELEMETRY" not in src:
@@ -159,7 +180,10 @@ Telemetry is on by default, so anything running weaviate must say where it goes:
 
   DISABLE_TELEMETRY: 'true'                                  opt out entirely, or
   TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
-  DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-}'                 report to the local sink
+  DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'             report to the local sink
+
+The :-true default matters: an empty default leaves telemetry on when the
+variable is unset, which is how it reaches the production endpoint.
 
 Pointing it anywhere other than the local sink reports to the production
 endpoint. See apps/telemetry-sink."""

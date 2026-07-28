@@ -34,6 +34,8 @@ docker run \
   --network host \
   --rm -t -d \
   -e "WEAVIATE_VERSION=$WEAVIATE_VERSION" \
+  -e "DISABLE_TELEMETRY=${DISABLE_TELEMETRY:-true}" \
+  -e "TELEMETRY_URL=${TELEMETRY_URL:-}" \
   -v "$PWD:$PWD" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \

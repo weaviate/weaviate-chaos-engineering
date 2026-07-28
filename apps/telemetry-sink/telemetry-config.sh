@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 #
-# Points the Weaviate under test at the local telemetry sink. TELEMETRY_URL only
-# landed in v1.36.0; older versions cannot be redirected, so telemetry is turned
-# off for them instead.
+# Points the Weaviate under test at the local telemetry sink, or off below
+# v1.36.0 where TELEMETRY_URL does not exist. Resolve via BASH_SOURCE, not cwd:
 #
-#   eval "$(apps/telemetry-sink/telemetry-config.sh 1.36.0)"
+#   eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" 1.36.0)"
 #
-# WEAVIATE_VERSION in CI is a Docker tag, not a version. When the argument does
-# not parse and WEAVIATE_REAL_VERSION is set, fall back to it so nightly/preview
-# builds resolve; an argument that is already a version is used as-is.
+# A tag that does not parse (nightly, preview-...) falls back to
+# WEAVIATE_REAL_VERSION; an argument that is already a version is used as-is.
 
 set -eu
 
-# strip a leading v so this agrees with the Go gate (hashicorp/go-version, which
-# accepts v1.36.0) on the same inputs
+# strip a leading v so v1.36.0 agrees with the Go gate
 version="${1:-}"
 version="${version#v}"
 
