@@ -19,13 +19,13 @@ import (
 	"github.com/weaviate/weaviate-go-client/v5/weaviate"
 )
 
-func buildVersionList(ctx context.Context, min, target string) ([]string, error) {
+func buildVersionList(ctx context.Context, c *cluster, min, target string) ([]string, error) {
 	ghReleases, err := retrieveVersionListFromGH()
 	if err != nil {
 		return nil, err
 	}
 
-	max, err := getTargetVersion(ctx, target)
+	max, err := getTargetVersion(ctx, c, target)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -216,8 +216,9 @@ func (s semverList) toStringList() []string {
 }
 
 // Spawn a Weaviate container to get the version as it is not possible to infer the version from the container image
-func getTargetVersion(ctx context.Context, version string) (string, error) {
+func getTargetVersion(ctx context.Context, cl *cluster, version string) (string, error) {
 	weaviateImage := fmt.Sprintf("semitechnologies/weaviate:%s", version)
+	telemetryDisable, telemetryPush := telemetryFor(version)
 	env := map[string]string{
 		"AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED": "true",
 		"LOG_LEVEL":                 "debug",
@@ -227,10 +228,13 @@ func getTargetVersion(ctx context.Context, version string) (string, error) {
 		"CLUSTER_HOSTNAME":          "weaviate-test",
 		"RAFT_JOIN":                 "weaviate-test:8300",
 		"RAFT_BOOTSTRAP_EXPECT":     "1",
+		"DISABLE_TELEMETRY":         telemetryDisable,
+		"TELEMETRY_URL":             telemetryPush,
 	}
 	req := testcontainers.ContainerRequest{
 		Image:        weaviateImage,
 		ExposedPorts: []string{"8080/tcp"},
+		Networks:     []string{cl.networkName},
 		Env:          env,
 		WaitingFor: wait.
 			ForHTTP("/v1/.well-known/ready").

@@ -66,6 +66,9 @@ function run_tests() {
   export WEAVIATE_TEST_VERSION=$weaviate_version
   echo_yellow "Create collections on Weaviate v$weaviate_version"
 
+  # each step pins its own version, so this is decided per step
+  eval "$("$(dirname "${BASH_SOURCE[0]}")/../telemetry-sink/telemetry-config.sh" "$weaviate_version")"
+
   echo_yellow "Starting v$weaviate_version docker compose"
   docker compose up -d
 

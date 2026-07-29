@@ -12,6 +12,7 @@ function echo_green() {
 
 function wait_weaviate() {
   local port="${1:-8080}" # Set default port to 8080 if $1 is not provided
+  local compose_type="${2:-single}"
   echo "Wait for Weaviate to be ready"
   for _ in {1..120}; do
     if curl -sf -o /dev/null localhost:$port/v1/.well-known/ready; then
@@ -22,16 +23,19 @@ function wait_weaviate() {
     echo "Weaviate is not ready on $port, trying again in 1s"
     sleep 1
   done
-  echo "ERROR: Weaviate is not ready in port ${port} after 120s"  
+  echo "ERROR: Weaviate is not ready in port ${port} after 120s"
+  # this job archives no artifacts, so dump enough to tell why it never came up
+  docker compose -f docker-compose-$compose_type.yml ps -a
+  docker compose -f docker-compose-$compose_type.yml logs --tail 200
   exit 1
 }
 
 function wait_weaviates() {
   if [[ "$1" == "cluster" ]]; then
-    wait_weaviate 8081
-    wait_weaviate 8082
+    wait_weaviate 8081 "$1"
+    wait_weaviate 8082 "$1"
   fi
-  wait_weaviate
+  wait_weaviate 8080 "$1"
 }
 
 function prepare_env() {

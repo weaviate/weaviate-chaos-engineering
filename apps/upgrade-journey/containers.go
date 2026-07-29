@@ -11,12 +11,38 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	hashicorpversion "github.com/hashicorp/go-version"
 	"github.com/testcontainers/testcontainers-go"
 	tescontainersnetwork "github.com/testcontainers/testcontainers-go/network"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
 var counter int
+
+const (
+	telemetrySinkHost = "telemetry-sink"
+	telemetryURL      = "http://" + telemetrySinkHost + ":8080/weaviate-telemetry"
+
+	// TELEMETRY_URL landed in this version; older nodes cannot be redirected
+	telemetryMinMajor = 1
+	telemetryMinMinor = 36
+)
+
+// telemetryFor points a node at the local sink, or turns telemetry off when it
+// is too old to honour TELEMETRY_URL. Compared on major.minor so a prerelease
+// such as 1.36.0-rc.0 counts as 1.36 rather than sorting below it.
+func telemetryFor(version string) (disable, url string) {
+	if v, err := hashicorpversion.NewVersion(version); err == nil {
+		s := v.Segments()
+		if s[0] > telemetryMinMajor || (s[0] == telemetryMinMajor && s[1] >= telemetryMinMinor) {
+			return "", telemetryURL
+		}
+	}
+
+	log.Printf("telemetry: disabled for %s, TELEMETRY_URL needs v%d.%d or newer",
+		version, telemetryMinMajor, telemetryMinMinor)
+	return "true", ""
+}
 
 type stdoutLogConsumer struct{}
 
@@ -25,10 +51,11 @@ func (lc *stdoutLogConsumer) Accept(l testcontainers.Log) {
 }
 
 type cluster struct {
-	nodeCount   int
-	networkName string
-	rootDir     string
-	containers  []testcontainers.Container
+	nodeCount     int
+	networkName   string
+	rootDir       string
+	containers    []testcontainers.Container
+	telemetrySink testcontainers.Container
 }
 
 func newCluster(nodeCount int) *cluster {
@@ -97,6 +124,32 @@ func (c *cluster) startNetwork(ctx context.Context) error {
 	return nil
 }
 
+// startTelemetrySink must run before any Weaviate container, which pushes on boot.
+func (c *cluster) startTelemetrySink(ctx context.Context) error {
+	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			FromDockerfile: testcontainers.FromDockerfile{
+				Context: path.Join(c.rootDir, "..", "telemetry-sink"),
+			},
+			Hostname:       telemetrySinkHost,
+			Networks:       []string{c.networkName},
+			NetworkAliases: map[string][]string{c.networkName: {telemetrySinkHost}},
+			ExposedPorts:   []string{"8080/tcp"},
+			WaitingFor: wait.
+				ForHTTP("/").
+				WithPort(nat.Port("8080")).
+				WithStartupTimeout(2 * time.Minute),
+		},
+		Started: true,
+	})
+	if err != nil {
+		return fmt.Errorf("start telemetry sink: %w", err)
+	}
+
+	c.telemetrySink = container
+	return nil
+}
+
 func (c *cluster) volumePath(nodeId int) string {
 	return path.Join(c.rootDir, "data/", c.hostname(nodeId))
 }
@@ -109,6 +162,7 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 
 	containerLogger := stdoutLogConsumer{}
 	image := fmt.Sprintf("semitechnologies/weaviate:%s", version)
+	telemetryDisable, telemetryPush := telemetryFor(version)
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		Logger: log.Default(),
 		ContainerRequest: testcontainers.ContainerRequest{
@@ -131,7 +185,8 @@ func (c *cluster) startWeaviateNode(ctx context.Context, nodeId int, version str
 				"CLUSTER_JOIN":                            c.allNodes(),
 				"RAFT_JOIN":                               fmt.Sprintf("%s,%s,%s", c.hostname(0), c.hostname(1), c.hostname(2)),
 				"RAFT_BOOTSTRAP_EXPECT":                   "1",
-				"DISABLE_TELEMETRY":                       "true",
+				"DISABLE_TELEMETRY":                       telemetryDisable,
+				"TELEMETRY_URL":                           telemetryPush,
 				"PERSISTENCE_LSM_ACCESS_STRATEGY":         os.Getenv("PERSISTENCE_LSM_ACCESS_STRATEGY"),
 				"ASYNC_INDEXING":                          os.Getenv("ASYNC_INDEXING"),
 			},

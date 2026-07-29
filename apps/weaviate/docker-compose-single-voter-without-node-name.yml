@@ -1,6 +1,7 @@
 ---
 services:
   weaviate-node-1:
+    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -27,8 +28,14 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       RAFT_ENABLE_ONE_NODE_RECOVERY: 'true'
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
-      DISABLE_TELEMETRY: 'true'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
       RAFT_SNAPSHOT_THRESHOLD: 1
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
+
+  telemetry-sink:
+    extends:
+      file: ../telemetry-sink/docker-compose.yml
+      service: telemetry-sink

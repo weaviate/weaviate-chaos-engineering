@@ -22,6 +22,8 @@ services:
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_API_BASED_MODULES: 'true'
       CLUSTER_HOSTNAME: 'node1'
+      # keep off: v1.25/v1.26 run on this data dir and panic replaying a
+      # telemetry-enabled node's cluster-id raft entry
       DISABLE_TELEMETRY: 'true'
       PERSISTENCE_LSM_ACCESS_STRATEGY: "${PERSISTENCE_LSM_ACCESS_STRATEGY}"
 ...
