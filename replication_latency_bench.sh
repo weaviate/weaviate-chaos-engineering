@@ -37,6 +37,9 @@ run_phase() {
   rm -rf apps/weaviate/data* 2>/dev/null || sudo rm -rf apps/weaviate/data* || true
 
   export WEAVIATE_VERSION="$version"
+  # common.sh decided for the candidate; a baseline phase runs a different one,
+  # and below v1.36 TELEMETRY_URL is ignored, so the gate has to be re-run here
+  eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "$version")"
   echo "=== bring up weaviate:$version (long-lived, $ROUNDS rounds) ==="
   docker compose -f "$COMPOSE" up -d weaviate-node-1 weaviate-node-2 weaviate-node-3
   wait_weaviate 8080 180 weaviate-node-1
