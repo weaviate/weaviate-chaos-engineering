@@ -1,6 +1,7 @@
 ---
 services:
   weaviate-node-1:
+    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -32,13 +33,15 @@ services:
       RAFT_JOIN: 'node1,node2,node3'
       RAFT_BOOTSTRAP_EXPECT: 3
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
-      DISABLE_TELEMETRY: 'true'
       PROMETHEUS_MONITORING_ENABLED: 'true'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
 
   weaviate-node-2:
+    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -70,13 +73,15 @@ services:
       RAFT_JOIN: 'node1,node2,node3'
       RAFT_BOOTSTRAP_EXPECT: 3
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
-      DISABLE_TELEMETRY: 'true'
       PROMETHEUS_MONITORING_ENABLED: 'true'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
 
   weaviate-node-3:
+    depends_on: [telemetry-sink]
     init: true
     command:
     - --host
@@ -108,12 +113,12 @@ services:
       RAFT_JOIN: 'node1,node2,node3'
       RAFT_BOOTSTRAP_EXPECT: 3
       PERSISTENCE_LSM_ACCESS_STRATEGY: '${PERSISTENCE_LSM_ACCESS_STRATEGY}'
-      DISABLE_TELEMETRY: 'true'
       PROMETHEUS_MONITORING_ENABLED: 'true'
+      DISABLE_TELEMETRY: '${DISABLE_TELEMETRY:-true}'
+      TELEMETRY_URL: 'http://telemetry-sink:8080/weaviate-telemetry'
       PERSISTENCE_HNSW_MAX_LOG_SIZE: '${PERSISTENCE_HNSW_MAX_LOG_SIZE:-1MB}'
       PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS: '${PERSISTENCE_HNSW_SNAPSHOT_INTERVAL_SECONDS:-30}'
       PERSISTENCE_HNSW_DISABLE_SNAPSHOTS: '${PERSISTENCE_HNSW_DISABLE_SNAPSHOTS:-false}'
-
   # ── monitoring (optional): Prometheus scrapes all 3 nodes, Grafana renders the
   # replica-RPC dashboard. Start with: docker compose -f <this> up -d prometheus grafana
   # then open http://localhost:3000 (anonymous admin). Not needed for the bench itself.
@@ -140,3 +145,7 @@ services:
     depends_on:
       - prometheus
     restart: on-failure:0
+  telemetry-sink:
+    extends:
+      file: ../telemetry-sink/docker-compose.yml
+      service: telemetry-sink

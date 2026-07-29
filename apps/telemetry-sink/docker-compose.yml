@@ -1,0 +1,11 @@
+---
+services:
+  telemetry-sink:
+    build: .
+    # as PID 1 the server would ignore SIGTERM, so every stop waits out 10s
+    init: true
+    # pinned: the default name contains "weaviate" in some projects, and the
+    # chaos killers pick victims with `docker ps -qf name=weaviate`
+    container_name: telemetry-sink
+    environment:
+      PORT: 8080

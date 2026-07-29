@@ -23,6 +23,8 @@ docker run \
   -e "SLEEP_END=5" \
   -e "WEAVIATE_VERSION=${WEAVIATE_VERSION}" \
   -e "CHAOTIC_KILL_DOCKER=y" \
+  -e "DISABLE_TELEMETRY=${DISABLE_TELEMETRY:-true}" \
+  -e "TELEMETRY_URL=${TELEMETRY_URL:-}" \
   -w "$PWD" \
   -v /var/run/docker.sock:/var/run/docker.sock \
   --name killer \

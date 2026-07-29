@@ -63,6 +63,9 @@ for pair in "${!filtered_version_pairs[@]}"; do
 
   export COMPOSE="apps/weaviate/docker-compose-backup.yml"
 
+  # both nodes share one compose-level setting, so the older version decides
+  eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "$(printf '%s\n%s\n' "$backup_version" "$restore_version" | sort -V | head -1)")"
+
   echo "Starting Weaviate cluster..."
   docker compose -f $COMPOSE up -d weaviate-node-1 weaviate-backup-node backup-s3
 

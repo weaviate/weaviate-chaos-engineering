@@ -2,6 +2,9 @@
 
 set -e
 
+# telemetry: local sink from v1.36, off below that (apps/telemetry-sink)
+eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${WEAVIATE_VERSION:-}")"
+
 function wait_weaviate_cluster() {
   echo "Wait for Weaviate to be ready"
   local node1_ready=false

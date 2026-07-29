@@ -37,10 +37,14 @@ class StressTest:
             f"means: control={(mean_lower*1000):.2f}ms rolling_average={(mean_upper*1000):.2f}ms (over last {upper_count} cycles)"
         )
 
-        ratio = abs((mean_lower - mean_upper) / mean_lower)
+        # Only a slowdown signals the leak: a leak makes each cycle progressively
+        # slower, so the rolling average climbs above control. A faster rolling
+        # average just means the control window captured cold-start warmup, so
+        # keep the check one-sided rather than using abs().
+        ratio = (mean_upper - mean_lower) / mean_lower
 
         if ratio > 0.3:
-            logger.error(f"rolling average is too different from control: {ratio * 100}%")
+            logger.error(f"rolling average is too much slower than control: {ratio * 100}%")
             sys.exit(1)
 
 

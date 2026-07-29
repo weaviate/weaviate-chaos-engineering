@@ -20,6 +20,8 @@ services:
       RAFT_INTERNAL_RPC_PORT: "8301"
       RAFT_JOIN: "node1:8300,node2:8300,node3:8300"
       RAFT_BOOTSTRAP_EXPECT: "3"
+      # keep off: v1.25/v1.26 run on this data dir and panic replaying a
+      # telemetry-enabled node's cluster-id raft entry
       DISABLE_TELEMETRY: 'true'
       DEFAULT_VECTORIZER_MODULE: "none"
       PERSISTENCE_LSM_ACCESS_STRATEGY: "${PERSISTENCE_LSM_ACCESS_STRATEGY}"
