@@ -56,7 +56,7 @@ async def main() -> int:
         tasks = [
             asyncio.create_task(tenants_worker(stop, clients, cfg, model, findings)),
             asyncio.create_task(mutate_supervisor(stop, clients, cfg, model, findings)),
-            asyncio.create_task(backup_worker(stop, clients, cfg, backup_state)),
+            asyncio.create_task(backup_worker(stop, clients, cfg, model, backup_state)),
             asyncio.create_task(moves_worker(stop, clients, cfg, model, findings)),
         ]
         logger.info("Chaos running for {d}s ...", d=cfg.duration)

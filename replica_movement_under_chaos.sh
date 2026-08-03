@@ -44,18 +44,20 @@ echo "Short gRPC settle"
 sleep 5
 
 echo "Building the test container"
-( cd apps/replica-movement-chaos/py && docker build -t replica_movement_chaos . )
+( cd apps/replica-movement-chaos && docker build -t replica_movement_chaos . )
 
-WEAVIATE_NODES="weaviate-0=localhost:8080:50051,weaviate-1=localhost:8081:50052,weaviate-2=localhost:8082:50053"
+WEAVIATE_NODES="weaviate-0=host.docker.internal:8080:50051,weaviate-1=host.docker.internal:8081:50052,weaviate-2=host.docker.internal:8082:50053"
 
 # Forward any tunables that are set in the environment through to the container.
 docker_env_args=()
 for var in DURATION COLLECTION TENANT_COUNT OBJECTS_PER_TENANT REPLICATION_FACTOR \
   BACKUP_ENABLED BACKUP_BACKEND BACKUP_DELAY_MIN BACKUP_DELAY_MAX \
+  BACKUP_RESTORE_ENABLED BACKUP_RESTORE_MIN_FRACTION RESTORE_TIMEOUT RESTORE_VERIFY_TIMEOUT \
   MUTATE_CONCURRENCY MUTATE_INTERVAL_MS TENANT_INTERVAL_MS TENANT_CONFLICT_INJECT_RATE \
   MOVE_INTERVAL_MS MOVE_MAX_INFLIGHT MOVE_CONFLICT_INJECT_RATE MOVE_POLL_INTERVAL \
   PREFLIGHT_MOVE_TIMEOUT RETRY_BUDGET RETRY_BACKOFF_MS SETTLE_TIMEOUT DRAIN_TIMEOUT \
-  NODE_LOCAL_SAMPLE NODE_LOCAL_CONCURRENCY SEED; do
+  NODE_LOCAL_SAMPLE NODE_LOCAL_CONCURRENCY NODE_LOCAL_CONVERGE_TIMEOUT \
+  VERIFY_TIMEOUT VERIFY_CONCURRENCY SEED; do
   if [ -n "${!var:-}" ]; then
     docker_env_args+=(-e "${var}=${!var}")
   fi
@@ -71,7 +73,7 @@ container_id=$(docker run -d --network host \
   -t replica_movement_chaos python3 run.py)
 
 echo "Following logs until the test completes"
-docker logs -ft "$container_id"
+docker logs -f "$container_id"
 
 exit_code=$(docker inspect "$container_id" --format='{{.State.ExitCode}}')
 echo "Container exited with code $exit_code"

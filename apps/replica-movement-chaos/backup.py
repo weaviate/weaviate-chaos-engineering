@@ -8,14 +8,16 @@ spurious FAILED — a timeout/cancel is recorded as a partial status.
 import asyncio
 import random
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
+import weaviate
 from loguru import logger
 from weaviate.classes.backup import BackupStorage
 
 from clients import Clients
 from config import Config
+from model import Model
 
 
 @dataclass
@@ -25,6 +27,9 @@ class BackupState:
     status: str | None = None  # SUCCESS / FAILED / TIMEOUT / CANCELLED_DRAIN / None
     completed: bool = False
     error: str | None = None
+    # Per-tenant object count captured (from the live model) just before backup.create. Approximate
+    # by design — the restore check uses it only as a LOWER bound (C8/F8).
+    backup_snapshot: dict[str, int] = field(default_factory=dict)
 
 
 def _status_of(res: Any) -> str:
@@ -37,6 +42,7 @@ async def backup_worker(
     stop: asyncio.Event,
     clients: Clients,
     cfg: Config,
+    model: Model,
     state: BackupState,
 ) -> None:
     if not cfg.backup_enabled:
@@ -55,6 +61,9 @@ async def backup_worker(
     bid = f"{cfg.collection.lower()}-{uuid.uuid4().hex[:12]}"
     backend = BackupStorage[cfg.backup_backend.upper()]
     state.backup_id = bid
+    # Snapshot per-tenant counts at backup START as the restore lower bound. Synchronous dict-comp
+    # (no await) so it reads a coherent instant of the live model without racing the mutate workers.
+    state.backup_snapshot = {t: len(model.objects[t]) for t in cfg.tenant_names}
     logger.info("Starting backup {bid} (backend={be})", bid=bid, be=cfg.backup_backend)
 
     try:
@@ -83,3 +92,29 @@ async def backup_worker(
         state.status = "FAILED"
         state.error = repr(e)
         logger.error("Backup {bid} raised: {e!r}", bid=bid, e=e)
+
+
+async def restore_backup(coord: weaviate.WeaviateAsyncClient, cfg: Config, backup_id: str) -> str:
+    """Restore a completed backup, recreating the ORIGINAL collection + its tenants. Isolated
+    doc-sourced ``client.backup.restore``, mirroring the create path: ``wait_for_completion`` drives
+    the restore-status poll internally and raises on a FAILED/CANCELED terminal. Returns the terminal
+    status string ('SUCCESS' / 'FAILED' / 'TIMEOUT'). Live-validated only (D4)."""
+    backend = BackupStorage[cfg.backup_backend.upper()]
+    logger.info("Restoring backup {bid} (backend={be})", bid=backup_id, be=cfg.backup_backend)
+    try:
+        res = await asyncio.wait_for(
+            coord.backup.restore(
+                backup_id=backup_id,
+                backend=backend,
+                include_collections=[cfg.collection],
+                wait_for_completion=True,
+            ),
+            timeout=cfg.restore_timeout,
+        )
+        return _status_of(res)
+    except asyncio.TimeoutError:
+        logger.error("Restore of {bid} timed out after {t}s", bid=backup_id, t=cfg.restore_timeout)
+        return "TIMEOUT"
+    except Exception as e:  # BackupFailedException / connection error -> a FINDING at the caller
+        logger.error("Restore of {bid} raised: {e!r}", bid=backup_id, e=e)
+        return "FAILED"

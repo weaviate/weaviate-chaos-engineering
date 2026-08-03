@@ -41,6 +41,10 @@ _TRANSIENT_SUBSTRINGS = (
     "broken pipe",
     "reset by peer",
     "temporarily",
+    # A CL.ALL write racing the tenants worker's concurrent deactivate can hit 422 "tenant not
+    # active"; auto_tenant_activation reactivates it, so the idempotent retry succeeds. A tenant
+    # that is permanently un-activatable still FINDINGs via AckBudgetExceeded once the budget runs.
+    "not active",
 )
 
 

@@ -12,6 +12,8 @@ from typing import Any
 
 from loguru import logger
 from weaviate.classes.config import ConsistencyLevel
+from weaviate import WeaviateAsyncClient
+from weaviate.collections import CollectionAsync
 
 from clients import Clients
 from config import Config
@@ -71,9 +73,9 @@ async def _mutate_worker(
             await asyncio.sleep(cfg.mutate_interval_ms / 1000.0)
 
 
-def _make_ct(client: Any, cfg: Config, tenant: str) -> Any:
+def _make_ct(client: WeaviateAsyncClient, cfg: Config, tenant: str) -> CollectionAsync:
     return (
-        client.collections.get(cfg.collection)
+        client.collections.use(cfg.collection)
         .with_tenant(tenant)
         .with_consistency_level(ConsistencyLevel.ALL)
     )

@@ -7,13 +7,13 @@ call is required for a clean 422 assertion. DEACTIVATE mid-move is the guarded p
 
 import asyncio
 import random
-from typing import Any
 
 from loguru import logger
 
 from clients import Clients
 from config import Config
 from model import Findings, Model, exc_status_code, has_substring
+from weaviate.collections import CollectionAsync
 
 _MOVE_GUARD_SUBSTRING = "replica movement in progress"
 
@@ -25,7 +25,7 @@ async def tenants_worker(
     model: Model,
     findings: Findings,
 ) -> None:
-    col = clients.coordinator.collections.get(cfg.collection)
+    col = clients.coordinator.collections.use(cfg.collection)
     while not stop.is_set():
         tenant, force_deactivate = _pick(cfg, model)
         if force_deactivate or model.tenant_status[tenant] == "ACTIVE":
@@ -44,9 +44,9 @@ def _pick(cfg: Config, model: Model) -> tuple[str, bool]:
     return random.choice(cfg.tenant_names), False
 
 
-async def _deactivate(col: Any, tenant: str, model: Model, findings: Findings) -> None:
+async def _deactivate(col: CollectionAsync, tenant: str, model: Model, findings: Findings) -> None:
     try:
-        await col.tenants.deactivate([tenant])
+        await col.tenants.deactivate(tenant)
         model.tenant_status[tenant] = "INACTIVE"
         model.counters.deactivations += 1
     except Exception as e:
@@ -57,9 +57,9 @@ async def _deactivate(col: Any, tenant: str, model: Model, findings: Findings) -
             findings.add(f"deactivate({tenant}) unexpected failure (expected 422+guard): {e!r}")
 
 
-async def _activate(col: Any, tenant: str, model: Model, findings: Findings) -> None:
+async def _activate(col: CollectionAsync, tenant: str, model: Model, findings: Findings) -> None:
     try:
-        await col.tenants.activate([tenant])
+        await col.tenants.activate(tenant)
         model.tenant_status[tenant] = "ACTIVE"
         model.counters.activations += 1
     except Exception as e:

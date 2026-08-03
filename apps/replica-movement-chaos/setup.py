@@ -1,5 +1,6 @@
 """Collection creation + CL.ALL seed of the authoritative model."""
 
+import asyncio
 from typing import Any
 
 import weaviate
@@ -7,6 +8,7 @@ from loguru import logger
 from weaviate.classes.config import ConsistencyLevel, Configure, DataType, Property
 from weaviate.classes.data import DataObject
 from weaviate.classes.tenants import Tenant
+from weaviate.collections import CollectionAsync
 from weaviate.util import generate_uuid5
 
 from config import Config
@@ -39,7 +41,7 @@ async def create_collection(coord: weaviate.WeaviateAsyncClient, cfg: Config) ->
             auto_tenant_creation=True,
             auto_tenant_activation=True,
         ),
-        replication_config=Configure.replication(factor=cfg.rf),
+        replication_config=Configure.replication(factor=cfg.rf, async_enabled=True),
         vector_config=Configure.Vectors.self_provided(),
     )
     logger.info(
@@ -50,32 +52,39 @@ async def create_collection(coord: weaviate.WeaviateAsyncClient, cfg: Config) ->
 
 
 async def create_tenants(coord: weaviate.WeaviateAsyncClient, cfg: Config) -> None:
-    col = coord.collections.get(cfg.collection)
+    col = coord.collections.use(cfg.collection)
     await col.tenants.create([Tenant(name=t) for t in cfg.tenant_names])
     logger.info("Created {n} tenants", n=len(cfg.tenant_names))
 
 
 async def seed(coord: weaviate.WeaviateAsyncClient, cfg: Config, model: Model) -> None:
-    for t in cfg.tenant_names:
-        ct = (
-            coord.collections.get(cfg.collection)
-            .with_tenant(t)
-            .with_consistency_level(ConsistencyLevel.ALL)
-        )
-        for start in range(0, cfg.objects_per_tenant, SEED_CHUNK):
-            chunk = [
-                (object_id(t, idx), seed_payload(t, idx))
-                for idx in range(start, min(start + SEED_CHUNK, cfg.objects_per_tenant))
-            ]
-            await _insert_chunk(ct, chunk, tenant=t)
-            for oid, payload in chunk:
-                model.objects[t][oid] = payload
-        model._next_idx[t] = cfg.objects_per_tenant
-        model.counters.seeded += cfg.objects_per_tenant
-        logger.info("Seeded tenant {t}: {n} objects at CL.ALL", t=t, n=cfg.objects_per_tenant)
+    await asyncio.gather(*[seed_tenant(coord, cfg, model, t) for t in cfg.tenant_names])
 
 
-async def _insert_chunk(ct: Any, chunk: list[tuple[str, dict[str, Any]]], *, tenant: str) -> None:
+async def seed_tenant(
+    coord: weaviate.WeaviateAsyncClient, cfg: Config, model: Model, tenant: str
+) -> None:
+    ct = (
+        coord.collections.use(cfg.collection)
+        .with_tenant(tenant)
+        .with_consistency_level(ConsistencyLevel.ALL)
+    )
+    for start in range(0, cfg.objects_per_tenant, SEED_CHUNK):
+        chunk = [
+            (object_id(tenant, idx), seed_payload(tenant, idx))
+            for idx in range(start, min(start + SEED_CHUNK, cfg.objects_per_tenant))
+        ]
+        await _insert_chunk(ct, chunk, tenant=tenant)
+        for oid, payload in chunk:
+            model.objects[tenant][oid] = payload
+    model._next_idx[tenant] = cfg.objects_per_tenant
+    model.counters.seeded += cfg.objects_per_tenant
+    logger.info("Seeded tenant {t}: {n} objects at CL.ALL", t=tenant, n=cfg.objects_per_tenant)
+
+
+async def _insert_chunk(
+    ct: CollectionAsync, chunk: list[tuple[str, dict[str, Any]]], *, tenant: str
+) -> None:
     objs = [DataObject(properties=p, uuid=oid) for oid, p in chunk]
     for attempt in range(10):
         res = await ct.data.insert_many(objs)
