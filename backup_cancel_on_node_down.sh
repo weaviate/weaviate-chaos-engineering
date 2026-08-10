@@ -70,10 +70,27 @@ function start_operation() {
   echo "$kind $id started"
 }
 
+function wait_for_cluster_convergence() {
+  # Readiness on node1 only means the node itself is up; gossip may not have
+  # re-learned the other nodes' addresses yet, and a backup needs all of them.
+  local retries=60 healthy
+  for ((i=1; i<=retries; i++)); do
+    healthy=$(curl -s localhost:8080/v1/nodes | jq -r '[.nodes[]? | select(.status == "HEALTHY")] | length')
+    echo "cluster convergence: ${healthy:-0}/3 nodes HEALTHY (attempt $i/$retries)"
+    if [ "$healthy" = "3" ]; then
+      return 0
+    fi
+    sleep 2
+  done
+  echo "ERROR: cluster did not converge to 3 HEALTHY nodes after $retries attempts"
+  return 1
+}
+
 function restart_node_1() {
   echo "Restarting node1"
   docker compose -f $COMPOSE up -d weaviate-node-1
   wait_weaviate 8080 120 weaviate-node-1
+  wait_for_cluster_convergence
 }
 
 echo "Building all required containers"
