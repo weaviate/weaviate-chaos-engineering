@@ -27,7 +27,7 @@ function get_status() {
   if [ "$kind" = "restore" ]; then
     url="${url}/restore"
   fi
-  curl -s "$url" | jq -r '.status // empty'
+  curl -sS "$url" 2>/dev/null | jq -r '.status // empty' 2>/dev/null || true
 }
 
 function wait_for_status() {
