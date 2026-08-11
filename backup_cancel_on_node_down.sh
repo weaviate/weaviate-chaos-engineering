@@ -136,14 +136,28 @@ wait_for_status backup 8080 "$RESTORE_SOURCE_ID" SUCCESS 300
 echo "Deleting DemoClass so it can be restored"
 curl -sf -XDELETE localhost:8080/v1/schema/DemoClass > /dev/null
 
+deleted=false
 for _ in {1..30}; do
-  if ! curl -s localhost:8080/v1/schema | jq -e '.classes[]? | select(.class == "DemoClass")' > /dev/null; then
+  schema=$(curl -sf localhost:8080/v1/schema 2>/dev/null || true)
+  if [ -z "$schema" ]; then
+    echo "Failed to fetch schema, waiting..."
+    sleep 2
+    continue
+  fi
+
+  if ! echo "$schema" | jq -e '.classes[]? | select(.class == "DemoClass")' > /dev/null; then
     echo "DemoClass deleted"
+    deleted=true
     break
   fi
   echo "DemoClass still present, waiting..."
   sleep 2
 done
+
+if [ "$deleted" != "true" ]; then
+  echo "ERROR: DemoClass was not deleted after waiting"
+  exit 1
+fi
 
 echo ""
 echo "=== Test 2: restore is CANCELED when the coordinating node goes down ==="
