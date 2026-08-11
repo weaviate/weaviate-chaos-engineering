@@ -1371,8 +1371,8 @@ jobs:
   backup-restore-cancel-on-node-down:
     name: Backup & Restore cancelled when the coordinating node goes down
     runs-on: ubicloud-standard-4
-    needs: [newer-or-equal-than-1_31]
-    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'backup-restore-cancel-on-node-down' || github.event.inputs.test_to_run == '') }}
+    needs: [newer-or-equal-than-1_39]
+    if: ${{ (needs.newer-or-equal-than-1_39.outputs.check == 'true') && (github.event.inputs.test_to_run == 'backup-restore-cancel-on-node-down' || github.event.inputs.test_to_run == '') }}
     timeout-minutes: 60
     env:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
