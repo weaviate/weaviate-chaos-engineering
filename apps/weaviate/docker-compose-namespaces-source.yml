@@ -1,0 +1,106 @@
+---
+# Namespaced source cluster for namespace_graduation.sh, plus the minio both clusters back up to.
+# Single node, so the backup descriptor names only `node1` — the name the target also carries, which
+# is what lets the restore resolve every descriptor node without a node_mapping.
+#
+# Brought up as compose project `nsgrad-src` by namespace_graduation.sh, which also creates the
+# external `nsgrad-shared` network. Storage is named volumes, not $PWD bind mounts, so that
+# `docker compose down -v` cleans up without privilege.
+services:
+  weaviate:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    - --write-timeout
+    - 600s
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
+    ports:
+    - 18080:8080
+    - 18090:50051
+    restart: on-failure:0
+    volumes:
+    - nsgrad-src-node-1:/var/lib/weaviate
+    environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
+      QUERY_DEFAULTS_LIMIT: 25
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      DISABLE_TELEMETRY: 'true'
+      LOG_LEVEL: '${LOG_LEVEL:-debug}'
+      CLUSTER_HOSTNAME: 'node1'
+      # RBAC is meaningless with anonymous access on, and NAMESPACES_ENABLED requires RBAC.
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_APIKEY_ENABLED: 'true'
+      # namespace_graduation.sh exports this, defaulted; config.py's SOURCE_ROOT_API_KEY must match.
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: '${SOURCE_ROOT_API_KEY}'
+      AUTHENTICATION_APIKEY_USERS: 'root-user'
+      AUTHORIZATION_RBAC_ENABLED: 'true'
+      AUTHORIZATION_RBAC_ROOT_USERS: 'root-user'
+      # Namespace-bound principals are dynamic db users.
+      AUTHENTICATION_DB_USERS_ENABLED: 'true'
+      NAMESPACES_ENABLED: 'true'
+      # NAMESPACES_ENABLED refuses to start without DISABLE_GRAPHQL=true
+      # (usecases/config/config_handler.go:392-394).
+      DISABLE_GRAPHQL: 'true'
+      # Also a hard startup requirement of NAMESPACES_ENABLED: startup refuses any other value
+      # (adapters/handlers/rest/configure_api.go:1249-1252), because a namespace's shards are pinned
+      # to one home_node. The cap is what holds every source collection at rf=1, which is the
+      # configuration the graduation scales out of.
+      REPLICATION_MAXIMUM_FACTOR: '1'
+      ENABLE_MODULES: 'backup-s3'
+      # Identical to the target file's block: the handover needs both clusters on one bucket.
+      BACKUP_S3_ENDPOINT: 'nsgrad-minio:9000'
+      BACKUP_S3_BUCKET: 'nsgrad-backups'
+      BACKUP_S3_USE_SSL: 'false'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+    networks:
+    - nsgrad-shared
+
+  # Unpublished: only the two clusters talk to it, and an unpublished port cannot collide with
+  # another test's minio. The target reaches it under the `nsgrad-minio` alias.
+  minio:
+    image: minio/minio
+    command: server /data
+    volumes:
+    - nsgrad-minio:/data
+    environment:
+      MINIO_ROOT_USER: 'aws_access_key'
+      MINIO_ROOT_PASSWORD: 'aws_secret_key'
+    networks:
+      nsgrad-shared:
+        aliases:
+        - nsgrad-minio
+
+  # The exit code is the bucket's: `mc alias set` is retried until minio answers, and neither step
+  # is followed by `exit 0`. namespace_graduation.sh waits on that code before starting the app,
+  # so a bucket that was never created fails the run here instead of as a 500 mid-preflight.
+  create-s3-bucket:
+    image: minio/mc
+    depends_on:
+    - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc alias set nsgrad http://nsgrad-minio:9000 aws_access_key aws_secret_key;
+      do echo 'waiting for minio'; sleep 1; done;
+      /usr/bin/mc mb --ignore-existing nsgrad/nsgrad-backups;
+      "
+    networks:
+    - nsgrad-shared
+
+volumes:
+  nsgrad-src-node-1:
+  nsgrad-minio:
+
+networks:
+  # Created and removed by namespace_graduation.sh. External in both files so that neither compose
+  # project owns it and the two projects' containers can resolve each other.
+  nsgrad-shared:
+    external: true
+...

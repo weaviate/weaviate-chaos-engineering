@@ -1,0 +1,172 @@
+---
+# Non-namespaced 3-node target cluster for namespace_graduation.sh: the cluster the graduating
+# namespace lands on. NAMESPACES_ENABLED is absent on purpose — the restore strips the `<ns>:`
+# prefix from classes, users and roles exactly when the restoring cluster has namespaces off.
+#
+# Brought up as compose project `nsgrad-tgt`. It joins the external `nsgrad-shared` network created
+# by the script, which is how it reaches the source project's minio under the `nsgrad-minio` alias.
+services:
+  weaviate-node-1:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    - --write-timeout
+    - 600s
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
+    ports:
+    - 18180:8080
+    - 18190:50051
+    restart: on-failure:0
+    volumes:
+    - nsgrad-tgt-node-1:/var/lib/weaviate
+    environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
+      QUERY_DEFAULTS_LIMIT: 25
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      DISABLE_TELEMETRY: 'true'
+      LOG_LEVEL: '${LOG_LEVEL:-debug}'
+      # node1 exists on both clusters, so every node the backup descriptor names resolves here
+      # (usecases/backup/coordinator.go:537-542) and the restore needs no node_mapping.
+      CLUSTER_HOSTNAME: 'node1'
+      CLUSTER_GOSSIP_BIND_PORT: '7100'
+      CLUSTER_DATA_BIND_PORT: '7101'
+      RAFT_JOIN: 'node1,node2,node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_APIKEY_ENABLED: 'true'
+      # Deliberately not the source's key: a mis-addressed call must fail, not land on the wrong
+      # cluster. namespace_graduation.sh exports it, defaulted.
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: '${TARGET_ROOT_API_KEY}'
+      AUTHENTICATION_APIKEY_USERS: 'root-user'
+      # RBAC and db users must both be on, or the restore skips roles and users silently while
+      # still reporting SUCCESS (usecases/backup/restorer.go:169,180).
+      AUTHORIZATION_RBAC_ENABLED: 'true'
+      AUTHORIZATION_RBAC_ROOT_USERS: 'root-user'
+      AUTHENTICATION_DB_USERS_ENABLED: 'true'
+      # Defaults to false (usecases/config/environment.go:1408-1410), and every /v1/replication/*
+      # handler is a 501 stub without it (adapters/handlers/rest/replication/handlers_setup.go:35-38).
+      # No REPLICATION_MAXIMUM_FACTOR here, so the migrated collections can reach rf=3.
+      REPLICA_MOVEMENT_ENABLED: 'true'
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_S3_ENDPOINT: 'nsgrad-minio:9000'
+      BACKUP_S3_BUCKET: 'nsgrad-backups'
+      BACKUP_S3_USE_SSL: 'false'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+    networks:
+    - nsgrad-shared
+
+  weaviate-node-2:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    - --write-timeout
+    - 600s
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
+    ports:
+    - 18181:8080
+    - 18191:50051
+    restart: on-failure:0
+    volumes:
+    - nsgrad-tgt-node-2:/var/lib/weaviate
+    environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
+      QUERY_DEFAULTS_LIMIT: 25
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      DISABLE_TELEMETRY: 'true'
+      LOG_LEVEL: '${LOG_LEVEL:-debug}'
+      CLUSTER_HOSTNAME: 'node2'
+      CLUSTER_GOSSIP_BIND_PORT: '7102'
+      CLUSTER_DATA_BIND_PORT: '7103'
+      CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'node1,node2,node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_APIKEY_ENABLED: 'true'
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: '${TARGET_ROOT_API_KEY}'
+      AUTHENTICATION_APIKEY_USERS: 'root-user'
+      AUTHORIZATION_RBAC_ENABLED: 'true'
+      AUTHORIZATION_RBAC_ROOT_USERS: 'root-user'
+      AUTHENTICATION_DB_USERS_ENABLED: 'true'
+      REPLICA_MOVEMENT_ENABLED: 'true'
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_S3_ENDPOINT: 'nsgrad-minio:9000'
+      BACKUP_S3_BUCKET: 'nsgrad-backups'
+      BACKUP_S3_USE_SSL: 'false'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+    networks:
+    - nsgrad-shared
+
+  weaviate-node-3:
+    init: true
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    - --write-timeout
+    - 600s
+    image: semitechnologies/weaviate:$WEAVIATE_VERSION
+    ports:
+    - 18182:8080
+    - 18192:50051
+    restart: on-failure:0
+    volumes:
+    - nsgrad-tgt-node-3:/var/lib/weaviate
+    environment:
+      ASYNC_INDEXING: '${ASYNC_INDEXING:-true}'
+      QUERY_DEFAULTS_LIMIT: 25
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEBUG_ENDPOINTS_ENABLED: 'true'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      DISABLE_TELEMETRY: 'true'
+      LOG_LEVEL: '${LOG_LEVEL:-debug}'
+      CLUSTER_HOSTNAME: 'node3'
+      CLUSTER_GOSSIP_BIND_PORT: '7104'
+      CLUSTER_DATA_BIND_PORT: '7105'
+      CLUSTER_JOIN: 'weaviate-node-1:7100'
+      RAFT_JOIN: 'node1,node2,node3'
+      RAFT_BOOTSTRAP_EXPECT: 3
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
+      AUTHENTICATION_APIKEY_ENABLED: 'true'
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: '${TARGET_ROOT_API_KEY}'
+      AUTHENTICATION_APIKEY_USERS: 'root-user'
+      AUTHORIZATION_RBAC_ENABLED: 'true'
+      AUTHORIZATION_RBAC_ROOT_USERS: 'root-user'
+      AUTHENTICATION_DB_USERS_ENABLED: 'true'
+      REPLICA_MOVEMENT_ENABLED: 'true'
+      ENABLE_MODULES: 'backup-s3'
+      BACKUP_S3_ENDPOINT: 'nsgrad-minio:9000'
+      BACKUP_S3_BUCKET: 'nsgrad-backups'
+      BACKUP_S3_USE_SSL: 'false'
+      AWS_ACCESS_KEY_ID: 'aws_access_key'
+      AWS_SECRET_KEY: 'aws_secret_key'
+    networks:
+    - nsgrad-shared
+
+volumes:
+  nsgrad-tgt-node-1:
+  nsgrad-tgt-node-2:
+  nsgrad-tgt-node-3:
+
+networks:
+  nsgrad-shared:
+    external: true
+...
