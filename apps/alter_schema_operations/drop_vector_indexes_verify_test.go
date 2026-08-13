@@ -85,7 +85,11 @@ func assertObjectsHaveNamedVector(ctx context.Context, t *testing.T, client *wvt
 	t.Helper()
 	require.Eventuallyf(t, func() bool {
 		objs, err := fetchSampleObjects(ctx, client, class, tenant)
-		if err != nil || len(objs) == 0 {
+		if err != nil {
+			t.Logf("fetch objects failed (class=%s tenant=%q): %v", class, tenant, err)
+			return false
+		}
+		if len(objs) == 0 {
 			return false
 		}
 		for _, o := range objs {
@@ -114,7 +118,11 @@ func assertObjectsLackNamedVectorWithin(ctx context.Context, t *testing.T, clien
 	t.Helper()
 	require.Eventuallyf(t, func() bool {
 		objs, err := fetchSampleObjects(ctx, client, class, tenant)
-		if err != nil || len(objs) == 0 {
+		if err != nil {
+			t.Logf("fetch objects failed (class=%s tenant=%q): %v", class, tenant, err)
+			return false
+		}
+		if len(objs) == 0 {
 			return false
 		}
 		for _, o := range objs {
@@ -134,7 +142,11 @@ func assertVectorDroppedFromSchema(ctx context.Context, t *testing.T, client *wv
 	t.Helper()
 	require.Eventuallyf(t, func() bool {
 		cls, err := client.Schema().ClassGetter().WithClassName(class).Do(ctx)
-		if err != nil || cls == nil {
+		if err != nil {
+			t.Logf("get class %s failed: %v", class, err)
+			return false
+		}
+		if cls == nil {
 			return false
 		}
 		_, present := cls.VectorConfig[vectorName]

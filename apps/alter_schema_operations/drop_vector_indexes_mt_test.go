@@ -21,6 +21,17 @@ func TestDeactivateTenant3MoviesMT(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Establish that tenant3's objects carry each named vector while the tenant
+	// is still active. Without this, the post-reactivation absence assertion in
+	// TestActivateTenant3MoviesMT would pass even if the list endpoint simply
+	// never returned vectors for tenant3 - it needs a "present before" baseline
+	// to be falsifiable.
+	for _, vectorName := range moviesMTVectorizerVectors {
+		t.Run("verify_vector_present_before_deactivate_tenant3_"+vectorName, func(t *testing.T) {
+			assertObjectsHaveNamedVector(ctx, t, client, moviesMTClass, "tenant3", vectorName)
+		})
+	}
+
 	t.Log("Deactivating tenant3...")
 	err = client.Schema().TenantsUpdater().
 		WithClassName(moviesMTClass).
