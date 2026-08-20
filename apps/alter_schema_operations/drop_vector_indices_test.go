@@ -23,6 +23,13 @@ func TestDropVectorIndicesMovies(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, client)
 
+	// Before dropping, verify objects actually carry each named vector.
+	for _, vectorName := range vectorizerVectors {
+		t.Run("verify_vector_present_before_drop_"+vectorName, func(t *testing.T) {
+			assertObjectsHaveNamedVector(ctx, t, client, moviesClass, "", vectorName)
+		})
+	}
+
 	for _, vectorName := range vectorizerVectors {
 		t.Run("drop_"+vectorName, func(t *testing.T) {
 			t.Logf("Dropping vector index %q...", vectorName)
@@ -61,6 +68,15 @@ func TestDropVectorIndicesMovies(t *testing.T) {
 			t.Logf("nearText search correctly fails for %s", vectorName)
 		})
 	}
+
+	// After dropping, the named vector must be removed from every object
+	// (async cleanup). Schema removal is asserted at the very end of the
+	// pipeline by TestVerifyVectorConfigsDroppedFromSchema.
+	for _, vectorName := range vectorizerVectors {
+		t.Run("verify_vector_removed_from_objects_after_drop_"+vectorName, func(t *testing.T) {
+			assertObjectsLackNamedVector(ctx, t, client, moviesClass, "", vectorName)
+		})
+	}
 }
 
 // TestDropVectorIndicesMVMovies drops all multi-vector indexes from
@@ -74,6 +90,13 @@ func TestDropVectorIndicesMVMovies(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, client)
+
+	// Before dropping, verify objects actually carry each multi-vector.
+	for _, vectorName := range multiVectors {
+		t.Run("verify_vector_present_before_drop_"+vectorName, func(t *testing.T) {
+			assertObjectsHaveNamedVector(ctx, t, client, mvMoviesClass, "", vectorName)
+		})
+	}
 
 	for _, vectorName := range multiVectors {
 		t.Run("drop_"+vectorName, func(t *testing.T) {
@@ -114,6 +137,15 @@ func TestDropVectorIndicesMVMovies(t *testing.T) {
 			}, 30*time.Second, 500*time.Millisecond,
 				"expected nearVector search to fail for dropped vector index %q", vectorName)
 			t.Logf("nearVector search correctly fails for %s", vectorName)
+		})
+	}
+
+	// After dropping, the multi-vector must be removed from every object
+	// (async cleanup). Schema removal is asserted at the very end of the
+	// pipeline by TestVerifyVectorConfigsDroppedFromSchema.
+	for _, vectorName := range multiVectors {
+		t.Run("verify_vector_removed_from_objects_after_drop_"+vectorName, func(t *testing.T) {
+			assertObjectsLackNamedVector(ctx, t, client, mvMoviesClass, "", vectorName)
 		})
 	}
 }

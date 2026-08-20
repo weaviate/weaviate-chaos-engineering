@@ -238,8 +238,8 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.36.0"
           operator: ">="
-  equal-to-1_37_rc:
-    name: "Check if the version is equal to 1.37.0-rc"
+  newer-or-equal-than-1_39:
+    name: "Check if the version is newer than 1.39"
     needs: real-version-in-tag
     runs-on: ubicloud-standard-2
     outputs:
@@ -250,21 +250,7 @@ jobs:
         uses: fabriziocacicia/semver-compare-action@v0.2.0
         with:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.37.0-rc"
-          operator: "="
-  newer-or-equal-than-1_37:
-    name: "Check if the version is newer than 1.37"
-    needs: real-version-in-tag
-    runs-on: ubicloud-standard-2
-    outputs:
-      check: ${{ steps.semver_compare.outputs.result }}
-    steps:
-      - name: Semver Compare
-        id: semver_compare
-        uses: fabriziocacicia/semver-compare-action@v0.2.0
-        with:
-          first: ${{ needs.real-version-in-tag.outputs.real_version }}
-          second: "1.37.0"
+          second: "1.39.0"
           operator: ">="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
@@ -2721,8 +2707,8 @@ jobs:
             /tmp/weaviate*
 
   alter-schema-drop-vector-index:
-    needs: [newer-or-equal-than-1_37, equal-to-1_37_rc]
-    if: ${{ (needs.newer-or-equal-than-1_37.outputs.check == 'true' || needs.equal-to-1_37_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'alter-schema-drop-vector-index' || github.event.inputs.test_to_run == '') }}
+    needs: [newer-or-equal-than-1_39]
+    if: ${{ needs.newer-or-equal-than-1_39.outputs.check == 'true' && (github.event.inputs.test_to_run == 'alter-schema-drop-vector-index' || github.event.inputs.test_to_run == '') }}
     name: Alter schema drop vector index
     runs-on: ubicloud-standard-2
     timeout-minutes: 60

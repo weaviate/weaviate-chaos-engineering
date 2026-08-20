@@ -21,6 +21,17 @@ func TestDeactivateTenant3MoviesMT(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Establish that tenant3's objects carry each named vector while the tenant
+	// is still active. Without this, the post-reactivation absence assertion in
+	// TestActivateTenant3MoviesMT would pass even if the list endpoint simply
+	// never returned vectors for tenant3 - it needs a "present before" baseline
+	// to be falsifiable.
+	for _, vectorName := range moviesMTVectorizerVectors {
+		t.Run("verify_vector_present_before_deactivate_tenant3_"+vectorName, func(t *testing.T) {
+			assertObjectsHaveNamedVector(ctx, t, client, moviesMTClass, "tenant3", vectorName)
+		})
+	}
+
 	t.Log("Deactivating tenant3...")
 	err = client.Schema().TenantsUpdater().
 		WithClassName(moviesMTClass).
@@ -43,6 +54,17 @@ func TestDropVectorIndicesMoviesMT(t *testing.T) {
 		Host:   "localhost:8080",
 	})
 	require.NoError(t, err)
+
+	// tenant3 is inactive at this point (deactivated in the previous step), so
+	// only the active tenants can be inspected. Verify their objects carry each
+	// named vector before dropping.
+	for _, tenant := range []string{"tenant1", "tenant2"} {
+		for _, vectorName := range moviesMTVectorizerVectors {
+			t.Run("verify_vector_present_before_drop_"+tenant+"_"+vectorName, func(t *testing.T) {
+				assertObjectsHaveNamedVector(ctx, t, client, moviesMTClass, tenant, vectorName)
+			})
+		}
+	}
 
 	for _, vectorName := range moviesMTVectorizerVectors {
 		t.Run("drop_"+vectorName, func(t *testing.T) {
@@ -82,6 +104,17 @@ func TestDropVectorIndicesMoviesMT(t *testing.T) {
 				}, 30*time.Second, 500*time.Millisecond,
 					"expected nearText search to fail for %s on %s", vectorName, tenant)
 				t.Logf("nearText search correctly fails for %s on %s", vectorName, tenant)
+			})
+		}
+	}
+
+	// After dropping, verify the named vector is removed from the active
+	// tenants' objects. Schema removal is asserted at the very end of the
+	// pipeline by TestVerifyVectorConfigsDroppedFromSchema.
+	for _, tenant := range []string{"tenant1", "tenant2"} {
+		for _, vectorName := range moviesMTVectorizerVectors {
+			t.Run("verify_vector_removed_from_objects_after_drop_"+tenant+"_"+vectorName, func(t *testing.T) {
+				assertObjectsLackNamedVector(ctx, t, client, moviesMTClass, tenant, vectorName)
 			})
 		}
 	}
@@ -128,6 +161,16 @@ func TestActivateTenant3MoviesMT(t *testing.T) {
 			}, 30*time.Second, 500*time.Millisecond,
 				"expected nearText search to fail for %s on tenant3", vectorName)
 			t.Logf("nearText search correctly fails for %s on tenant3", vectorName)
+		})
+	}
+
+	// tenant3 was a cold (inactive) tenant during the drop. As of the cold-tenant
+	// cleanup fix, reactivating it must also remove the dropped vectors from its
+	// objects. Cleanup is triggered on activation and runs through a rate-limited
+	// cleanup cycle, so we allow a longer timeout than the active-tenant case.
+	for _, vectorName := range moviesMTVectorizerVectors {
+		t.Run("verify_vector_removed_from_objects_after_activation_tenant3_"+vectorName, func(t *testing.T) {
+			assertObjectsLackNamedVectorWithin(ctx, t, client, moviesMTClass, "tenant3", vectorName, coldTenantVectorCleanupTimeout)
 		})
 	}
 }
