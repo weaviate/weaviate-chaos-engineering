@@ -699,7 +699,7 @@ jobs:
   ann-benchmarks-multivector-gcp:
     name: "[bench GCP] MULTIVECTOR3M"
     needs: [newer-or-equal-than-1_29]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_29.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -738,7 +738,7 @@ jobs:
   ann-benchmarks-multivector-pq-gcp:
     name: "[bench GCP] MULTIVECTOR3M pq=true"
     needs: [newer-or-equal-than-1_30]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_30.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-pq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -778,7 +778,7 @@ jobs:
   ann-benchmarks-multivector-sq-gcp:
     name: "[bench GCP] MULTIVECTOR3M sq=true"
     needs: [newer-or-equal-than-1_30]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_30.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-sq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -818,7 +818,7 @@ jobs:
   ann-benchmarks-multivector-rq-gcp:
     name: "[bench GCP] MULTIVECTOR3M rq=true"
     needs: [newer-or-equal-than-1_32]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-rq-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -866,7 +866,7 @@ jobs:
   ann-benchmarks-multivector-muvera-gcp:
     name: "[bench GCP] MULTIVECTOR MUVERA"
     needs: [newer-or-equal-than-1_31]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-muvera-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -917,7 +917,7 @@ jobs:
   ann-benchmarks-multivector-muvera-gcp-sq:
     name: "[bench GCP] MULTIVECTOR MUVERA and SQ"
     needs: [newer-or-equal-than-1_31]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-muvera-gcp' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
@@ -962,7 +962,7 @@ jobs:
   ann-benchmarks-multivector-muvera-gcp-rq:
     name: "[bench GCP] MULTIVECTOR MUVERA and RQ"
     needs: [newer-or-equal-than-1_32]
-    if: ${{ inputs.lsm_access_strategy == 'pread' && (needs.newer-or-equal-than-1_32.outputs.check == 'true') && (github.event.inputs.test_to_run == 'ann-benchmarks-multivector-muvera-gcp-rq' || github.event.inputs.test_to_run == '' || github.event.inputs.test_to_run == 'ann-benchmarks-multivector-all') }}
+    if: false # disabled: GCP ANN benchmarks turned off
     runs-on: ubicloud-standard-2
     timeout-minutes: 60
     env:
