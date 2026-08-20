@@ -57,13 +57,19 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_objects(client: weaviate.Client, size: int, batch_size: int, uuid_offset: int):
+def load_objects(
+    client: weaviate.Client,
+    size: int,
+    batch_size: int,
+    uuid_offset: int,
+    consistency_level: str = "QUORUM",
+):
     client.batch.configure(
         batch_size=batch_size,
         callback=handle_errors,
         dynamic=False,
         num_workers=8,
-        consistency_level="QUORUM",
+        consistency_level=consistency_level,
     )
     with client.batch as batch:
         for i in range(size):
@@ -205,12 +211,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.action == "import":
+        consistency_level = config_consistency_level()
         logger.info(
-            f"CONFIG: host={host}; object_count={object_count}; batch_size={batch_size}; uuid_offset={uuid_offset}"
+            f"CONFIG: host={host}; object_count={object_count}; batch_size={batch_size}; uuid_offset={uuid_offset}; consistency_level={consistency_level}"
         )
-        load_objects(client, object_count, batch_size, uuid_offset)
+        load_objects(client, object_count, batch_size, uuid_offset, consistency_level)
         # load_references(client, 400, ids_class_1, ids_class_2)
-        validate_objects(client, object_count, uuid_offset)
+        validate_objects(client, object_count, uuid_offset, consistency_level)
     elif args.action == "validate":
         consistency_level = config_consistency_level()
         logger.info(
