@@ -10,6 +10,8 @@ source common.sh
 # (replication factor 3, async replication enabled).
 
 export COMPOSE="apps/weaviate/docker-compose-replication.yml"
+# Opt in to the self-recovery feature under test on all nodes.
+export SELF_RECOVERY_ENABLED=true
 
 SIZE=${SIZE:-100000}
 # How long the wiped node has to catch up with its peers after restarting.
@@ -58,9 +60,10 @@ docker run --network host --rm \
   -e CONFIG_ASYNC_REPLICATION=true \
   -t importer python3 run.py --action schema
 
-echo "Importing $SIZE objects"
+echo "Importing $SIZE objects (writes and validation with consistency level ALL)"
 docker run --network host --rm \
   -e "CONFIG_OBJECT_COUNT=$SIZE" \
+  -e CONFIG_CONSISTENCY_LEVEL=ALL \
   -t importer python3 run.py --action import
 
 echo "Waiting for all 3 nodes to hold $SIZE objects locally"
