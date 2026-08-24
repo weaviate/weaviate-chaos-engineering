@@ -10,8 +10,10 @@ source common.sh
 # (replication factor 3, async replication enabled).
 
 export COMPOSE="apps/weaviate/docker-compose-replication.yml"
-# Opt in to the self-recovery feature under test on all nodes.
+# Opt in to the self-recovery feature under test on all nodes. Self-recovery
+# rides on the replica movement machinery, which has its own opt-in.
 export SELF_RECOVERY_ENABLED=true
+export REPLICA_MOVEMENT_ENABLED=true
 # Kill async replication at the node level. The server forces the class-level
 # asyncEnabled flag to true for replicated classes (observed on 1.38.0), and
 # async replication backfills a wiped node object-by-object, which would let
