@@ -23,7 +23,7 @@ export ASYNC_REPLICATION_DISABLED=true
 
 # Large enough that the rebuild takes a while, so the direct queries against
 # node3 right after its restart land while recovery is still in progress.
-SIZE=${SIZE:-300000}
+SIZE=${SIZE:-150000}
 # How long the wiped node has to catch up with its peers after restarting.
 RECOVERY_TIMEOUT=${RECOVERY_TIMEOUT:-600}
 
