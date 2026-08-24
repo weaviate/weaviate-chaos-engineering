@@ -54,10 +54,13 @@ wait_weaviate 8080 120 weaviate-node-1
 wait_weaviate 8081 120 weaviate-node-2
 wait_weaviate 8082 120 weaviate-node-3
 
-echo "Creating schema with replication factor 3 and async replication enabled"
+# Async replication must stay OFF: pre-feature versions backfill a wiped node
+# object-by-object through it, which would make them pass this test too. With
+# it off, only SELF_RECOVERY's bulk copy can bring node3 back in sync.
+echo "Creating schema with replication factor 3, async replication disabled"
 docker run --network host --rm \
   -e CONFIG_REPLICATION_FACTOR=3 \
-  -e CONFIG_ASYNC_REPLICATION=true \
+  -e CONFIG_ASYNC_REPLICATION=false \
   -t importer python3 run.py --action schema
 
 echo "Importing $SIZE objects (writes and validation with consistency level ALL)"
@@ -80,6 +83,18 @@ wait_weaviate 8082 300 weaviate-node-3
 
 echo "Waiting up to ${RECOVERY_TIMEOUT}s for node3 to re-sync from its peers"
 wait_until_nodes_in_sync "$SIZE" "$RECOVERY_TIMEOUT"
+
+# The sharp check: read every object through node3 with consistency level ONE,
+# which its coordinator serves from the local replica. On versions without
+# self-recovery these reads 404 (empty shard); ALL cannot discriminate because
+# a divergent replica is read-repaired rather than failing the read. Runs
+# before the ALL pass so ALL's read-repair cannot backfill node3 first.
+echo "Validating every object is readable from the recovered node itself (node3, consistency level ONE)"
+docker run --network host --rm \
+  -e "CONFIG_OBJECT_COUNT=$SIZE" \
+  -e CONFIG_HOST=http://localhost:8082 \
+  -e CONFIG_CONSISTENCY_LEVEL=ONE \
+  -t importer python3 run.py --action validate
 
 echo "Validating that every object is readable with consistency level ALL"
 docker run --network host --rm \
