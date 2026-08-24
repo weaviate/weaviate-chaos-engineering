@@ -73,11 +73,6 @@ async def preflight(cfg: Config, src_root: Rest, tgt_root: Rest) -> None:
         meta = await _checked(problems, f"{cluster.label} /v1/meta", root.meta())
         if meta is None:
             continue
-        if meta.get("version") != cfg.weaviate_version:
-            problems.append(
-                f"{cluster.label} runs version {meta.get('version')}, "
-                f"WEAVIATE_VERSION says {cfg.weaviate_version}"
-            )
         if f"backup-{cfg.backup_backend}" not in (meta.get("modules") or {}):
             problems.append(
                 f"{cluster.label} has no backup-{cfg.backup_backend} module — check ENABLE_MODULES"

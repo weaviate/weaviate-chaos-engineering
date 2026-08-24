@@ -17,8 +17,8 @@ set -euo pipefail
 
 MODE="${1:-journey}"
 
-# Both compose files interpolate this into their image tag, and the app re-asserts it against
-# /v1/meta in preflight.
+# Both compose files interpolate this into their image tag; the app receives the same value and
+# records it in its config summary.
 : "${WEAVIATE_VERSION:?set WEAVIATE_VERSION, e.g. WEAVIATE_VERSION=1.38.0 ./namespace_graduation.sh}"
 
 # The one home for the static root keys: the compose files interpolate them into
