@@ -12,8 +12,16 @@ source common.sh
 export COMPOSE="apps/weaviate/docker-compose-replication.yml"
 # Opt in to the self-recovery feature under test on all nodes.
 export SELF_RECOVERY_ENABLED=true
+# Kill async replication at the node level. The server forces the class-level
+# asyncEnabled flag to true for replicated classes (observed on 1.38.0), and
+# async replication backfills a wiped node object-by-object, which would let
+# pre-feature versions pass this test. Verified on 1.38.0: with this set, a
+# wiped node stays empty and direct ONE reads through it 404.
+export ASYNC_REPLICATION_DISABLED=true
 
-SIZE=${SIZE:-100000}
+# Large enough that the rebuild takes a while, so the direct queries against
+# node3 right after its restart land while recovery is still in progress.
+SIZE=${SIZE:-300000}
 # How long the wiped node has to catch up with its peers after restarting.
 RECOVERY_TIMEOUT=${RECOVERY_TIMEOUT:-600}
 
@@ -54,9 +62,9 @@ wait_weaviate 8080 120 weaviate-node-1
 wait_weaviate 8081 120 weaviate-node-2
 wait_weaviate 8082 120 weaviate-node-3
 
-# Async replication must stay OFF: pre-feature versions backfill a wiped node
-# object-by-object through it, which would make them pass this test too. With
-# it off, only SELF_RECOVERY's bulk copy can bring node3 back in sync.
+# The class-level flag alone does not disable async replication (the server
+# stores asyncEnabled: true regardless); ASYNC_REPLICATION_DISABLED above is
+# what actually turns it off. Sent anyway to document intent.
 echo "Creating schema with replication factor 3, async replication disabled"
 docker run --network host --rm \
   -e CONFIG_REPLICATION_FACTOR=3 \
@@ -81,20 +89,22 @@ echo "Restarting node3 with an empty disk"
 docker compose -f $COMPOSE up -d weaviate-node-3
 wait_weaviate 8082 300 weaviate-node-3
 
-echo "Waiting up to ${RECOVERY_TIMEOUT}s for node3 to re-sync from its peers"
-wait_until_nodes_in_sync "$SIZE" "$RECOVERY_TIMEOUT"
-
-# The sharp check: read every object through node3 with consistency level ONE,
-# which its coordinator serves from the local replica. On versions without
-# self-recovery these reads 404 (empty shard); ALL cannot discriminate because
-# a divergent replica is read-repaired rather than failing the read. Runs
-# before the ALL pass so ALL's read-repair cannot backfill node3 first.
-echo "Validating every object is readable from the recovered node itself (node3, consistency level ONE)"
+# The sharp check, immediately after node3 is back up: read every object
+# through node3's own port with consistency level ONE. Pre-fix versions serve
+# the empty local shard and 404 (verified on 1.38.0). With self-recovery the
+# reads must succeed the whole time: failing over to a healthy replica while
+# the shard is still recovering, served locally once it has been promoted.
+# ALL cannot discriminate here because a divergent replica is read-repaired
+# rather than failing the read.
+echo "Querying node3 directly right after restart (consistency level ONE)"
 docker run --network host --rm \
   -e "CONFIG_OBJECT_COUNT=$SIZE" \
   -e CONFIG_HOST=http://localhost:8082 \
   -e CONFIG_CONSISTENCY_LEVEL=ONE \
   -t importer python3 run.py --action validate
+
+echo "Waiting up to ${RECOVERY_TIMEOUT}s for node3 to re-sync from its peers"
+wait_until_nodes_in_sync "$SIZE" "$RECOVERY_TIMEOUT"
 
 echo "Validating that every object is readable with consistency level ALL"
 docker run --network host --rm \
