@@ -164,10 +164,11 @@ func TestActivateTenant3MoviesMT(t *testing.T) {
 		})
 	}
 
-	// tenant3 was a cold (inactive) tenant during the drop. As of the cold-tenant
-	// cleanup fix, reactivating it must also remove the dropped vectors from its
-	// objects. Cleanup is triggered on activation and runs through a rate-limited
-	// cleanup cycle, so we allow a longer timeout than the active-tenant case.
+	// tenant3 was a cold (inactive) tenant during the drop, so the drop task did
+	// not cover its shard. Activation does not trigger cleanup; the periodic
+	// drop-vector reconcile round picks the shard up later (default interval 15m,
+	// set to 30s in CI via DROP_VECTOR_INDEX_RECONCILE_INTERVAL_SECONDS), so we
+	// allow a longer timeout than the active-tenant case.
 	for _, vectorName := range moviesMTVectorizerVectors {
 		t.Run("verify_vector_removed_from_objects_after_activation_tenant3_"+vectorName, func(t *testing.T) {
 			assertObjectsLackNamedVectorWithin(ctx, t, client, moviesMTClass, "tenant3", vectorName, coldTenantVectorCleanupTimeout)
