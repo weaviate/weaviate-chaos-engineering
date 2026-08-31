@@ -18,13 +18,13 @@ class StressTest:
 
     def run(self, iterations: int, start_checking: int, rolling_median_count: int):
         for i in range(iterations):
-            before_all = time.time()
+            before_all = time.monotonic()
             col = client.collections.create("BuggyBugBug")
             col.data.insert(properties={"hello": "world"}, uuid=uuid.UUID(int=1))
             col.data.replace(properties={"goodbye": "blue skies"}, uuid=uuid.UUID(int=1))
             col.data.delete_by_id(uuid.UUID(int=1))
             client.collections.delete("BuggyBugBug")
-            took = time.time() - before_all
+            took = time.monotonic() - before_all
             self.durations.append(took)
             if i % 100 == 0:
                 logger.info(f"[It={i:05}] Cycle took {timedelta(seconds=took)}")
