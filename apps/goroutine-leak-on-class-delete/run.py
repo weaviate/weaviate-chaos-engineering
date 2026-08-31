@@ -16,7 +16,7 @@ class StressTest:
         self.durations = []
         self.breaches = 0
 
-    def run(self, iterations: int, start_checking: int, rolling_average_count: int):
+    def run(self, iterations: int, start_checking: int, rolling_median_count: int):
         for i in range(iterations):
             before_all = time.time()
             col = client.collections.create("BuggyBugBug")
@@ -29,7 +29,7 @@ class StressTest:
             if i % 100 == 0:
                 logger.info(f"[It={i:05}] Cycle took {timedelta(seconds=took)}")
                 if i > start_checking:
-                    self.analyze(start_checking, rolling_average_count)
+                    self.analyze(start_checking, rolling_median_count)
 
     def analyze(self, lower_count, upper_count):
         # Medians: runner-contention outliers inflate a mean; a leak slows every cycle.
@@ -50,7 +50,7 @@ class StressTest:
         if ratio > 0.3:
             self.breaches += 1
             logger.warning(
-                f"rolling median is too much slower than control: {ratio * 100}% (breach {self.breaches}/3)"
+                f"rolling median is too much slower than control: {ratio * 100:.1f}% (breach {self.breaches}/3)"
             )
             if self.breaches >= 3:
                 logger.error("slowdown persisted across 3 consecutive checks, failing")
@@ -59,4 +59,4 @@ class StressTest:
             self.breaches = 0
 
 
-StressTest().run(iterations=15_000, start_checking=1000, rolling_average_count=250)
+StressTest().run(iterations=15_000, start_checking=1000, rolling_median_count=250)
