@@ -32,9 +32,7 @@ class StressTest:
                     self.analyze(start_checking, rolling_average_count)
 
     def analyze(self, lower_count, upper_count):
-        # Medians instead of means: CPU contention on shared runners adds
-        # isolated slow cycles that inflate a mean, while a leak slows every
-        # cycle and moves the median too.
+        # Medians: runner-contention outliers inflate a mean; a leak slows every cycle.
         median_lower = median(self.durations[:lower_count])
         median_upper = median(self.durations[(len(self.durations) - upper_count) :])
 
@@ -48,8 +46,7 @@ class StressTest:
         # keep the check one-sided rather than using abs().
         ratio = (median_upper - median_lower) / median_lower
 
-        # A leak never recovers, so only fail once the breach persists across
-        # consecutive checks; a contention burst clears within one window.
+        # A leak never recovers; a contention burst clears within one window.
         if ratio > 0.3:
             self.breaches += 1
             logger.warning(
