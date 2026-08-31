@@ -19,6 +19,14 @@ function logs() {
       echo "--- $service (last 100 lines) ---"
       docker compose -f "$COMPOSE" logs "$service" 2>&1 | tail -100
       echo ""
+      # A panic / fatal-error / signal dump can sit in the middle of the log and
+      # be missed by the first-30/last-100 window above. Surface the crash header
+      # and the stack that follows it (the goroutine that threw) in full.
+      echo "--- $service (crash / fatal excerpts) ---"
+      docker compose -f "$COMPOSE" logs "$service" 2>&1 \
+        | grep -nE -A 80 "panic:|fatal error:|SIGSEGV|SIGBUS|SIGQUIT|runtime error:|Recovered from panic" \
+        | head -400 || echo "(no crash/fatal markers found)"
+      echo ""
     fi
   done
 }
