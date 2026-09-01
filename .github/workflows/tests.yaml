@@ -1879,7 +1879,7 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -1897,7 +1897,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1911,7 +1911,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1929,7 +1929,7 @@ jobs:
           python3 additional_run.py
           python3 additional_checks.py
       - name: Weaviate preview image - upgrade K8s from none-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -1984,7 +1984,7 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.24.x - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2002,7 +2002,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.25.0 - upgrade K8s cluster from non-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2016,7 +2016,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2034,7 +2034,7 @@ jobs:
           python3 additional_run.py
           python3 additional_checks.py
       - name: Weaviate v1.29.0 image - upgrade K8s from none-raft to Raft version
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2048,7 +2048,7 @@ jobs:
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
       - name: Weaviate preview image - upgrade from v1.29.0 to preview image (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2101,7 +2101,7 @@ jobs:
           cd apps/upgrade-journey-raft
           pip3 install -r requirements.txt
       - name: Weaviate v1.25 with metadata only voters setting - setup K8s 6-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2119,7 +2119,7 @@ jobs:
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
       - name: Weaviate preview image - upgrade K8s from Raft to another Raft version (rolling update)
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2204,7 +2204,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - setup K8s 3-node cluster with low RAFT snapshot threshold
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2251,7 +2251,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{env.WEAVIATE_VERSION}} - upgrade K8s cluster and enable dynamic user management
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2323,7 +2323,7 @@ jobs:
                 - admin-user
           EOF
       - name: Weaviate ${{ env.WEAVIATE_INITIAL_VERSION}} - downgrade back to ${{ env.WEAVIATE_INITIAL_VERSION}}
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'upgrade'
           workers: '1'
@@ -2628,7 +2628,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Spin-up 3 node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2655,7 +2655,7 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Spin-up 3 node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2720,7 +2720,7 @@ jobs:
         with:
           go-version: '1.25'
       - name: Setup 3-node Weaviate cluster with model2vec
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2759,7 +2759,7 @@ jobs:
         with:
           go-version: '1.25'
       - name: Setup 3-node Weaviate cluster with model2vec
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '1'
@@ -2813,7 +2813,7 @@ jobs:
           cd apps/restart-highly-available-qps-benchmark
           pip3 install -r requirements.txt
       - name: Weaviate - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '2'
@@ -2886,7 +2886,7 @@ jobs:
           cd apps/restart-highly-available-qps-benchmark
           pip3 install -r requirements.txt
       - name: Weaviate - setup K8s 3-node cluster
-        uses: weaviate/weaviate-local-k8s@v2
+        uses: weaviate/weaviate-local-k8s@jose/enforce-replica-spread
         with:
           operation: 'setup'
           workers: '2'
