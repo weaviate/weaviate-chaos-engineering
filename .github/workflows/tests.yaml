@@ -266,6 +266,20 @@ jobs:
           first: ${{ needs.real-version-in-tag.outputs.real_version }}
           second: "1.38.0"
           operator: ">="
+  equal-to-1_39_rc:
+    name: "Check if the version is equal to 1.39.0-rc"
+    needs: real-version-in-tag
+    runs-on: ubicloud-standard-2
+    outputs:
+      check: ${{ steps.semver_compare.outputs.result }}
+    steps:
+      - name: Semver Compare
+        id: semver_compare
+        uses: fabriziocacicia/semver-compare-action@v0.2.0
+        with:
+          first: ${{ needs.real-version-in-tag.outputs.real_version }}
+          second: "1.39.0-rc.1"
+          operator: "="
   filter-memory-leak:
     name: Filter (cache) memory leak when querying while importing
     if: ${{ github.event.inputs.test_to_run == 'filter-memory-leak' || github.event.inputs.test_to_run == '' }}
@@ -2664,6 +2678,33 @@ jobs:
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
+
+  replica-movement-under-chaos:
+    needs: [equal-to-1_39_rc]
+    if: ${{ (needs.equal-to-1_39_rc.outputs.check == 'true') && (github.event.inputs.test_to_run == 'replica-movement-under-chaos' || github.event.inputs.test_to_run == '' ) }}
+    name: Check that replica movement works under chaos
+    runs-on: ubicloud-standard-2
+    timeout-minutes: 60
+    env:
+      PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
+      ASYNC_INDEXING: false
+    steps:
+      - uses: actions/checkout@v5
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKER_USERNAME}}
+          password: ${{secrets.DOCKER_PASSWORD}}
+      - name: Spin-up 3 node cluster
+        uses: weaviate/weaviate-local-k8s@v2
+        with:
+          operation: 'setup'
+          workers: '1'
+          replicas: '3'
+          weaviate-version: ${{env.WEAVIATE_VERSION}}
+          values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}} --set env.ENABLE_BACKUP=true'
+      - name: Run chaos test
+        run: ./replica_movement_under_chaos.sh
 
   module-conflicting-vectorizer-settings:
     needs: [newer-or-equal-than-1_33]
