@@ -1,0 +1,97 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "schemaVersion": 39,
+  "title": "Replication performance",
+  "uid": "repl-performance",
+  "tags": ["replication", "weaviate"],
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Coordinated write throughput (ops/s)",
+      "description": "rate(weaviate_replication_coordinator_writes_duration_seconds_count) — replicated writes/sec completed by the coordinator. The headline throughput signal; a regression shows as a lower sustained rate.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 }, "unit": "ops" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (node) (rate(weaviate_replication_coordinator_writes_duration_seconds_count[30s]))",
+          "legendFormat": "{{node}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Replication write latency (avg ms)",
+      "description": "1000 * rate(_sum)/rate(_count) of weaviate_replication_coordinator_writes_duration_seconds — server-side replicated-write latency.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 }, "unit": "ms" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "1000 * sum by (node) (rate(weaviate_replication_coordinator_writes_duration_seconds_sum[30s])) / sum by (node) (rate(weaviate_replication_coordinator_writes_duration_seconds_count[30s]))",
+          "legendFormat": "{{node}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Replication read latency (avg ms)",
+      "description": "1000 * rate(_sum)/rate(_count) of weaviate_replication_coordinator_reads_duration_seconds — only increments for reads that fan out to replicas (CL>ONE).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 }, "unit": "ms" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "1000 * sum by (node) (rate(weaviate_replication_coordinator_reads_duration_seconds_sum[30s])) / sum by (node) (rate(weaviate_replication_coordinator_reads_duration_seconds_count[30s]))",
+          "legendFormat": "{{node}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Write outcomes (rate/s)",
+      "description": "succeed_all vs failed coordinated writes — catches replication-correctness regressions (rising failures or succeed_some).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 18 },
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10 }, "unit": "ops" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(weaviate_replication_coordinator_writes_succeed_all[30s]))",
+          "legendFormat": "succeed_all",
+          "refId": "A"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(weaviate_replication_coordinator_writes_succeed_some[30s]))",
+          "legendFormat": "succeed_some",
+          "refId": "B"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(weaviate_replication_coordinator_writes_failed[30s]))",
+          "legendFormat": "failed",
+          "refId": "C"
+        }
+      ]
+    }
+  ]
+}

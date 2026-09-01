@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 2s
+  evaluation_interval: 2s
+
+scrape_configs:
+  - job_name: weaviate-replicas
+    static_configs:
+      - targets: ['weaviate-node-1:2112']
+        labels: { node: node1, role: coordinator }
+      - targets: ['weaviate-node-2:2112']
+        labels: { node: node2, role: follower }
+      - targets: ['weaviate-node-3:2112']
+        labels: { node: node3, role: follower }

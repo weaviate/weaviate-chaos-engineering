@@ -12,6 +12,11 @@ on:
         required: false
         default: ''
         type: string
+      baseline_weaviate_version:
+        description: "replication-latency-bench: the image to compare weaviate_version against (same-runner A/B). Empty = auto-pick the previous minor's latest release."
+        required: false
+        default: ''
+        type: string
       issue_number:
         description: "Optional: The issue number to update in the QA project board"
         type: string
@@ -63,6 +68,7 @@ jobs:
       weaviate_version: ${{ github.event_name == 'schedule' && 'nightly' || inputs.weaviate_version || '1.27.2' }}
       weaviate_real_version: ${{ needs.weaviate-version-information.outputs.real_version }}
       async_indexing: "true"
+      baseline_weaviate_version: ${{ inputs.baseline_weaviate_version || '' }}
     secrets:
       AWS_ACCESS_KEY: ${{secrets.AWS_ACCESS_KEY}}
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
