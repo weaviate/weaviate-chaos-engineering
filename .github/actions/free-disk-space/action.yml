@@ -1,0 +1,16 @@
+name: 'Free Disk Space'
+description: 'Removes the preinstalled Android and .NET SDKs, which the runner image ships but these tests never use'
+
+runs:
+  using: composite
+  steps:
+    - uses: insightsengineering/disk-space-reclaimer@v1
+      with:
+        # Android and .NET are ~16 GB of the image and unused here; the rest is left alone (tools-cache holds Python).
+        android: true
+        dotnet: true
+        haskell: true
+        large-packages: false
+        docker-images: false
+        swap-storage: false
+        tools-cache: false

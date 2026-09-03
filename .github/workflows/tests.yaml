@@ -272,6 +272,7 @@ jobs:
     runs-on: ubicloud-standard-2
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -300,6 +301,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -338,6 +340,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -377,6 +380,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -417,6 +421,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -456,6 +461,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -496,6 +502,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -537,6 +544,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -584,6 +592,7 @@ jobs:
       BOOT_DISK_SIZE: 50GB
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -622,6 +631,7 @@ jobs:
       QUANTIZATION: pq
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -662,6 +672,7 @@ jobs:
       QUANTIZATION: rq
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -711,6 +722,7 @@ jobs:
       MULTIVECTOR_DATASET: true
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -751,6 +763,7 @@ jobs:
       QUANTIZATION: pq
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -791,6 +804,7 @@ jobs:
       QUANTIZATION: sq
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -831,6 +845,7 @@ jobs:
       QUANTIZATION: rq
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -879,6 +894,7 @@ jobs:
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -930,6 +946,7 @@ jobs:
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -975,6 +992,7 @@ jobs:
       MULTIVECTOR_IMPLEMENTATION: muvera
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1020,6 +1038,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1046,6 +1065,7 @@ jobs:
       ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1077,6 +1097,7 @@ jobs:
       MINIMUM_WEAVIATE_VERSION: 1.22.0
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1106,6 +1127,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1131,6 +1153,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1154,6 +1177,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1177,6 +1201,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1200,6 +1225,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1223,6 +1249,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1246,6 +1273,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1269,6 +1297,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1292,6 +1321,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1315,6 +1345,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1338,6 +1369,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1361,6 +1393,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1379,6 +1412,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1403,6 +1437,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1421,6 +1456,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1444,6 +1480,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1467,6 +1504,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1490,6 +1528,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1513,6 +1552,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1536,6 +1576,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1560,6 +1601,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1579,6 +1621,7 @@ jobs:
       ASYNC_INDEXING: 'false' # This test is not compatible with async indexing
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1602,6 +1645,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1625,6 +1669,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1648,6 +1693,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1672,6 +1718,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1696,6 +1743,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1719,6 +1767,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1742,6 +1791,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1766,6 +1816,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1790,6 +1841,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -1833,6 +1885,7 @@ jobs:
       MINIMUM_WEAVIATE_VERSION: 1.25.0
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -1867,6 +1920,7 @@ jobs:
           ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -1972,6 +2026,7 @@ jobs:
           ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2089,6 +2144,7 @@ jobs:
           ASYNC_INDEXING: false
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2156,6 +2212,7 @@ jobs:
           ASYNC_INDEXING: ${{ inputs.async_indexing || 'true' }}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2360,6 +2417,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -2391,6 +2449,7 @@ jobs:
       REQUIRED_RECALL: "0.992"
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       # - name: Polar Signals Continuous Profiling
       #   uses: polarsignals/gh-actions-ps-profiling@v0.0.1
       #   with:
@@ -2415,6 +2474,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2439,6 +2499,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2463,6 +2524,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2489,6 +2551,7 @@ jobs:
       NUM_NODES: 1
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2516,6 +2579,7 @@ jobs:
       NUM_NODES: 3
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
@@ -2542,6 +2606,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2567,6 +2632,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2592,6 +2658,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2622,6 +2689,7 @@ jobs:
           ASYNC_INDEXING: ${{ inputs.async_indexing }}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2649,6 +2717,7 @@ jobs:
       ASYNC_INDEXING: true
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2673,6 +2742,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2708,6 +2778,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2749,6 +2820,7 @@ jobs:
       PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
     steps:
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2803,6 +2875,7 @@ jobs:
       # - name: Collect Workflow Telemetry
       #   uses: catchpoint/workflow-telemetry-action@v2
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -2876,6 +2949,7 @@ jobs:
       # - name: Collect Workflow Telemetry
       #   uses: catchpoint/workflow-telemetry-action@v2
       - uses: actions/checkout@v5
+      - uses: ./.github/actions/free-disk-space
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
