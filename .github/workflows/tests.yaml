@@ -1706,6 +1706,11 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
+      # Without this the submodule clone is unauthenticated and shares a 60/hour limit per egress IP.
+      - name: Authenticate github.com clones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
       - name: Run chaos test
         run: ./multi_tenancy_concurrent_importing.sh
   multi_tenancy_activate_deactivate_v1_24:
@@ -1731,6 +1736,11 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
+      # Without this the submodule clone is unauthenticated and shares a 60/hour limit per egress IP.
+      - name: Authenticate github.com clones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
       - name: Run chaos test
         run: ./multi_tenancy_activate_deactivate_v1_24.sh
   multi_tenancy_activate_deactivate:
@@ -1756,6 +1766,11 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
+      # Without this the submodule clone is unauthenticated and shares a 60/hour limit per egress IP.
+      - name: Authenticate github.com clones
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
       - name: Run chaos test
         run: ./multi_tenancy_activate_deactivate.sh
   goroutine_leak_class_delete:
