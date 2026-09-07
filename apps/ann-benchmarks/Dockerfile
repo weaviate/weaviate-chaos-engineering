@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.11-slim-bookworm
 
 # to support pprof profiles and HDF5
 RUN apt-get update && apt-get install -y \
