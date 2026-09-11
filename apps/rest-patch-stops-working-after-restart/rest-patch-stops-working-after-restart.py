@@ -21,15 +21,15 @@ def create_weaviate_schema(client: weaviate.Client) -> None:
                         "indexInverted": True,
                     },
                 ],
+                "vectorizer": "none",
+                "vectorIndexType": "hnsw",
+                "invertedIndexConfig": {
+                    "bm25": {"b": 0.75, "k1": 1.2},
+                    "cleanupIntervalSeconds": 60,
+                    "stopwords": {"preset": "en"},
+                },
             }
         ],
-        "vectorizer": "none",
-        "vectorIndexType": "hnsw",
-        "invertedIndexConfig": {
-            "bm25": {"b": 0.75, "k1": 1.2},
-            "cleanupIntervalSeconds": 60,
-            "stopwords": {"preset": "en"},
-        },
     }
     # add schema
     if not client.schema.contains(schema_class):

@@ -157,7 +157,9 @@ func checkClassExistence(ctx context.Context, client *weaviate.Client, className
 
 func createSchema(ctx context.Context, client *weaviate.Client) error {
 	refTarget := &models.Class{
-		Class: "RefTarget",
+		Class:           "RefTarget",
+		Vectorizer:      "none",
+		VectorIndexType: "hnsw",
 		Properties: []*models.Property{
 			{
 				DataType: []string{"string"},
@@ -188,7 +190,9 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 	}
 
 	classObj := &models.Class{
-		Class: "Collection",
+		Class:           "Collection",
+		Vectorizer:      "none",
+		VectorIndexType: "hnsw",
 		Properties: []*models.Property{
 			{
 				DataType: []string{"string"},
@@ -224,7 +228,9 @@ func createSchema(ctx context.Context, client *weaviate.Client) error {
 
 	mtClassName := "MTCollection"
 	mtClassObj := &models.Class{
-		Class: mtClassName,
+		Class:           mtClassName,
+		Vectorizer:      "none",
+		VectorIndexType: "hnsw",
 		Properties: []*models.Property{
 			{
 				DataType: []string{"string"},
