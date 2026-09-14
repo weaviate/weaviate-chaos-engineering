@@ -54,8 +54,16 @@ if [ "$num_directories" -gt 1 ]; then
 fi
 
 echo "Segments analysis with max LSM segment size of 5MB:"
-output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
+output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects analyzer /app/analyzer --path /lsm_objects)
 echo "$output"
+
+# An empty table means the analyzer regex no longer matches Weaviate's segment
+# naming, and every check below would run on no data.
+segment_rows=$(awk 'NR>3 && NF>0' <<< "$output" | wc -l)
+if [ "$segment_rows" -eq 0 ]; then
+  echo "Error: analyzer found no segments. Its filename regex is likely out of date with Weaviate's segment naming."
+  exit 1
+fi
 
 # Maximum segment size
 new_size=15
@@ -75,7 +83,7 @@ start_time=$(date +%s)
 prev_count=0
 same_count=0
 while true; do
-  output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
+  output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects analyzer /app/analyzer --path /lsm_objects)
   
   # Extract levels from the output
   levels=$(awk 'NR>3 {print $3}' <<< "$output")
@@ -112,7 +120,7 @@ echo ""
 
 # Once all segments are in compacted check if the sum of any pair of segments is greater than ${new_size}MB
 # for consecutive pairs of segments with the same level.
-output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects -t analyzer /app/analyzer --path /lsm_objects)
+output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects analyzer /app/analyzer --path /lsm_objects)
 
 # Process the output, extracting segment sizes and levels
 segments=$(awk 'NR>3 {print $2, $3}' <<< "$output")
