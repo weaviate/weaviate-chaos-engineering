@@ -145,7 +145,8 @@ services:
         ipv4_address: 172.20.0.4
 
   backup-s3:
-    image: minio/minio
+    image: cgr.dev/chainguard/minio
+    user: root
     ports:
       - "9000:9000"
     volumes:
@@ -159,14 +160,14 @@ services:
         ipv4_address: 172.20.0.10
 
   create-s3-bucket:
-    image: minio/mc
+    image: cgr.dev/chainguard/minio
     depends_on:
       - backup-s3
     entrypoint: >
       /bin/sh -c "
       /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
       /usr/bin/mc mb chaos/weaviate-backups;
-      /usr/bin/mc policy set public chaos/weaviate-backups;
+      /usr/bin/mc anonymous set public chaos/weaviate-backups;
       exit 0;
       "
     networks:
@@ -174,7 +175,7 @@ services:
         ipv4_address: 172.20.0.11
 
   remove-s3-bucket:
-    image: minio/mc
+    image: cgr.dev/chainguard/minio
     depends_on:
       - backup-s3
     entrypoint: >

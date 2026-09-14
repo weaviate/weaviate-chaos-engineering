@@ -49,7 +49,8 @@ services:
     depends_on: [telemetry-sink, backup-s3]
 
   backup-s3:
-    image: minio/minio
+    image: cgr.dev/chainguard/minio
+    user: root
     container_name: backup-s3
     ports:
       - "9000:9000"
@@ -61,7 +62,7 @@ services:
     command: server /data
 
   create-s3-bucket:
-    image: minio/mc
+    image: cgr.dev/chainguard/minio
     container_name: create-s3-bucket
     depends_on:
       - backup-s3
@@ -70,12 +71,12 @@ services:
       /usr/bin/mc alias set chaos http://backup-s3:9000 aws_access_key aws_secret_key;
       /usr/bin/mc mb chaos/weaviate-backups;
       /usr/bin/mc rm --force --recursive --quiet chaos/weaviate-backups;
-      /usr/bin/mc policy set public chaos/weaviate-backups;
+      /usr/bin/mc anonymous set public chaos/weaviate-backups;
       exit 0;
       "
 
   remove-s3-bucket:
-    image: minio/mc
+    image: cgr.dev/chainguard/minio
     container_name: remove-s3-bucket
     depends_on:
       - backup-s3
