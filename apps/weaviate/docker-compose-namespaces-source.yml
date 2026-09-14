@@ -66,7 +66,8 @@ services:
   # Unpublished: only the two clusters talk to it, and an unpublished port cannot collide with
   # another test's minio. The target reaches it under the `nsgrad-minio` alias.
   minio:
-    image: minio/minio
+    image: cgr.dev/chainguard/minio
+    user: root
     command: server /data
     volumes:
     - nsgrad-minio:/data
@@ -82,7 +83,7 @@ services:
   # is followed by `exit 0`. namespace_graduation.sh waits on that code before starting the app,
   # so a bucket that was never created fails the run here instead of as a 500 mid-preflight.
   create-s3-bucket:
-    image: minio/mc
+    image: cgr.dev/chainguard/minio
     depends_on:
     - minio
     entrypoint: >
