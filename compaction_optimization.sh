@@ -85,9 +85,9 @@ same_count=0
 while true; do
   output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects analyzer /app/analyzer --path /lsm_objects)
   
-  # Extract levels from the output
-  levels=$(awk 'NR>3 {print $3}' <<< "$output")
-  levels_count=$(echo "$levels" | wc -l)
+  # Count segment rows directly: `echo "" | wc -l` reports 1 for an empty
+  # table, which would make an all-vanished scan look like a stable count.
+  levels_count=$(awk 'NR>3 && NF>0' <<< "$output" | wc -l)
   
   # Check if levels_count is decreasing
   if [ $levels_count -lt $prev_count ]; then
@@ -121,6 +121,14 @@ echo ""
 # Once all segments are in compacted check if the sum of any pair of segments is greater than ${new_size}MB
 # for consecutive pairs of segments with the same level.
 output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects analyzer /app/analyzer --path /lsm_objects)
+
+# The pair loop below iterates zero times on an empty table, so an empty
+# final scan would pass without checking anything.
+segment_rows=$(awk 'NR>3 && NF>0' <<< "$output" | wc -l)
+if [ "$segment_rows" -eq 0 ]; then
+  echo "Error: final analysis found no segments; cannot verify compaction results."
+  exit 1
+fi
 
 # Process the output, extracting segment sizes and levels
 segments=$(awk 'NR>3 {print $2, $3}' <<< "$output")
