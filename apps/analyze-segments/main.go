@@ -13,7 +13,7 @@ import (
 	"regexp"
 )
 
-// Matches flushed (segment-<ts>.db) and compacted (segment-<id>_<id>[.l<n>.s<n>].db) names; each recompaction appends more IDs.
+// Matches segment-<ids>[.l<level>.s<strategy>].db: flushes use one ID, compaction joins IDs with "_", and the suffix can appear on both.
 var segmentRegex = regexp.MustCompile(`^segment-[0-9]+(_[0-9]+)*(\.l[0-9]+\.s[0-9]+)?\.db$`)
 
 func main() {

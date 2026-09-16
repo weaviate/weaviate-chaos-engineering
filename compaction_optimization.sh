@@ -29,6 +29,10 @@ function dump_logs() {
   docker compose -f $COMPOSE logs
 }
 
+function count_segment_rows() {
+  awk 'NR>3 && NF>0' <<< "$1" | wc -l
+}
+
 trap 'dump_logs' ERR
 
 echo "Run import script in foreground..."
@@ -59,9 +63,10 @@ echo "$output"
 
 # An empty table means the analyzer regex no longer matches Weaviate's segment
 # naming, and every check below would run on no data.
-segment_rows=$(awk 'NR>3 && NF>0' <<< "$output" | wc -l)
+segment_rows=$(count_segment_rows "$output")
 if [ "$segment_rows" -eq 0 ]; then
   echo "Error: analyzer found no segments. Its filename regex is likely out of date with Weaviate's segment naming."
+  dump_logs
   exit 1
 fi
 
@@ -85,9 +90,8 @@ same_count=0
 while true; do
   output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/lsm/objects:/lsm_objects analyzer /app/analyzer --path /lsm_objects)
   
-  # Count segment rows directly: `echo "" | wc -l` reports 1 for an empty
-  # table, which would make an all-vanished scan look like a stable count.
-  levels_count=$(awk 'NR>3 && NF>0' <<< "$output" | wc -l)
+  # An empty table must count 0 so churn-only scans reset the stability counter.
+  levels_count=$(count_segment_rows "$output")
   
   # Check if levels_count is decreasing
   if [ $levels_count -lt $prev_count ]; then
@@ -124,9 +128,10 @@ output=$(docker run --network host -v ./apps/weaviate/data/${class_name}/${dir}/
 
 # The pair loop below iterates zero times on an empty table, so an empty
 # final scan would pass without checking anything.
-segment_rows=$(awk 'NR>3 && NF>0' <<< "$output" | wc -l)
+segment_rows=$(count_segment_rows "$output")
 if [ "$segment_rows" -eq 0 ]; then
   echo "Error: final analysis found no segments; cannot verify compaction results."
+  dump_logs
   exit 1
 fi
 
