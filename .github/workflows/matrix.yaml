@@ -53,6 +53,16 @@ jobs:
           image_tag: ${{ env.weaviate_version }}
   run-with-async-indexing:
     needs: weaviate-version-information
+    # GCP access in tests.yaml is via Workload Identity Federation (GitHub OIDC),
+    # which needs `id-token: write`. A called workflow can only inherit or
+    # narrow the caller's token permissions, so it must be granted here.
+    # Declaring permissions replaces the default token scopes, so the other
+    # scopes tests.yaml relies on are listed too: `contents` for checkout and
+    # the GH_TOKEN clone helper, `actions` for workflow-telemetry-action.
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -68,19 +78,23 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{secrets.AWS_SECRET_ACCESS_KEY}}
       DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
       DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
-      GCP_SERVICE_ACCOUNT_BENCHMARKS: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
       POLARSIGNALS_TOKEN: ${{secrets.POLARSIGNALS_TOKEN}}
   cleanup-cancelled-instances:
     needs: [run-with-async-indexing]
     if: always() && (cancelled() || failure())
     runs-on: ubicloud-standard-2
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v5
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Configure AWS credentials

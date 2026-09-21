@@ -26,8 +26,6 @@ on:
         required: true
       DOCKER_PASSWORD:
         required: true
-      GCP_SERVICE_ACCOUNT_BENCHMARKS:
-        required: true
       POLARSIGNALS_TOKEN:
         required: true
 
@@ -308,10 +306,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -347,10 +347,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -387,10 +389,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -428,10 +432,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -468,10 +474,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -509,10 +517,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -551,10 +561,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -599,10 +611,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -638,10 +652,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -679,10 +695,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -729,10 +747,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -770,10 +790,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -811,10 +833,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -852,10 +876,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -901,10 +927,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test
@@ -953,10 +981,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
       - name: Run chaos test with SQ
@@ -999,10 +1029,12 @@ jobs:
           username: ${{secrets.DOCKER_USERNAME}}
           password: ${{secrets.DOCKER_PASSWORD}}
       - id: 'gcs_auth'
-        name: 'Authenticate to Google Cloud'
+        name: 'Authenticate to Google Cloud (Workload Identity Federation)'
         uses: 'google-github-actions/auth@v3'
         with:
-          credentials_json: ${{secrets.GCP_SERVICE_ACCOUNT_BENCHMARKS}}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
       - name: 'Set up Cloud SDK'
         uses: 'google-github-actions/setup-gcloud@v3'
 
