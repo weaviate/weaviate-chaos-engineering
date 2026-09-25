@@ -121,7 +121,7 @@ jobs:
           # This data has been defined as a Workflow in the slack channel chaos-pipeline
           payload: |
             {
-              "message": "Chaos pipeline failed for Weaviate version: latest.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+              "message": "<!subteam^${{ secrets.QA_ROTA_SLACK_GROUP_ID }}|qa-rota> Chaos pipeline failed for Weaviate version: latest.\nLink: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
               "slack_channel": "${{ env.SLACK_CHANNEL }}"
             }
         env:
