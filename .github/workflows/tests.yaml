@@ -28,6 +28,8 @@ on:
         required: true
       POLARSIGNALS_TOKEN:
         required: true
+      WEAVIATE_LICENSE_KEY:
+        required: true
 
 env:
   WEAVIATE_VERSION: ${{ inputs.weaviate_version }}
@@ -1467,6 +1469,8 @@ jobs:
     # legs (mmap, pread) would provision identical clusters. Run only the pread leg.
     if: ${{ (needs.newer-or-equal-than-1_38.outputs.check == 'true') && (inputs.lsm_access_strategy == 'pread') && (github.event.inputs.test_to_run == 'namespace-graduation' || github.event.inputs.test_to_run == '') }}
     timeout-minutes: 60
+    env:
+      WEAVIATE_LICENSE_KEY: ${{secrets.WEAVIATE_LICENSE_KEY}}
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/free-disk-space
