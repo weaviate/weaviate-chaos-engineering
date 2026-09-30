@@ -45,6 +45,9 @@ services:
       # Namespace-bound principals are dynamic db users.
       AUTHENTICATION_DB_USERS_ENABLED: 'true'
       NAMESPACES_ENABLED: 'true'
+      # The namespaces endpoints answer 403 without a well-formed license key. namespace_graduation.sh
+      # requires WEAVIATE_LICENSE_KEY; the target has namespaces off and needs none.
+      LICENSE_KEY: '${WEAVIATE_LICENSE_KEY}'
       # NAMESPACES_ENABLED refuses to start without DISABLE_GRAPHQL=true
       # (usecases/config/config_handler.go:392-394).
       DISABLE_GRAPHQL: 'true'

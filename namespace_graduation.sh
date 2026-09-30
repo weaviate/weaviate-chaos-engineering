@@ -8,7 +8,7 @@
 # deletes apps/weaviate/data*, and it is wired to an unconditional EXIT trap. The readiness poll and
 # the teardown below are the two pieces of it this script needs, scoped to its own two projects.
 #
-# Usage (from the repo root):
+# Usage (from the repo root; WEAVIATE_LICENSE_KEY must be exported as well):
 #   WEAVIATE_VERSION=1.38.0 ./namespace_graduation.sh            # full journey
 #   WEAVIATE_VERSION=1.38.0 ./namespace_graduation.sh preflight   # rig check only
 #   KEEP_CLUSTERS=1 WEAVIATE_VERSION=1.38.0 ./namespace_graduation.sh   # leave both clusters up
@@ -20,6 +20,11 @@ MODE="${1:-journey}"
 # Both compose files interpolate this into their image tag; the app receives the same value and
 # records it in its config summary.
 : "${WEAVIATE_VERSION:?set WEAVIATE_VERSION, e.g. WEAVIATE_VERSION=1.38.0 ./namespace_graduation.sh}"
+
+# The source compose file passes this to the server as LICENSE_KEY: the namespaces feature answers
+# 403 without a well-formed key. In CI it comes from the WEAVIATE_LICENSE_KEY repo secret.
+: "${WEAVIATE_LICENSE_KEY:?set WEAVIATE_LICENSE_KEY to a Weaviate license key; the namespaced source cluster needs one}"
+export WEAVIATE_LICENSE_KEY
 
 # The one home for the static root keys: the compose files interpolate them into
 # AUTHENTICATION_APIKEY_ALLOWED_KEYS and the app container receives the same values.
