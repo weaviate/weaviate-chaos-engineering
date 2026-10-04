@@ -11,7 +11,7 @@ import os
 import_error_count = 0
 
 
-def reset_schema(client: weaviate.Client, repl_factor: int):
+def reset_schema(client: weaviate.Client, repl_factor: int, async_repl: bool):
     client.schema.delete_all()
     class_obj = {
         "vectorizer": "none",
@@ -23,7 +23,7 @@ def reset_schema(client: weaviate.Client, repl_factor: int):
         "invertedIndexConfig": {
             "indexTimestamps": False,
         },
-        "replicationConfig": {"factor": repl_factor},
+        "replicationConfig": {"factor": repl_factor, "asyncEnabled": async_repl},
         "properties": [
             {
                 "dataType": ["text"],
@@ -57,13 +57,19 @@ def handle_errors(results: Optional[dict]) -> None:
                     logger.error(message["message"])
 
 
-def load_objects(client: weaviate.Client, size: int, batch_size: int, uuid_offset: int):
+def load_objects(
+    client: weaviate.Client,
+    size: int,
+    batch_size: int,
+    uuid_offset: int,
+    consistency_level: str = "QUORUM",
+):
     client.batch.configure(
         batch_size=batch_size,
         callback=handle_errors,
         dynamic=False,
         num_workers=8,
-        consistency_level="QUORUM",
+        consistency_level=consistency_level,
     )
     with client.batch as batch:
         for i in range(size):
@@ -85,7 +91,12 @@ def load_objects(client: weaviate.Client, size: int, batch_size: int, uuid_offse
 # most one node death, so a quorum must always work. The assumption is that any
 # write request could either be written to at least two nodes successfully – or
 # if it could not be written – has been repeated client-side
-def validate_objects(client: weaviate.Client, object_count: int, uuid_offset: int):
+def validate_objects(
+    client: weaviate.Client,
+    object_count: int,
+    uuid_offset: int,
+    consistency_level: str = "QUORUM",
+):
     missing_objects = 0
     errors = 0
 
@@ -93,7 +104,7 @@ def validate_objects(client: weaviate.Client, object_count: int, uuid_offset: in
         obj_id = uuid.UUID(int=i + uuid_offset)
         try:
             data_object = client.data_object.get_by_id(
-                uuid=obj_id, class_name="Document", consistency_level="QUORUM"
+                uuid=obj_id, class_name="Document", consistency_level=consistency_level
             )
             if data_object is None:
                 missing_objects += 1
@@ -176,6 +187,17 @@ def config_repl_factor() -> int:
     return int(repl_factor)
 
 
+def config_async_replication() -> bool:
+    return os.environ.get("CONFIG_ASYNC_REPLICATION", "").lower() == "true"
+
+
+def config_consistency_level() -> str:
+    consistency_level = os.environ.get("CONFIG_CONSISTENCY_LEVEL")
+    if consistency_level is None or consistency_level == "":
+        return "QUORUM"
+    return consistency_level
+
+
 if __name__ == "__main__":
     host = config_host()
     object_count = config_object_count()
@@ -189,15 +211,23 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.action == "import":
+        consistency_level = config_consistency_level()
         logger.info(
-            f"CONFIG: host={host}; object_count={object_count}; batch_size={batch_size}; uuid_offset={uuid_offset}"
+            f"CONFIG: host={host}; object_count={object_count}; batch_size={batch_size}; uuid_offset={uuid_offset}; consistency_level={consistency_level}"
         )
-        load_objects(client, object_count, batch_size, uuid_offset)
+        load_objects(client, object_count, batch_size, uuid_offset, consistency_level)
         # load_references(client, 400, ids_class_1, ids_class_2)
-        validate_objects(client, object_count, uuid_offset)
+        validate_objects(client, object_count, uuid_offset, consistency_level)
+    elif args.action == "validate":
+        consistency_level = config_consistency_level()
+        logger.info(
+            f"CONFIG: host={host}; object_count={object_count}; uuid_offset={uuid_offset}; consistency_level={consistency_level}"
+        )
+        validate_objects(client, object_count, uuid_offset, consistency_level)
     elif args.action == "schema":
-        logger.info(f"CONFIG: host={host}; repl_factor={repl_factor}")
-        reset_schema(client, repl_factor)
+        async_repl = config_async_replication()
+        logger.info(f"CONFIG: host={host}; repl_factor={repl_factor}; async_repl={async_repl}")
+        reset_schema(client, repl_factor, async_repl)
         logger.info("schema reset")
     else:
         logger.error("unknown --action option")
