@@ -159,10 +159,11 @@ def _books_sanity_checks(client: weaviate.WeaviateClient, i: int, suffix: str = 
     tenant = _get_tenant_name(i, suffix)
     logger.debug("running {} sanity checks with tenant {}", class_name, tenant)
     assert graphql_grpc_aggregate(client, class_name, tenant)
+    # QUORUM not ONE: async replication is default-on for RF>1 since weaviate#11214, so right after a rolling restart a CL=ONE read can hit a not-yet-reconciled replica and under-count.
     collection = (
         client.collections.get(class_name)
         .with_tenant(tenant)
-        .with_consistency_level(consistency_level=ConsistencyLevel.ONE)
+        .with_consistency_level(consistency_level=ConsistencyLevel.QUORUM)
     )
     result = collection.query.near_text(
         query=["Essos", "Westeros", "Throne"],
