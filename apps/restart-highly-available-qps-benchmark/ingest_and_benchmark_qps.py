@@ -216,6 +216,8 @@ def main() -> None:
     ns = os.getenv("K8S_NAMESPACE", "weaviate")
     benchmark_qps = get_env_int("BENCHMARK_QPS", 20)
     sustained_writes = os.getenv("SUSTAINED_WRITES", "true").strip().lower() == "true"
+    sustained_write_objects = get_env_int("SUSTAINED_WRITE_OBJECTS", 500)
+    sustained_write_pause_s = get_env_int("SUSTAINED_WRITE_PAUSE_S", 5)
 
     # Remove any leftover benchmark_results_* files from previous local runs so
     # the validation step never accidentally picks up stale CSVs.
@@ -305,17 +307,17 @@ def main() -> None:
     write_errors: Dict[str, int] = {}
     writes_done = threading.Event()
 
-    def ingest_round(name: str, auto_tenants: int) -> int:
+    def ingest_round(name: str, auto_tenants: int, limit: int) -> int:
         """One pass of create_data; returns the error count it reported."""
         buf = io.StringIO()
         with redirect_stdout(buf):
             data_manager.create_data(
                 collection=name,
-                limit=objects_per_class,
+                limit=limit,
                 consistency_level=os.getenv("INGESTION_CONSISTENCY_LEVEL", "quorum"),
                 randomize=True,
                 auto_tenants=auto_tenants,
-                batch_size=batch_size,
+                batch_size=min(batch_size, limit),
                 wait_for_indexing=True,
             )
         m = re.search(r"Encountered\s+(\d+)\s+total errors", buf.getvalue())
@@ -334,8 +336,12 @@ def main() -> None:
             sustained=sustained_writes,
         )
         while True:
+            # The first round seeds the collection; later rounds only need to keep
+            # writes in flight, so they are small and paced. Flat-out rounds
+            # starve the query path and invalidate the run.
+            limit = objects_per_class if rounds == 0 else sustained_write_objects
             try:
-                errors += ingest_round(name, auto_tenants)
+                errors += ingest_round(name, auto_tenants, limit)
                 rounds += 1
             except Exception as e:  # pragma: no cover
                 # A write refused mid-restart is the thing being measured, not a
@@ -343,6 +349,8 @@ def main() -> None:
                 logger.warning("Ingestion round for {name} failed: {e}", name=name, e=e)
                 errors += 1
             if not sustained_writes or writes_done.is_set():
+                break
+            if writes_done.wait(timeout=sustained_write_pause_s):
                 break
 
         write_errors[name] = errors
