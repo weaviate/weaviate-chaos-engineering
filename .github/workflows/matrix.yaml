@@ -8,7 +8,7 @@ on:
         type: string
         required: true
       test_to_run:
-        description: "The name of the chaos test to run. It takes the name of the test from the tests.yaml file as input. Example: 'filter-memory-leak'. If not passed, all tests will run."
+        description: "The name of the chaos test to run. It takes the name of the test from the tests.yaml file as input. Example: 'filter-memory-leak'. Pass 'qps' to run both restart QPS benchmarks. If not passed, all tests will run."
         required: false
         default: ''
         type: string
