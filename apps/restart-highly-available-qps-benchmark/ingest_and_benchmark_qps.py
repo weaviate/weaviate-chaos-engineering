@@ -216,8 +216,11 @@ def main() -> None:
     ns = os.getenv("K8S_NAMESPACE", "weaviate")
     benchmark_qps = get_env_int("BENCHMARK_QPS", 20)
     sustained_writes = os.getenv("SUSTAINED_WRITES", "true").strip().lower() == "true"
-    sustained_write_objects = get_env_int("SUSTAINED_WRITE_OBJECTS", 500)
-    sustained_write_pause_s = get_env_int("SUSTAINED_WRITE_PAUSE_S", 5)
+    # ~10 writes/s per collection, so ~40/s across the four. 500 objects every 5s
+    # was 400/s -- 13x what production was taking while it was rolled -- and it
+    # held queries to 14 of a 20 QPS target, which invalidates the run.
+    sustained_write_objects = get_env_int("SUSTAINED_WRITE_OBJECTS", 100)
+    sustained_write_pause_s = get_env_int("SUSTAINED_WRITE_PAUSE_S", 10)
 
     # Remove any leftover benchmark_results_* files from previous local runs so
     # the validation step never accidentally picks up stale CSVs.
