@@ -37,219 +37,48 @@ except Exception:  # pragma: no cover
 
 from weaviate_cli.managers.collection_manager import CollectionManager
 from weaviate_cli.managers.data_manager import DataManager
-from weaviate_cli.managers.benchmark_manager import BenchmarkQPSManager
+from weaviate_cli.managers.benchmark_manager import PER_REQUEST_TIMEOUT_S, BenchmarkQPSManager
+
+from validation import (
+    annotate_csvs_with_restart,
+    get_env_float,
+    get_env_int,
+    validate_benchmark_csv,
+)
+
+LOCAL_CONTEXT_PREFIXES = ("kind-", "minikube", "docker-desktop", "k3d-")
 
 
-def get_env_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if value is None or value == "":
-        return default
-    try:
-        return int(value)
-    except ValueError:
-        logger.warning(f"Invalid int for {name}={value!r}; using default {default}")
-        return default
-
-
-def annotate_csvs_with_restart(
-    restart_time: float,
-    collection_names: List[str],
-    test_start_time: float,
-    event_name: str = "restart_event",
-) -> None:
-    """
-    Insert a sentinel row with phase_name=*event_name* into each collection's benchmark
-    CSV at the position corresponding to restart_time.  The sentinel makes it trivial for
-    the validation function to split pre-restart baseline from the restart window.
-
-    For a rolling restart there is a single sentinel ("rolling_restart_event").
-    For a single-pod restart two sentinels are inserted per call:
-        "non_leader_restart_event"  – when the non-leader pod is deleted
-        "leader_restart_event"      – when the leader pod is deleted
-
-    The row looks like:
-        <restart_time>,<event_name>,,,,,,0
-    with empty latency columns so consumers that expect floats can skip it.
-    """
-    for name in collection_names:
-        # Pick the CSV written during this test run (newest file for this collection)
-        pattern = f"benchmark_results_{name}_*.csv"
-        candidates = [
-            p for p in sorted(glob.glob(pattern)) if os.path.getmtime(p) >= test_start_time
-        ]
-        if not candidates:
-            logger.warning(f"No benchmark CSV found for collection {name}, skipping annotation")
-            continue
-        csv_path = candidates[-1]
-
-        with open(csv_path, newline="") as f:
-            reader = csv_module.DictReader(f)
-            fieldnames = list(reader.fieldnames or [])
-            rows = list(reader)
-
-        if not rows or not fieldnames:
-            logger.warning(f"CSV {csv_path} is empty, skipping annotation")
-            continue
-
-        # Find the insertion point: first row whose timestamp >= restart_time
-        insert_at = len(rows)
-        for i, row in enumerate(rows):
-            try:
-                if float(row["timestamp"]) >= restart_time:
-                    insert_at = i
-                    break
-            except (ValueError, KeyError):
-                continue
-
-        sentinel: Dict[str, str] = {k: "" for k in fieldnames}
-        sentinel["timestamp"] = f"{restart_time:.6f}"
-        sentinel["phase_name"] = event_name
-        sentinel["actual_qps"] = "0"
-        sentinel["total_queries"] = "0"
-
-        rows.insert(insert_at, sentinel)
-
-        with open(csv_path, "w", newline="") as f:
-            writer = csv_module.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(rows)
-
-        logger.info(
-            "Annotated {path} with {event} at row {pos} (t={ts:.1f})",
-            path=csv_path,
-            event=event_name,
-            pos=insert_at + 1,
-            ts=restart_time,
+def resolve_kube_context() -> str:
+    ctx = os.getenv("K8S_CONTEXT", "").strip()
+    if not ctx:
+        ctx = subprocess.run(
+            ["kubectl", "config", "current-context"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+    if not ctx:
+        raise SystemExit("No kubectl context: set K8S_CONTEXT to the local test cluster")
+    if os.getenv("ALLOW_NON_LOCAL_CLUSTER", "").lower() == "true":
+        logger.warning("Running against non-local context {ctx} by opt-in", ctx=ctx)
+        return ctx
+    if not ctx.startswith(LOCAL_CONTEXT_PREFIXES):
+        raise SystemExit(
+            f"Refusing to run against kubectl context {ctx!r}: this test deletes pods "
+            f"and restarts the weaviate StatefulSet. Expected a local cluster "
+            f"({', '.join(LOCAL_CONTEXT_PREFIXES)}...), or set "
+            f"ALLOW_NON_LOCAL_CLUSTER=true."
         )
+    return ctx
 
 
-def validate_benchmark_csv(
-    csv_path: str,
-    target_qps: float,
-    max_drop_ratio: float = 0.6,
-    sustained_window: int = 3,
-    baseline_skip_rows: int = 3,
-) -> Tuple[bool, str]:
-    """
-    Validate a (restart-annotated) benchmark CSV for QPS regressions.
+KUBE_CONTEXT = resolve_kube_context()
 
-    Strategy
-    --------
-    1. Split the CSV at the 'restart_event' sentinel into a baseline section
-       (pre-restart) and a restart window (post-restart).
-    2. Compute the stable baseline QPS from the pre-restart rows, skipping the
-       first ``baseline_skip_rows`` rows which may still reflect EWMA warmup.
-    3. Derive a failure threshold: baseline_qps * (1 - max_drop_ratio).
-       Default is 60 %, e.g. threshold = 8 QPS when baseline = 20 QPS.
-    4. Scan every consecutive window of ``sustained_window`` rows in the
-       post-restart section. If ALL rows in a window are below the threshold,
-       the test fails.  Requiring multiple consecutive seconds prevents
-       single-row EWMA noise from triggering false positives.
 
-    Thresholds are intentionally generous (60 % drop, 3-second window) so that
-    normal pod-restart overhead (~5-15 % dip for < 2 s) never causes a flake,
-    while a real regression (90 %+ drop sustained for 6+ s) is unmistakable.
-
-    Args:
-        csv_path:          Path to the annotated benchmark CSV.
-        target_qps:        Configured QPS target; used as fallback baseline when
-                           there are too few pre-restart rows.
-        max_drop_ratio:    Maximum tolerated QPS drop fraction (0.6 = 60 %).
-        sustained_window:  Consecutive rows all below threshold that trigger fail.
-        baseline_skip_rows: Leading pre-restart rows to skip (EWMA settling).
-
-    Returns:
-        (passed: bool, reason: str)
-    """
-    with open(csv_path, newline="") as f:
-        reader = csv_module.DictReader(f)
-        rows = list(reader)
-
-    if len(rows) < 10:
-        return False, f"Too few rows ({len(rows)}) to validate"
-
-    # Locate the first restart sentinel (any phase_name ending in "_restart_event"
-    # or equal to "restart_event" for backward compatibility).
-    def _is_restart_sentinel(row: Dict[str, str]) -> bool:
-        name = row.get("phase_name", "")
-        return name == "restart_event" or name.endswith("_restart_event")
-
-    restart_idx: Optional[int] = None
-    for i, row in enumerate(rows):
-        if _is_restart_sentinel(row):
-            restart_idx = i
-            break
-
-    if restart_idx is None:
-        return False, "No restart_event sentinel found — annotation may have failed"
-
-    # --- Baseline ---
-    pre_rows = [r for r in rows[:restart_idx] if not _is_restart_sentinel(r)]
-    stable_pre = pre_rows[baseline_skip_rows:]
-
-    if len(stable_pre) < 3:
-        baseline_qps = target_qps
-        logger.warning(
-            "Only {n} stable pre-restart rows available; using target_qps={t} as baseline",
-            n=len(stable_pre),
-            t=target_qps,
-        )
-    else:
-        samples = []
-        for r in stable_pre:
-            try:
-                samples.append(float(r["actual_qps"]))
-            except (ValueError, KeyError):
-                pass
-        baseline_qps = sum(samples) / len(samples) if samples else target_qps
-
-    threshold_qps = baseline_qps * (1.0 - max_drop_ratio)
-
-    # --- Post-restart window ---
-    # Skip any additional restart sentinels (e.g. the leader_restart_event that follows
-    # non_leader_restart_event in the single-pod-restart variant) so they don't
-    # pollute the QPS sample list.
-    post_rows = [
-        r
-        for r in rows[restart_idx + 1 :]
-        if not _is_restart_sentinel(r) and r.get("actual_qps") not in ("", "0")
-    ]
-
-    if not post_rows:
-        return False, "No post-restart data rows found"
-
-    qps_values: List[float] = []
-    for r in post_rows:
-        try:
-            qps_values.append(float(r["actual_qps"]))
-        except (ValueError, KeyError):
-            pass
-
-    if not qps_values:
-        return False, "Could not parse any actual_qps values in post-restart data"
-
-    # Sliding-window sustained-drop check
-    for i in range(max(1, len(qps_values) - sustained_window + 1)):
-        window = qps_values[i : i + sustained_window]
-        if len(window) < sustained_window:
-            break
-        if all(v < threshold_qps for v in window):
-            return (
-                False,
-                f"QPS sustained below threshold for {sustained_window}+ consecutive seconds "
-                f"starting at post-restart row {i + 1}: "
-                f"window={[round(v, 2) for v in window]}, "
-                f"threshold={threshold_qps:.2f} "
-                f"(baseline={baseline_qps:.2f}, max_drop={max_drop_ratio * 100:.0f}%)",
-            )
-
-    min_observed = min(qps_values)
-    return (
-        True,
-        f"OK — baseline={baseline_qps:.2f} QPS, "
-        f"min_observed={min_observed:.2f} QPS, "
-        f"threshold={threshold_qps:.2f} QPS ({max_drop_ratio * 100:.0f}% drop allowed)",
-    )
+def kubectl(*args: str) -> List[str]:
+    """kubectl argv with the context pinned, so it cannot drift mid-run."""
+    return ["kubectl", "--context", KUBE_CONTEXT, *args]
 
 
 def get_raft_leader(host: str = "localhost", port: int = 8080) -> Optional[str]:
@@ -270,15 +99,14 @@ def get_raft_leader(host: str = "localhost", port: int = 8080) -> Optional[str]:
 def get_pod_names(ns: str) -> List[str]:
     """Return the names of all weaviate StatefulSet pods currently known to kubectl."""
     result = subprocess.run(
-        [
-            "kubectl",
+        kubectl(
             "get",
             "pods",
             "-n",
             ns,
             "-o",
             "jsonpath={range .items[*]}{.metadata.name}{'\\n'}{end}",
-        ],
+        ),
         capture_output=True,
         text=True,
         check=False,
@@ -294,7 +122,7 @@ def restart_pod_and_wait(pod_name: str, ns: str, timeout_sec: int = 120) -> bool
     logger.info("Restarting pod {pod}...", pod=pod_name)
 
     del_result = subprocess.run(
-        ["kubectl", "delete", "pod", pod_name, "-n", ns],
+        kubectl("delete", "pod", pod_name, "-n", ns),
         capture_output=True,
         text=True,
         check=False,
@@ -307,22 +135,21 @@ def restart_pod_and_wait(pod_name: str, ns: str, timeout_sec: int = 120) -> bool
 
     # Wait for the old pod instance to disappear before watching for Ready
     subprocess.run(
-        ["kubectl", "wait", f"pod/{pod_name}", "--for=delete", "--timeout=60s", "-n", ns],
+        kubectl("wait", f"pod/{pod_name}", "--for=delete", "--timeout=60s", "-n", ns),
         capture_output=True,
         text=True,
         check=False,
     )
 
     wait_result = subprocess.run(
-        [
-            "kubectl",
+        kubectl(
             "wait",
             f"pod/{pod_name}",
             "--for=condition=Ready",
             f"--timeout={timeout_sec}s",
             "-n",
             ns,
-        ],
+        ),
         capture_output=True,
         text=True,
         check=False,
@@ -338,13 +165,12 @@ def restart_pod_and_wait(pod_name: str, ns: str, timeout_sec: int = 120) -> bool
 def wait_for_statefulset_ready(ns: str) -> bool:
     timeout_sec = 300  # 5 minutes
     logger.info(f"Waiting for statefulset to be ready (timeout: {timeout_sec} seconds)...")
-    cmd = [
-        "kubectl",
+    cmd = kubectl(
         "rollout",
         "status",
         "sts/weaviate",
         f"--timeout={timeout_sec}s",
-    ]
+    )
     if ns:
         cmd.extend(["-n", ns])
     logger.info("Executing: {cmd}", cmd=" ".join(cmd))
@@ -389,10 +215,7 @@ def main() -> None:
     collection_prefix = os.getenv("COLLECTION_PREFIX", "rrha_")
     ns = os.getenv("K8S_NAMESPACE", "weaviate")
     benchmark_qps = get_env_int("BENCHMARK_QPS", 20)
-    # Allow a small number of vectorizer 500s during ingestion without failing the
-    # whole job.  A handful of failed objects (< 0.1 % at 50k) is normal noise from
-    # model2vec; a large count indicates a real problem.
-    ingestion_max_errors = get_env_int("INGESTION_MAX_ERRORS", 10)
+    sustained_writes = os.getenv("SUSTAINED_WRITES", "true").strip().lower() == "true"
 
     # Remove any leftover benchmark_results_* files from previous local runs so
     # the validation step never accidentally picks up stale CSVs.
@@ -474,49 +297,61 @@ def main() -> None:
     # Start background ingestion for each collection
     ingestion_threads: List[threading.Thread] = []
 
-    def ingest_target(name: str, is_mt: bool) -> None:
-        try:
-            # For MT collections, ingest into a single tenant using autoTenantCreation
-            auto_tenants = 1 if is_mt else 0
-            logger.info(
-                "Starting ingestion for {name} (limit={limit}, tenants={auto_tenants})",
-                name=name,
+    # Production was under continuous writes while it was rolled, which is what
+    # keeps schema versions advancing and so what makes a restarting node
+    # measurably behind. One bounded pass finishes long before the window ends
+    # and leaves the rest of the run read-only, so keep writing in rounds until
+    # the benchmark is done.
+    write_errors: Dict[str, int] = {}
+    writes_done = threading.Event()
+
+    def ingest_round(name: str, auto_tenants: int) -> int:
+        """One pass of create_data; returns the error count it reported."""
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            data_manager.create_data(
+                collection=name,
                 limit=objects_per_class,
+                consistency_level=os.getenv("INGESTION_CONSISTENCY_LEVEL", "quorum"),
+                randomize=True,
                 auto_tenants=auto_tenants,
+                batch_size=batch_size,
+                wait_for_indexing=True,
             )
-            buf = io.StringIO()
-            with redirect_stdout(buf):
-                data_manager.create_data(
-                    collection=name,
-                    limit=objects_per_class,
-                    consistency_level="quorum",
-                    randomize=True,
-                    auto_tenants=auto_tenants,
-                    batch_size=batch_size,
-                    wait_for_indexing=True,
-                )
-            out = buf.getvalue()
-            m = re.search(r"Encountered\s+(\d+)\s+total errors", out)
-            if m:
-                num_errors = int(m.group(1))
-                if num_errors > ingestion_max_errors:
-                    logger.error(
-                        "Ingestion for {name} reported {n} errors (exceeds tolerance of {tol}).",
-                        name=name,
-                        n=num_errors,
-                        tol=ingestion_max_errors,
-                    )
-                    failure_state["failed"] = True
-                elif num_errors > 0:
-                    logger.warning(
-                        "Ingestion for {name} reported {n} error(s) — within tolerance of {tol}, continuing.",
-                        name=name,
-                        n=num_errors,
-                        tol=ingestion_max_errors,
-                    )
-        except Exception as e:  # pragma: no cover
-            logger.exception(f"Ingestion error for {name}: {e}")
-            failure_state["failed"] = True
+        m = re.search(r"Encountered\s+(\d+)\s+total errors", buf.getvalue())
+        return int(m.group(1)) if m else 0
+
+    def ingest_target(name: str, is_mt: bool) -> None:
+        auto_tenants = 1 if is_mt else 0
+        rounds = 0
+        errors = 0
+        logger.info(
+            "Starting ingestion for {name} (limit={limit}, tenants={auto_tenants}, "
+            "sustained={sustained})",
+            name=name,
+            limit=objects_per_class,
+            auto_tenants=auto_tenants,
+            sustained=sustained_writes,
+        )
+        while True:
+            try:
+                errors += ingest_round(name, auto_tenants)
+                rounds += 1
+            except Exception as e:  # pragma: no cover
+                # A write refused mid-restart is the thing being measured, not a
+                # reason to stop writing.
+                logger.warning("Ingestion round for {name} failed: {e}", name=name, e=e)
+                errors += 1
+            if not sustained_writes or writes_done.is_set():
+                break
+
+        write_errors[name] = errors
+        logger.info(
+            "Ingestion for {name} finished: {r} round(s), {e} error(s)",
+            name=name,
+            r=rounds,
+            e=errors,
+        )
 
     for cfg in collections:
         is_mt = cfg["multitenant"] != False
@@ -535,6 +370,8 @@ def main() -> None:
     # Start QPS benchmarks for all collections in parallel (daemon thread, non-blocking)
     logger.info("Starting QPS benchmarks for all collections...")
 
+    timeout_counts: Dict[str, int] = {}
+
     async def run_all_benchmarks() -> None:
         async def benchmark_one(collection_name: str) -> None:
             async_client = weaviate_use_async_with_local()
@@ -543,22 +380,27 @@ def main() -> None:
             with redirect_stdout(buf):
                 await manager.run_benchmark(
                     collection=collection_name,
-                    max_duration=120,
+                    max_duration=get_env_int("BENCHMARK_DURATION", 120),
                     query_type="hybrid",
                     query_terms=["test"],
                     file_alias=collection_name,
-                    fail_on_timeout=True,
+                    fail_on_timeout=False,
                     warmup_duration=0,
                     qps=benchmark_qps,
                     output="csv",
                     generate_graph=True,
                 )
             out = buf.getvalue()
-            if (
-                "No successful queries were completed" in out
-                or "timed out after" in out
-                or "generated an exception" in out
-            ):
+            n_timeouts = out.count("timed out after")
+            timeout_counts[collection_name] = n_timeouts
+            if n_timeouts:
+                logger.error(
+                    "{n} query(s) exceeded the {t}s per-request timeout for {name}",
+                    n=n_timeouts,
+                    t=PER_REQUEST_TIMEOUT_S,
+                    name=collection_name,
+                )
+            if "No successful queries were completed" in out or "generated an exception" in out:
                 logger.error(
                     "Benchmark detected failures for collection {name}.",
                     name=collection_name,
@@ -575,8 +417,9 @@ def main() -> None:
     )
     bench_thread.start()
 
-    logger.info("Waiting for 15 seconds before triggering disruption...")
-    time.sleep(15)
+    restart_delay = get_env_int("RESTART_DELAY_SECONDS", 15)
+    logger.info("Waiting {d}s before triggering disruption...", d=restart_delay)
+    time.sleep(restart_delay)
 
     # --- Disruption phase (variant-specific) ---
     # restart_events accumulates (timestamp, event_name) pairs; each entry will
@@ -594,7 +437,7 @@ def main() -> None:
         restart_events.append((rolling_restart_time, "rolling_restart_event"))
 
         logger.info("Triggering rolling restart for sts/weaviate...")
-        cmd = ["kubectl", "rollout", "restart", "sts/weaviate"]
+        cmd = kubectl("rollout", "restart", "sts/weaviate")
         if ns:
             cmd.extend(["-n", ns])
         result = subprocess.run(cmd, capture_output=True, text=True, check=False)
@@ -649,6 +492,8 @@ def main() -> None:
 
     logger.info("Waiting for benchmark threads to finish...")
     bench_thread.join()
+    # let the writers stop once there is nothing left to measure
+    writes_done.set()
     logger.info("Benchmark finished.")
 
     # Display RAFT leader change summary
@@ -689,8 +534,52 @@ def main() -> None:
     if not csv_files:
         logger.error("No benchmark CSV files found for this run — cannot validate QPS")
         failure_state["failed"] = True
+    # Reported separately: a query past the per-request timeout records no latency,
+    # so no percentile can see it. This is the production signal -- queries held
+    # for seconds -- and a count over the whole window is stable where a
+    # per-second percentile over ~20 samples is not.
+    # Writes refused while the cluster rolls were a signal in their own right in
+    # production: none during a healthy rollout, a steady rate during a bad one.
+    # The tolerance is deliberately loose and uncalibrated -- it exists so a
+    # vectorizer hiccup does not fail the run, not as a measured bound.
+    max_write_errors = get_env_int("MAX_WRITE_ERRORS", 50)
+    total_write_errors = sum(write_errors.values())
+    if write_errors:
+        logger.info("Write errors by collection: {c}", c=write_errors)
+    if total_write_errors > max_write_errors:
+        logger.error(
+            "Write validation FAILED: {n} write error(s) across the run, tolerance {m}",
+            n=total_write_errors,
+            m=max_write_errors,
+        )
+        failure_state["failed"] = True
+
+    max_timeouts = get_env_int("MAX_QUERY_TIMEOUTS", 0)
+    total_timeouts = sum(timeout_counts.values())
+    if timeout_counts:
+        logger.info(
+            "Per-request timeouts (>{t}s) by collection: {c}",
+            t=PER_REQUEST_TIMEOUT_S,
+            c=timeout_counts,
+        )
+    if total_timeouts > max_timeouts:
+        logger.error(
+            "Timeout validation FAILED: {n} query(s) exceeded {t}s, tolerance {m}",
+            n=total_timeouts,
+            t=PER_REQUEST_TIMEOUT_S,
+            m=max_timeouts,
+        )
+        failure_state["failed"] = True
+    else:
+        logger.info("Timeout validation PASSED: no query exceeded {t}s", t=PER_REQUEST_TIMEOUT_S)
+
     for csv_path in csv_files:
-        passed, reason = validate_benchmark_csv(csv_path, target_qps=float(benchmark_qps))
+        passed, reason = validate_benchmark_csv(
+            csv_path,
+            target_qps=float(benchmark_qps),
+            degraded_ms=get_env_float("DEGRADED_MS", 1000.0),
+            max_degraded_fraction=get_env_float("MAX_DEGRADED_FRACTION", 0.15),
+        )
         if passed:
             logger.info("QPS validation PASSED [{path}]: {reason}", path=csv_path, reason=reason)
         else:
