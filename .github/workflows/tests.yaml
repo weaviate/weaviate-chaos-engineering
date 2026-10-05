@@ -2915,8 +2915,10 @@ jobs:
       # latency stayed bad. At 20 QPS a CSV row covers ~20 queries, so its p99 is
       # really a maximum; only a long window makes the degraded share of it
       # stable enough to judge. 900s gives ~18k queries instead of 3.6k.
-      BENCHMARK_DURATION: 900
-      RESTART_DELAY_SECONDS: 60
+      # The stall shows within minutes of the rollout starting, so the window only
+      # has to outlast the rollout itself.
+      BENCHMARK_DURATION: 300
+      RESTART_DELAY_SECONDS: 45
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -2926,9 +2928,8 @@ jobs:
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
-          DISABLE_LAZY_LOAD_SHARDS: true
-          HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true
-      # Only include HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE and DISABLE_LAZY_LOAD_SHARDS if version is older than 1.36.0
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}
     steps:
       # - name: Collect Workflow Telemetry
       #   uses: catchpoint/workflow-telemetry-action@v2
@@ -2946,7 +2947,7 @@ jobs:
       - name: Verify failover degradation detection
         run: |
           cd apps/restart-highly-available-qps-benchmark
-          python3 -m unittest test_validation -v
+          python3 -m unittest discover -s . -p "test_*.py" -v
       - name: Weaviate - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2999,8 +3000,10 @@ jobs:
       # latency stayed bad. At 20 QPS a CSV row covers ~20 queries, so its p99 is
       # really a maximum; only a long window makes the degraded share of it
       # stable enough to judge. 900s gives ~18k queries instead of 3.6k.
-      BENCHMARK_DURATION: 900
-      RESTART_DELAY_SECONDS: 60
+      # The stall shows within minutes of the rollout starting, so the window only
+      # has to outlast the rollout itself.
+      BENCHMARK_DURATION: 300
+      RESTART_DELAY_SECONDS: 45
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -3010,9 +3013,8 @@ jobs:
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
-          DISABLE_LAZY_LOAD_SHARDS: true
-          HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true
-      # Only include HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE and DISABLE_LAZY_LOAD_SHARDS if version is older than 1.36.0
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}      
     steps:
       # - name: Collect Workflow Telemetry
       #   uses: catchpoint/workflow-telemetry-action@v2
@@ -3030,7 +3032,7 @@ jobs:
       - name: Verify failover degradation detection
         run: |
           cd apps/restart-highly-available-qps-benchmark
-          python3 -m unittest test_validation -v
+          python3 -m unittest discover -s . -p "test_*.py" -v
       - name: Weaviate - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:

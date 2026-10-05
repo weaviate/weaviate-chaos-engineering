@@ -39,12 +39,56 @@ from weaviate_cli.managers.collection_manager import CollectionManager
 from weaviate_cli.managers.data_manager import DataManager
 from weaviate_cli.managers.benchmark_manager import PER_REQUEST_TIMEOUT_S, BenchmarkQPSManager
 
+from server_metrics import parse_latency_buckets, parse_request_counts, summarise_window
 from validation import (
     annotate_csvs_with_restart,
     get_env_float,
     get_env_int,
     validate_benchmark_csv,
 )
+
+# queries_durations_ms_bucket only records query_type="get_graphql"; gRPC queries
+# are not instrumented at all. So the latency the server reports exists only if
+# something drives GraphQL, which is also what production's load was doing.
+GRAPHQL_PROBE = "{{ Get {{ {cls}(limit: {limit}) {{ _additional {{ id }} }} }} }}"
+
+
+def probe_graphql(class_name: str, limit: int = 10, port: int = 8080) -> bool:
+    try:
+        resp = requests.post(
+            f"http://localhost:{port}/v1/graphql",
+            json={"query": GRAPHQL_PROBE.format(cls=class_name, limit=limit)},
+            timeout=30,
+        )
+        return resp.status_code == 200 and "errors" not in (resp.json() or {})
+    except Exception:
+        return False
+
+
+def scrape_pod_metrics(ns: str) -> str:
+    """Every pod's metrics, concatenated. Served through the API proxy so no
+    port-forward is needed and the pinned context still applies."""
+    chunks = []
+    for pod in get_pod_names(ns):
+        if not pod.startswith("weaviate-"):
+            continue
+        out = subprocess.run(
+            kubectl("get", "--raw", f"/api/v1/namespaces/{ns}/pods/{pod}:2112/proxy/metrics"),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if out.returncode == 0:
+            chunks.append(out.stdout)
+        else:
+            logger.warning("Could not scrape {pod} metrics: {e}", pod=pod, e=out.stderr[:120])
+    return "\n".join(chunks)
+
+
+def snapshot_server_metrics(ns: str) -> Tuple[Dict[float, float], Dict[str, float]]:
+    text = scrape_pod_metrics(ns)
+    return parse_latency_buckets(text), parse_request_counts(text)
+
 
 LOCAL_CONTEXT_PREFIXES = ("kind-", "minikube", "docker-desktop", "k3d-")
 
@@ -383,6 +427,25 @@ def main() -> None:
 
     timeout_counts: Dict[str, int] = {}
 
+    # The server only times GraphQL, so drive it steadily for the whole run. This
+    # is the traffic whose latency and error rate get judged; the gRPC benchmark
+    # above remains the load.
+    probe_stop = threading.Event()
+    probe_counts = {"ok": 0, "failed": 0}
+    probe_qps = get_env_int("GRAPHQL_PROBE_QPS", 5)
+    probe_classes = [cfg["name"] for cfg in collections if not cfg["multitenant"]]
+
+    def graphql_probe() -> None:
+        interval = 1.0 / max(probe_qps, 1)
+        i = 0
+        while not probe_stop.is_set():
+            cls = probe_classes[i % len(probe_classes)]
+            probe_counts["ok" if probe_graphql(cls) else "failed"] += 1
+            i += 1
+            probe_stop.wait(timeout=interval)
+
+    probe_thread = threading.Thread(target=graphql_probe, name="graphql-probe", daemon=True)
+
     async def run_all_benchmarks() -> None:
         async def benchmark_one(collection_name: str) -> None:
             async_client = weaviate_use_async_with_local()
@@ -428,9 +491,15 @@ def main() -> None:
     )
     bench_thread.start()
 
+    probe_thread.start()
+
     restart_delay = get_env_int("RESTART_DELAY_SECONDS", 15)
     logger.info("Waiting {d}s before triggering disruption...", d=restart_delay)
     time.sleep(restart_delay)
+
+    # Baseline the server's own counters. Everything accrued after this point is
+    # the restart window.
+    pre_buckets, pre_requests = snapshot_server_metrics(ns)
 
     # --- Disruption phase (variant-specific) ---
     # restart_events accumulates (timestamp, event_name) pairs; each entry will
@@ -503,6 +572,8 @@ def main() -> None:
 
     logger.info("Waiting for benchmark threads to finish...")
     bench_thread.join()
+    probe_stop.set()
+    post_buckets, post_requests = snapshot_server_metrics(ns)
     # let the writers stop once there is nothing left to measure
     writes_done.set()
     logger.info("Benchmark finished.")
@@ -553,6 +624,58 @@ def main() -> None:
     # production: none during a healthy rollout, a steady rate during a bad one.
     # The tolerance is deliberately loose and uncalibrated -- it exists so a
     # vectorizer hiccup does not fail the run, not as a measured bound.
+    # What production watched: the server's own query latency histogram and its
+    # failed-request count over the restart window. A histogram over every query
+    # resolves a stall that a client-side p99 over ~20 samples per second cannot.
+    server = summarise_window(pre_buckets, post_buckets, pre_requests, post_requests)
+    logger.info(
+        "Server during the restart window: {q:.0f} GraphQL queries, p50={p50}, p99={p99}, "
+        "failed_requests={f:.0f}, error_rate={e:.2%} (probe: {ok} ok / {bad} failed)",
+        q=server["queries"] or 0,
+        p50=f"{server['p50_ms']:.0f}ms" if server["p50_ms"] else "n/a",
+        p99=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
+        f=server["failed_requests"] or 0,
+        e=server["error_rate"] or 0,
+        ok=probe_counts["ok"],
+        bad=probe_counts["failed"],
+    )
+
+    max_server_p99_ms = get_env_float("MAX_SERVER_P99_MS", 2000.0)
+    max_error_rate = get_env_float("MAX_ERROR_RATE", 0.01)
+
+    if not server["queries"]:
+        logger.error(
+            "Server metrics empty: no get_graphql queries recorded in the window. The "
+            "probe drives the only instrumented query path, so without it there is "
+            "nothing to judge."
+        )
+        failure_state["failed"] = True
+    else:
+        if server["p99_ms"] and server["p99_ms"] > max_server_p99_ms:
+            logger.error(
+                "Server latency FAILED: p99 {p:.0f}ms over the restart window, above {m:.0f}ms",
+                p=server["p99_ms"],
+                m=max_server_p99_ms,
+            )
+            failure_state["failed"] = True
+        if server["error_rate"] > max_error_rate:
+            logger.error(
+                "Server error rate FAILED: {e:.2%} of requests failed, above {m:.2%}",
+                e=server["error_rate"],
+                m=max_error_rate,
+            )
+            failure_state["failed"] = True
+        if (
+            server["p99_ms"]
+            and server["p99_ms"] <= max_server_p99_ms
+            and (server["error_rate"] <= max_error_rate)
+        ):
+            logger.info(
+                "Server latency and error rate PASSED: p99 {p:.0f}ms, errors {e:.2%}",
+                p=server["p99_ms"],
+                e=server["error_rate"],
+            )
+
     max_write_errors = get_env_int("MAX_WRITE_ERRORS", 50)
     total_write_errors = sum(write_errors.values())
     if write_errors:
