@@ -2922,11 +2922,6 @@ jobs:
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
       # inflating latency on any build and leaving the baseline too low to judge.
       BENCHMARK_QPS: 15
-      # One shard per collection instead of four. Shards load lazily, so all the
-      # objects in one shard means a pod that reports ready has real work to do
-      # before it can answer -- the window this test depends on. Four shards of
-      # ~3.7k objects each load in well under a second.
-      NO_MT_SHARDS: 1
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -3015,11 +3010,6 @@ jobs:
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
       # inflating latency on any build and leaving the baseline too low to judge.
       BENCHMARK_QPS: 15
-      # One shard per collection instead of four. Shards load lazily, so all the
-      # objects in one shard means a pod that reports ready has real work to do
-      # before it can answer -- the window this test depends on. Four shards of
-      # ~3.7k objects each load in well under a second.
-      NO_MT_SHARDS: 1
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
