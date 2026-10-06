@@ -73,6 +73,29 @@ def snapshot_server_metrics(ns: str) -> Tuple[Dict[float, float], Dict[str, floa
     return parse_latency_buckets(text), parse_request_counts(text)
 
 
+# Production's worst signal was p999 46s, and those were aggregates: CountObjects
+# pulls with a one-minute budget, so a replica that cannot serve is waited on
+# rather than skipped. Hybrid search takes the ordinary path, where one restarting
+# node of three still leaves a quorum and a spare, which is why searches alone
+# never showed this. Aggregates are not in queries_durations_ms either -- only
+# get_graphql is instrumented -- so they have to be timed from here.
+def aggregate_once(class_name: str, timeout_s: float, port: int = 8080) -> Tuple[float, bool]:
+    """Run one count aggregate; returns (elapsed_ms, ok)."""
+    graphql_class = class_name[:1].upper() + class_name[1:]
+    started = time.time()
+    try:
+        resp = requests.post(
+            f"http://localhost:{port}/v1/graphql",
+            json={"query": "{ Aggregate { %s { meta { count } } } }" % graphql_class},
+            timeout=timeout_s,
+        )
+        elapsed = (time.time() - started) * 1000.0
+        ok = resp.status_code == 200 and "errors" not in (resp.json() or {})
+        return elapsed, ok
+    except Exception:
+        return (time.time() - started) * 1000.0, False
+
+
 LOCAL_CONTEXT_PREFIXES = ("kind-", "minikube", "docker-desktop", "k3d-")
 
 
@@ -416,6 +439,34 @@ def main() -> None:
 
     timeout_counts: Dict[str, int] = {}
 
+    # Aggregates run alongside the search load, at a low rate -- the point is to
+    # keep the aggregate path in use across the restart, not to add pressure.
+    agg_stop = threading.Event()
+    agg_slow_ms = get_env_float("AGGREGATE_SLOW_MS", 5000.0)
+    agg_interval_s = get_env_float("AGGREGATE_INTERVAL_S", 1.0)
+    agg_timeout_s = get_env_float("AGGREGATE_TIMEOUT_S", 90.0)
+    agg_stats = {"count": 0, "slow": 0, "failed": 0, "max_ms": 0.0}
+    agg_classes = [cfg["name"] for cfg in collections if not cfg["multitenant"]]
+
+    def aggregate_driver() -> None:
+        i = 0
+        while not agg_stop.is_set():
+            cls = agg_classes[i % len(agg_classes)]
+            elapsed, ok = aggregate_once(cls, agg_timeout_s)
+            agg_stats["count"] += 1
+            agg_stats["max_ms"] = max(agg_stats["max_ms"], elapsed)
+            if not ok:
+                agg_stats["failed"] += 1
+            if elapsed > agg_slow_ms:
+                agg_stats["slow"] += 1
+                logger.warning(
+                    "Aggregate on {cls} took {ms:.0f}ms (ok={ok})", cls=cls, ms=elapsed, ok=ok
+                )
+            i += 1
+            agg_stop.wait(timeout=agg_interval_s)
+
+    agg_thread = threading.Thread(target=aggregate_driver, name="aggregates", daemon=True)
+
     async def run_all_benchmarks() -> None:
         async def benchmark_one(collection_name: str) -> None:
             async_client = weaviate_use_async_with_local()
@@ -460,6 +511,8 @@ def main() -> None:
         daemon=False,
     )
     bench_thread.start()
+
+    agg_thread.start()
 
     restart_delay = get_env_int("RESTART_DELAY_SECONDS", 15)
     logger.info("Waiting {d}s before triggering disruption...", d=restart_delay)
@@ -540,6 +593,7 @@ def main() -> None:
 
     logger.info("Waiting for benchmark threads to finish...")
     bench_thread.join()
+    agg_stop.set()
     post_buckets, post_requests = snapshot_server_metrics(ns)
     # let the writers stop once there is nothing left to measure
     writes_done.set()
@@ -668,6 +722,32 @@ def main() -> None:
             m=max_write_error_rate,
         )
         failure_state["failed"] = True
+
+    max_slow_aggregates = get_env_int("MAX_SLOW_AGGREGATES", 0)
+    logger.info(
+        "Aggregates: {n} run, max {m:.0f}ms, {s} over {t:.0f}ms, {f} failed",
+        n=agg_stats["count"],
+        m=agg_stats["max_ms"],
+        s=agg_stats["slow"],
+        t=agg_slow_ms,
+        f=agg_stats["failed"],
+    )
+    if not agg_stats["count"]:
+        logger.error("No aggregates ran: the aggregate path was never exercised")
+        failure_state["failed"] = True
+    elif agg_stats["slow"] > max_slow_aggregates or agg_stats["failed"]:
+        logger.error(
+            "Aggregate validation FAILED: {s} over {t:.0f}ms (max {m:.0f}ms) and {f} failed, "
+            "tolerance {a} slow / 0 failed",
+            s=agg_stats["slow"],
+            t=agg_slow_ms,
+            m=agg_stats["max_ms"],
+            f=agg_stats["failed"],
+            a=max_slow_aggregates,
+        )
+        failure_state["failed"] = True
+    else:
+        logger.info("Aggregate validation PASSED: max {m:.0f}ms", m=agg_stats["max_ms"])
 
     max_timeouts = get_env_int("MAX_QUERY_TIMEOUTS", 0)
     total_timeouts = sum(timeout_counts.values())
