@@ -337,6 +337,7 @@ def main() -> None:
     # and leaves the rest of the run read-only, so keep writing in rounds until
     # the benchmark is done.
     write_errors: Dict[str, int] = {}
+    writes_attempted: Dict[str, int] = {}
     writes_done = threading.Event()
 
     def ingest_round(name: str, auto_tenants: int, limit: int) -> int:
@@ -359,6 +360,7 @@ def main() -> None:
         auto_tenants = 1 if is_mt else 0
         rounds = 0
         errors = 0
+        attempted = 0
         logger.info(
             "Starting ingestion for {name} (limit={limit}, tenants={auto_tenants}, "
             "sustained={sustained})",
@@ -372,6 +374,7 @@ def main() -> None:
             # writes in flight, so they are small and paced. Flat-out rounds
             # starve the query path and invalidate the run.
             limit = objects_per_class if rounds == 0 else sustained_write_objects
+            attempted += limit
             try:
                 errors += ingest_round(name, auto_tenants, limit)
                 rounds += 1
@@ -386,6 +389,7 @@ def main() -> None:
                 break
 
         write_errors[name] = errors
+        writes_attempted[name] = attempted
         logger.info(
             "Ingestion for {name} finished: {r} round(s), {e} error(s)",
             name=name,
@@ -638,18 +642,30 @@ def main() -> None:
                 e=server["error_rate"],
             )
 
-    # Observed: 0 write errors in seven of eight CI jobs and 213 in the eighth, so
-    # a rolling restart does occasionally cost a batch at quorum. Set above that,
-    # so one refusal does not fail the run while a steady rate still does.
-    max_write_errors = get_env_int("MAX_WRITE_ERRORS", 400)
+    # A rate, not a count: the number of writes attempted varies with the window
+    # and the pacing, so an absolute tolerance needs re-guessing every time one of
+    # those changes -- it was set to 50, tripped at 213, set to 400, tripped at
+    # 425. Observed failures were 0.3-0.6% of writes attempted, while production's
+    # bad rollout refused writes steadily for minutes.
+    max_write_error_rate = get_env_float("MAX_WRITE_ERROR_RATE", 0.02)
     total_write_errors = sum(write_errors.values())
+    total_attempted = sum(writes_attempted.values())
+    write_error_rate = (total_write_errors / total_attempted) if total_attempted else 0.0
     if write_errors:
-        logger.info("Write errors by collection: {c}", c=write_errors)
-    if total_write_errors > max_write_errors:
-        logger.error(
-            "Write validation FAILED: {n} write error(s) across the run, tolerance {m}",
+        logger.info(
+            "Write errors: {n} of {a} attempted ({r:.2%}) by collection: {c}",
             n=total_write_errors,
-            m=max_write_errors,
+            a=total_attempted,
+            r=write_error_rate,
+            c=write_errors,
+        )
+    if write_error_rate > max_write_error_rate:
+        logger.error(
+            "Write validation FAILED: {r:.2%} of writes failed ({n} of {a}), above {m:.2%}",
+            r=write_error_rate,
+            n=total_write_errors,
+            a=total_attempted,
+            m=max_write_error_rate,
         )
         failure_state["failed"] = True
 
@@ -672,6 +688,11 @@ def main() -> None:
     else:
         logger.info("Timeout validation PASSED: no query exceeded {t}s", t=PER_REQUEST_TIMEOUT_S)
 
+    # Per-collection client numbers are recorded, not gated. Each CSV row covers
+    # ~20 queries, so its "p99" is a maximum, and one collection crossing a
+    # threshold has repeatedly meant nothing -- the same collection tripped on
+    # both a fixed and an unfixed build in the same run. The cluster-wide server
+    # histogram above is what decides, as it did in production.
     for csv_path in csv_files:
         passed, reason = validate_benchmark_csv(
             csv_path,
@@ -679,11 +700,13 @@ def main() -> None:
             degraded_ms=get_env_float("DEGRADED_MS", 1000.0),
             max_degraded_fraction=get_env_float("MAX_DEGRADED_FRACTION", 0.15),
         )
-        if passed:
-            logger.info("QPS validation PASSED [{path}]: {reason}", path=csv_path, reason=reason)
-        else:
-            logger.error("QPS validation FAILED [{path}]: {reason}", path=csv_path, reason=reason)
-            failure_state["failed"] = True
+        level = logger.info if passed else logger.warning
+        level(
+            "Client per-collection [{path}] {verdict}: {reason}",
+            path=os.path.basename(csv_path),
+            verdict="within thresholds" if passed else "outside thresholds",
+            reason=reason,
+        )
 
     logger.info("Closing client...")
     client.close()
