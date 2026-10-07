@@ -15,8 +15,9 @@ from model import ExpectedObject, ExpectedSet, normalise_vectors, vectors_equal
 from restapi import Rest, dynamic_user_ids, poll
 from seed import CAPABILITY_NARROW, SourceState
 
-# usecases/auth/authorization/types.go:233-238
-BUILT_IN_ROLES = frozenset({"viewer", "admin", "root", "read-only"})
+# BuiltInRoles in usecases/auth/authorization/types.go. operator_metadata_reader exists only
+# on builds that have the config-bound metadata reader role; listing it is harmless on older ones.
+BUILT_IN_ROLES = frozenset({"viewer", "admin", "root", "read-only", "operator_metadata_reader"})
 
 
 @dataclass
