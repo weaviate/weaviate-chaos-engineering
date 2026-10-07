@@ -13,6 +13,12 @@ because it is hardcoded there. Aggregates go through Traverser.Aggregate, which
 only moves a gauge, so they are not in the histogram and have to be timed by the
 caller.
 
+requests_total is narrower: only the REST and GraphQL handlers emit it, so the
+error rate covers the aggregate driver's GraphQL calls but not the benchmark's
+gRPC hybrid searches, which appear in neither numerator nor denominator. A gRPC
+search that fails is still caught by the latency histogram and the client's
+timeout count, not by this rate.
+
 Snapshots are kept per pod. A restarted pod's counters go back to zero, and
 summing pods before differencing would let a pod that did not restart contribute
 its lifetime history to the window: before=3000 over three pods, two restart,
@@ -38,6 +44,7 @@ LABEL_RE = re.compile(r'(\w+)="([^"]*)"')
 STATUS_OK = "ok"
 STATUS_USER_ERROR = "user_error"
 STATUS_SERVER_ERROR = "server_error"
+
 
 class PodSnapshot(NamedTuple):
     """One pod's counters, with the process identity needed to read them."""
@@ -184,7 +191,8 @@ def summarise_window(
     window. A pod only in `before` could not be scraped at the end; its traffic
     is unrecoverable and reported as missing rather than guessed at.
 
-    error_rate counts server_error only. user_error is a rejected request, not a
+    error_rate counts server_error only, over REST/GraphQL requests (see the
+    module docstring for why gRPC is absent). user_error is a rejected request, not a
     broken cluster, so folding it in would let a malformed query fail a rollout;
     it is returned separately so a run can still show it.
     """
