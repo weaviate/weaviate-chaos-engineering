@@ -48,7 +48,6 @@ from validation import (
     validate_benchmark_csv,
 )
 
-
 # weaviate-cli reports ingestion and benchmark errors by printing them, and the
 # counts below are recovered from that text. contextlib.redirect_stdout swaps the
 # process-global sys.stdout, so with four ingestion threads and four gathered

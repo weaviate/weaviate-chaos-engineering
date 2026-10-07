@@ -215,9 +215,7 @@ class TestWindow(unittest.TestCase):
         reported on its own instead.
         """
         before = snapshot_pods({"w-0": flat(0, start_time=1000.0)})
-        after = snapshot_pods(
-            {"w-0": flat(1000, ok=900, user_error=100, start_time=1000.0)}
-        )
+        after = snapshot_pods({"w-0": flat(1000, ok=900, user_error=100, start_time=1000.0)})
         s = summarise_window(before, after)
         self.assertEqual(s["error_rate"], 0.0)
         self.assertEqual(s["user_errors"], 100)
