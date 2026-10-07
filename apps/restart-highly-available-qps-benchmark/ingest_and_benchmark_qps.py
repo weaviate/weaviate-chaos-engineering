@@ -481,10 +481,17 @@ def main() -> None:
                 rounds += 1
             except Exception as e:  # pragma: no cover
                 # A write refused mid-restart is the thing being measured, not a
-                # reason to stop writing.
+                # reason to stop writing. The round's outcome is unknown, so all
+                # of it counts as failed: scoring it as one error out of `limit`
+                # would let a fully refused round pass the rate gate.
                 logger.warning("Ingestion round for {name} failed: {e}", name=name, e=e)
-                errors = 1
+                errors = limit
                 rounds += 1
+                if seeding:
+                    # Not a restart signal, but the run is measuring a collection
+                    # that was never populated.
+                    logger.error("Seeding {name} failed, so the run is invalid", name=name)
+                    failure_state["failed"] = True
             finally:
                 if seeding:
                     seeded[name].set()
@@ -781,7 +788,8 @@ def main() -> None:
         server = summarise_window(pre_snapshot, post_snapshot)
         logger.info(
             "Server during the restart window: {q:.0f} queries over {n:.0f} pod(s), p50={p50}, "
-            "p99={p99}, server_errors={f:.0f} of {r:.0f} requests ({e:.2%}), user_errors={u:.0f}",
+            "p99={p99}, server_errors={f:.0f} of {r:.0f} REST/GraphQL requests ({e:.2%}), "
+            "user_errors={u:.0f}",
             q=server["queries"] or 0,
             n=server["pods"] or 0,
             p50=f"{server['p50_ms']:.0f}ms" if server["p50_ms"] else "n/a",
@@ -906,7 +914,8 @@ def main() -> None:
     if agg_stats["failed"]:
         logger.warning(
             "{f} of {n} aggregates were refused. Reported, not gated: a refusal during a "
-            "restart is availability, which the server error rate judges as a rate, "
+            "restart is availability, which the server error rate judges as a rate "
+            "(aggregates go over REST GraphQL, so they are in requests_total), "
             "whereas an aggregate that hangs is the regression this gate is for.",
             f=agg_stats["failed"],
             n=agg_stats["count"],
@@ -929,7 +938,12 @@ def main() -> None:
         )
         failure_state["failed"] = True
     else:
-        logger.info("Timeout validation PASSED: no query exceeded {t}s", t=PER_REQUEST_TIMEOUT_S)
+        logger.info(
+            "Timeout validation PASSED: {n} query(s) exceeded {t}s, tolerance {m}",
+            n=total_timeouts,
+            t=PER_REQUEST_TIMEOUT_S,
+            m=max_timeouts,
+        )
 
     # Per-collection client numbers are recorded, not gated. Each CSV row covers
     # ~20 queries, so its "p99" is a maximum, and one collection crossing a
