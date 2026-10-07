@@ -2912,9 +2912,10 @@ jobs:
       OBJECTS_PER_CLASS: 15000
       BATCH_SIZE: 1000
       # Production identified this by rolling the cluster and watching how long
-      # latency stayed bad. At 20 QPS a CSV row covers ~20 queries, so its p99 is
+      # latency stayed bad. At 15 QPS a CSV row covers ~15 queries, so its p99 is
       # really a maximum; only a long window makes the degraded share of it
-      # stable enough to judge. 900s gives ~18k queries instead of 3.6k.
+      # stable enough to judge. 300s at 15 QPS gives ~4.5k queries, enough for
+      # the degraded share to stand out against the healthy rows.
       # The stall shows within minutes of the rollout starting, so the window only
       # has to outlast the rollout itself.
       BENCHMARK_DURATION: 300
@@ -3000,9 +3001,10 @@ jobs:
       OBJECTS_PER_CLASS: 15000
       BATCH_SIZE: 1000
       # Production identified this by rolling the cluster and watching how long
-      # latency stayed bad. At 20 QPS a CSV row covers ~20 queries, so its p99 is
+      # latency stayed bad. At 15 QPS a CSV row covers ~15 queries, so its p99 is
       # really a maximum; only a long window makes the degraded share of it
-      # stable enough to judge. 900s gives ~18k queries instead of 3.6k.
+      # stable enough to judge. 300s at 15 QPS gives ~4.5k queries, enough for
+      # the degraded share to stand out against the healthy rows.
       # The stall shows within minutes of the rollout starting, so the window only
       # has to outlast the rollout itself.
       BENCHMARK_DURATION: 300
