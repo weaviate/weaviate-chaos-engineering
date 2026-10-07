@@ -9,8 +9,9 @@ import time
 import threading
 import asyncio
 import subprocess
-from contextlib import redirect_stdout
-from typing import Any, Dict, List, Optional, Tuple
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import requests
 
@@ -39,7 +40,7 @@ from weaviate_cli.managers.collection_manager import CollectionManager
 from weaviate_cli.managers.data_manager import DataManager
 from weaviate_cli.managers.benchmark_manager import PER_REQUEST_TIMEOUT_S, BenchmarkQPSManager
 
-from server_metrics import parse_latency_buckets, parse_request_counts, summarise_window
+from server_metrics import PodSnapshot, snapshot_pods, summarise_window
 from validation import (
     annotate_csvs_with_restart,
     get_env_float,
@@ -48,10 +49,59 @@ from validation import (
 )
 
 
-def scrape_pod_metrics(ns: str) -> str:
-    """Every pod's metrics, concatenated. Served through the API proxy so no
-    port-forward is needed and the pinned context still applies."""
-    chunks = []
+# weaviate-cli reports ingestion and benchmark errors by printing them, and the
+# counts below are recovered from that text. contextlib.redirect_stdout swaps the
+# process-global sys.stdout, so with four ingestion threads and four gathered
+# benchmark coroutines the printers interleave and one collection's errors land in
+# another's buffer. A ContextVar is per thread and is copied into each asyncio
+# Task, so it attributes output correctly in both cases. Output still reaches the
+# real stdout, which the redirect used to swallow for the whole run.
+_capture: ContextVar[Optional[io.StringIO]] = ContextVar("capture", default=None)
+
+
+class _RoutedStdout:
+    """Tees writes to the calling context's buffer, when it registered one."""
+
+    def __init__(self, real: Any) -> None:
+        self._real = real
+        self.unattributed = io.StringIO()
+
+    def write(self, s: str) -> int:
+        buf = _capture.get()
+        (buf if buf is not None else self.unattributed).write(s)
+        return self._real.write(s)
+
+    def flush(self) -> None:
+        self._real.flush()
+
+    def isatty(self) -> bool:
+        return False
+
+
+_routed_stdout = _RoutedStdout(sys.stdout)
+sys.stdout = _routed_stdout  # type: ignore[assignment]
+
+
+@contextmanager
+def capture_stdout() -> Iterator[io.StringIO]:
+    """Collect what this thread or task prints, without hiding it from the log."""
+    buf = io.StringIO()
+    token = _capture.set(buf)
+    try:
+        yield buf
+    finally:
+        _capture.reset(token)
+
+
+def scrape_pod_metrics(ns: str) -> Dict[str, str]:
+    """Each pod's metrics, keyed by pod. Served through the API proxy so no
+    port-forward is needed and the pinned context still applies.
+
+    Kept separate rather than concatenated: these counters reset when a pod
+    restarts, so the delta has to be taken per pod before anything is summed.
+    See server_metrics.summarise_window.
+    """
+    texts: Dict[str, str] = {}
     for pod in get_pod_names(ns):
         if not pod.startswith("weaviate-"):
             continue
@@ -62,15 +112,14 @@ def scrape_pod_metrics(ns: str) -> str:
             check=False,
         )
         if out.returncode == 0:
-            chunks.append(out.stdout)
+            texts[pod] = out.stdout
         else:
             logger.warning("Could not scrape {pod} metrics: {e}", pod=pod, e=out.stderr[:120])
-    return "\n".join(chunks)
+    return texts
 
 
-def snapshot_server_metrics(ns: str) -> Tuple[Dict[float, float], Dict[str, float]]:
-    text = scrape_pod_metrics(ns)
-    return parse_latency_buckets(text), parse_request_counts(text)
+def snapshot_server_metrics(ns: str) -> Dict[str, PodSnapshot]:
+    return snapshot_pods(scrape_pod_metrics(ns))
 
 
 # Production's worst signal was p999 46s, and those were aggregates: CountObjects
@@ -359,14 +408,18 @@ def main() -> None:
     # measurably behind. One bounded pass finishes long before the window ends
     # and leaves the rest of the run read-only, so keep writing in rounds until
     # the benchmark is done.
-    write_errors: Dict[str, int] = {}
-    writes_attempted: Dict[str, int] = {}
+    # Only rounds that start inside the restart window feed the write gate. The
+    # seeding round writes objects_per_class (15k x 4 collections) against
+    # sustained_write_objects for later rounds, so counting it would leave 60k
+    # pre-restart attempts in the denominator and dilute a real refusal rate into
+    # a pass.
+    write_stats: Dict[str, Dict[str, int]] = {}
     writes_done = threading.Event()
+    measure_writes = threading.Event()
 
     def ingest_round(name: str, auto_tenants: int, limit: int) -> int:
         """One pass of create_data; returns the error count it reported."""
-        buf = io.StringIO()
-        with redirect_stdout(buf):
+        with capture_stdout() as buf:
             data_manager.create_data(
                 collection=name,
                 limit=limit,
@@ -382,8 +435,7 @@ def main() -> None:
     def ingest_target(name: str, is_mt: bool) -> None:
         auto_tenants = 1 if is_mt else 0
         rounds = 0
-        errors = 0
-        attempted = 0
+        stats = {"errors": 0, "attempted": 0, "window_errors": 0, "window_attempted": 0}
         logger.info(
             "Starting ingestion for {name} (limit={limit}, tenants={auto_tenants}, "
             "sustained={sustained})",
@@ -397,27 +449,39 @@ def main() -> None:
             # writes in flight, so they are small and paced. Flat-out rounds
             # starve the query path and invalidate the run.
             limit = objects_per_class if rounds == 0 else sustained_write_objects
-            attempted += limit
+            # Attributed by when the round started. A round straddling the
+            # baseline is mostly pre-restart work, and the seeding round always
+            # straddles it.
+            in_window = measure_writes.is_set()
+            errors = 0
             try:
-                errors += ingest_round(name, auto_tenants, limit)
+                errors = ingest_round(name, auto_tenants, limit)
                 rounds += 1
             except Exception as e:  # pragma: no cover
                 # A write refused mid-restart is the thing being measured, not a
                 # reason to stop writing.
                 logger.warning("Ingestion round for {name} failed: {e}", name=name, e=e)
-                errors += 1
+                errors = 1
+            stats["errors"] += errors
+            stats["attempted"] += limit
+            if in_window:
+                stats["window_errors"] += errors
+                stats["window_attempted"] += limit
             if not sustained_writes or writes_done.is_set():
                 break
             if writes_done.wait(timeout=sustained_write_pause_s):
                 break
 
-        write_errors[name] = errors
-        writes_attempted[name] = attempted
+        write_stats[name] = stats
         logger.info(
-            "Ingestion for {name} finished: {r} round(s), {e} error(s)",
+            "Ingestion for {name} finished: {r} round(s), {e} error(s) of {a} attempted "
+            "({we} of {wa} inside the restart window)",
             name=name,
             r=rounds,
-            e=errors,
+            e=stats["errors"],
+            a=stats["attempted"],
+            we=stats["window_errors"],
+            wa=stats["window_attempted"],
         )
 
     for cfg in collections:
@@ -471,8 +535,7 @@ def main() -> None:
         async def benchmark_one(collection_name: str) -> None:
             async_client = weaviate_use_async_with_local()
             manager = BenchmarkQPSManager(async_client)
-            buf = io.StringIO()
-            with redirect_stdout(buf):
+            with capture_stdout() as buf:
                 await manager.run_benchmark(
                     collection=collection_name,
                     max_duration=get_env_int("BENCHMARK_DURATION", 120),
@@ -512,15 +575,20 @@ def main() -> None:
     )
     bench_thread.start()
 
-    agg_thread.start()
-
     restart_delay = get_env_int("RESTART_DELAY_SECONDS", 15)
     logger.info("Waiting {d}s before triggering disruption...", d=restart_delay)
     time.sleep(restart_delay)
 
     # Baseline the server's own counters. Everything accrued after this point is
     # the restart window.
-    pre_buckets, pre_requests = snapshot_server_metrics(ns)
+    pre_snapshot = snapshot_server_metrics(ns)
+
+    # The window opens here, so the aggregate driver and the write accounting
+    # start here too. Starting the driver with the benchmarks put the warm-up's
+    # first aggregates -- cold caches over freshly seeded data -- into a gate
+    # that tolerates none, and agg_stats has no baseline to subtract.
+    measure_writes.set()
+    agg_thread.start()
 
     # --- Disruption phase (variant-specific) ---
     # restart_events accumulates (timestamp, event_name) pairs; each entry will
@@ -593,10 +661,21 @@ def main() -> None:
 
     logger.info("Waiting for benchmark threads to finish...")
     bench_thread.join()
+
+    # Close the window before measuring it: stop generating load, then let the
+    # last aggregate land. Setting agg_stop does not interrupt one already
+    # blocked in requests.post, and that is the one most likely to be slow, so
+    # reading agg_stats without joining can drop the very sample this gate is
+    # for.
     agg_stop.set()
-    post_buckets, post_requests = snapshot_server_metrics(ns)
-    # let the writers stop once there is nothing left to measure
     writes_done.set()
+    agg_thread.join(timeout=agg_timeout_s + 5)
+    if agg_thread.is_alive():
+        logger.warning(
+            "Aggregate driver still running after {t:.0f}s; its last sample may be missing",
+            t=agg_timeout_s + 5,
+        )
+    post_snapshot = snapshot_server_metrics(ns)
     logger.info("Benchmark finished.")
 
     # Display RAFT leader change summary
@@ -648,16 +727,25 @@ def main() -> None:
     # What production watched: the server's own query latency histogram and its
     # failed-request count over the restart window. A histogram over every query
     # resolves a stall that a client-side p99 over ~20 samples per second cannot.
-    server = summarise_window(pre_buckets, post_buckets, pre_requests, post_requests)
+    server = summarise_window(pre_snapshot, post_snapshot)
     logger.info(
-        "Server during the restart window: {q:.0f} GraphQL queries, p50={p50}, p99={p99}, "
-        "failed_requests={f:.0f}, error_rate={e:.2%}",
+        "Server during the restart window: {q:.0f} queries over {n:.0f} pod(s), p50={p50}, "
+        "p99={p99}, server_errors={f:.0f} of {r:.0f} requests ({e:.2%}), user_errors={u:.0f}",
         q=server["queries"] or 0,
+        n=server["pods"] or 0,
         p50=f"{server['p50_ms']:.0f}ms" if server["p50_ms"] else "n/a",
         p99=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
-        f=server["failed_requests"] or 0,
+        f=server["server_errors"] or 0,
+        r=server["requests"] or 0,
         e=server["error_rate"] or 0,
+        u=server["user_errors"] or 0,
     )
+    if server["pods_missing"]:
+        logger.warning(
+            "{n:.0f} pod(s) scraped before the window could not be scraped after it, so "
+            "their share of the window is missing from these numbers",
+            n=server["pods_missing"],
+        )
 
     max_server_p99_ms = get_env_float("MAX_SERVER_P99_MS", 2000.0)
     max_error_rate = get_env_float("MAX_ERROR_RATE", 0.01)
@@ -680,8 +768,11 @@ def main() -> None:
             failure_state["failed"] = True
         if server["error_rate"] > max_error_rate:
             logger.error(
-                "Server error rate FAILED: {e:.2%} of requests failed, above {m:.2%}",
+                "Server error rate FAILED: {e:.2%} of requests were server errors "
+                "({f:.0f} of {r:.0f}), above {m:.2%}",
                 e=server["error_rate"],
+                f=server["server_errors"],
+                r=server["requests"],
                 m=max_error_rate,
             )
             failure_state["failed"] = True
@@ -702,18 +793,32 @@ def main() -> None:
     # 425. Observed failures were 0.3-0.6% of writes attempted, while production's
     # bad rollout refused writes steadily for minutes.
     max_write_error_rate = get_env_float("MAX_WRITE_ERROR_RATE", 0.02)
-    total_write_errors = sum(write_errors.values())
-    total_attempted = sum(writes_attempted.values())
+    total_write_errors = sum(s["window_errors"] for s in write_stats.values())
+    total_attempted = sum(s["window_attempted"] for s in write_stats.values())
+    seed_errors = sum(s["errors"] - s["window_errors"] for s in write_stats.values())
     write_error_rate = (total_write_errors / total_attempted) if total_attempted else 0.0
-    if write_errors:
+    by_collection = {n: s["window_errors"] for n, s in write_stats.items() if s["window_errors"]}
+    if total_write_errors or seed_errors:
         logger.info(
-            "Write errors: {n} of {a} attempted ({r:.2%}) by collection: {c}",
+            "Write errors in the restart window: {n} of {a} attempted ({r:.2%}) by "
+            "collection: {c}. Before the window: {s}, not gated",
             n=total_write_errors,
             a=total_attempted,
             r=write_error_rate,
-            c=write_errors,
+            c=by_collection,
+            s=seed_errors,
         )
-    if write_error_rate > max_write_error_rate:
+    if not total_attempted:
+        # Nothing to divide by: the gate would read 0% and pass whatever happened.
+        if sustained_writes:
+            logger.error(
+                "No writes were attempted inside the restart window, so the write error "
+                "rate judges nothing. The benchmark ended before a sustained round began."
+            )
+            failure_state["failed"] = True
+        else:
+            logger.info("SUSTAINED_WRITES is off, so there is no write rate to gate")
+    elif write_error_rate > max_write_error_rate:
         logger.error(
             "Write validation FAILED: {r:.2%} of writes failed ({n} of {a}), above {m:.2%}",
             r=write_error_rate,
