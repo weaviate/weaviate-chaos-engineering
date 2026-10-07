@@ -118,8 +118,31 @@ def scrape_pod_metrics(ns: str) -> Dict[str, str]:
     return texts
 
 
-def snapshot_server_metrics(ns: str) -> Dict[str, PodSnapshot]:
-    return snapshot_pods(scrape_pod_metrics(ns))
+def snapshot_server_metrics(
+    ns: str, attempts: int = 5, pause_s: float = 3.0
+) -> Optional[Dict[str, PodSnapshot]]:
+    """A snapshot covering every weaviate pod, or None if one never answered.
+
+    A partial snapshot cannot be used. A pod missing from the baseline looks
+    newly started to summarise_window, which then counts its lifetime history as
+    window traffic; a pod missing afterwards drops its share of the window. So
+    retry until the scrape is complete rather than judge either.
+    """
+    texts: Dict[str, str] = {}
+    expected: List[str] = []
+    for attempt in range(attempts):
+        expected = get_pod_names(ns)
+        texts = scrape_pod_metrics(ns)
+        if expected and set(expected) <= set(texts):
+            return snapshot_pods(texts)
+        if attempt < attempts - 1:
+            time.sleep(pause_s)
+    logger.error(
+        "Could not scrape metrics from every pod after {n} attempts: missing {m}",
+        n=attempts,
+        m=sorted(set(expected) - set(texts)) or "all (no pods found)",
+    )
+    return None
 
 
 # Production's worst signal was p999 46s, and those were aggregates: CountObjects
@@ -408,14 +431,16 @@ def main() -> None:
     # measurably behind. One bounded pass finishes long before the window ends
     # and leaves the rest of the run read-only, so keep writing in rounds until
     # the benchmark is done.
-    # Only rounds that start inside the restart window feed the write gate. The
-    # seeding round writes objects_per_class (15k x 4 collections) against
+    # Only sustained rounds that overlap the restart window feed the write gate.
+    # The seeding round writes objects_per_class (15k x 4 collections) against
     # sustained_write_objects for later rounds, so counting it would leave 60k
     # pre-restart attempts in the denominator and dilute a real refusal rate into
-    # a pass.
+    # a pass. Seeding is waited on before the benchmark starts, so it never
+    # overlaps the window.
     write_stats: Dict[str, Dict[str, int]] = {}
     writes_done = threading.Event()
     measure_writes = threading.Event()
+    seeded = {cfg["name"]: threading.Event() for cfg in collections}
 
     def ingest_round(name: str, auto_tenants: int, limit: int) -> int:
         """One pass of create_data; returns the error count it reported."""
@@ -449,10 +474,7 @@ def main() -> None:
             # writes in flight, so they are small and paced. Flat-out rounds
             # starve the query path and invalidate the run.
             limit = objects_per_class if rounds == 0 else sustained_write_objects
-            # Attributed by when the round started. A round straddling the
-            # baseline is mostly pre-restart work, and the seeding round always
-            # straddles it.
-            in_window = measure_writes.is_set()
+            seeding = rounds == 0
             errors = 0
             try:
                 errors = ingest_round(name, auto_tenants, limit)
@@ -462,9 +484,17 @@ def main() -> None:
                 # reason to stop writing.
                 logger.warning("Ingestion round for {name} failed: {e}", name=name, e=e)
                 errors = 1
+                rounds += 1
+            finally:
+                if seeding:
+                    seeded[name].set()
             stats["errors"] += errors
             stats["attempted"] += limit
-            if in_window:
+            # measure_writes is only ever set, so checking it after the round
+            # catches every round that overlapped the window, including one that
+            # was in flight when it opened. Sustained rounds are small, so the
+            # pre-window part of that one is negligible.
+            if not seeding and measure_writes.is_set():
                 stats["window_errors"] += errors
                 stats["window_attempted"] += limit
             if not sustained_writes or writes_done.is_set():
@@ -495,8 +525,23 @@ def main() -> None:
         t.start()
         ingestion_threads.append(t)
 
-    logger.info("Ingestion started for all collections. Waiting for 30 seconds...")
-    time.sleep(30)
+    # Let seeding finish before the benchmark and the window start, so the
+    # baseline is not measured under the seed load and no seed write is
+    # attributed to the restart.
+    seed_timeout_s = get_env_int("SEED_TIMEOUT_S", 900)
+    logger.info(
+        "Ingestion started for all collections. Waiting up to {t}s for seeding...",
+        t=seed_timeout_s,
+    )
+    seed_deadline = time.time() + seed_timeout_s
+    unseeded = [n for n, ev in seeded.items() if not ev.wait(max(0.0, seed_deadline - time.time()))]
+    if unseeded:
+        logger.error(
+            "Seeding did not finish within {t}s for {c}; seed writes overlap the run",
+            t=seed_timeout_s,
+            c=unseeded,
+        )
+        failure_state["failed"] = True
 
     # Start QPS benchmarks for all collections in parallel (daemon thread, non-blocking)
     logger.info("Starting QPS benchmarks for all collections...")
@@ -727,65 +772,71 @@ def main() -> None:
     # What production watched: the server's own query latency histogram and its
     # failed-request count over the restart window. A histogram over every query
     # resolves a stall that a client-side p99 over ~20 samples per second cannot.
-    server = summarise_window(pre_snapshot, post_snapshot)
-    logger.info(
-        "Server during the restart window: {q:.0f} queries over {n:.0f} pod(s), p50={p50}, "
-        "p99={p99}, server_errors={f:.0f} of {r:.0f} requests ({e:.2%}), user_errors={u:.0f}",
-        q=server["queries"] or 0,
-        n=server["pods"] or 0,
-        p50=f"{server['p50_ms']:.0f}ms" if server["p50_ms"] else "n/a",
-        p99=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
-        f=server["server_errors"] or 0,
-        r=server["requests"] or 0,
-        e=server["error_rate"] or 0,
-        u=server["user_errors"] or 0,
-    )
-    if server["pods_missing"]:
-        logger.warning(
-            "{n:.0f} pod(s) scraped before the window could not be scraped after it, so "
-            "their share of the window is missing from these numbers",
-            n=server["pods_missing"],
-        )
-
-    max_server_p99_ms = get_env_float("MAX_SERVER_P99_MS", 2000.0)
-    max_error_rate = get_env_float("MAX_ERROR_RATE", 0.01)
-
-    if not server["queries"]:
-        logger.error(
-            "Server metrics empty: no get_graphql queries recorded in the window, so "
-            "there is nothing to judge. The benchmark's queries normally populate "
-            "queries_durations_ms_bucket; an empty window means they never reached "
-            "the server or monitoring is off."
-        )
+    if pre_snapshot is None or post_snapshot is None:
+        # Already logged which pods were missing. Judging a partial window would
+        # either import a pod's lifetime counters or drop its share of the restart.
+        logger.error("Server metrics incomplete, so the server gates cannot judge the window")
         failure_state["failed"] = True
     else:
-        if server["p99_ms"] and server["p99_ms"] > max_server_p99_ms:
+        server = summarise_window(pre_snapshot, post_snapshot)
+        logger.info(
+            "Server during the restart window: {q:.0f} queries over {n:.0f} pod(s), p50={p50}, "
+            "p99={p99}, server_errors={f:.0f} of {r:.0f} requests ({e:.2%}), user_errors={u:.0f}",
+            q=server["queries"] or 0,
+            n=server["pods"] or 0,
+            p50=f"{server['p50_ms']:.0f}ms" if server["p50_ms"] else "n/a",
+            p99=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
+            f=server["server_errors"] or 0,
+            r=server["requests"] or 0,
+            e=server["error_rate"] or 0,
+            u=server["user_errors"] or 0,
+        )
+        if server["pods_missing"]:
+            logger.warning(
+                "{n:.0f} pod(s) scraped before the window could not be scraped after it, so "
+                "their share of the window is missing from these numbers",
+                n=server["pods_missing"],
+            )
+
+        max_server_p99_ms = get_env_float("MAX_SERVER_P99_MS", 2000.0)
+        max_error_rate = get_env_float("MAX_ERROR_RATE", 0.01)
+
+        if not server["queries"]:
             logger.error(
-                "Server latency FAILED: p99 {p:.0f}ms over the restart window, above {m:.0f}ms",
-                p=server["p99_ms"],
-                m=max_server_p99_ms,
+                "Server metrics empty: no get_graphql queries recorded in the window, so "
+                "there is nothing to judge. The benchmark's queries normally populate "
+                "queries_durations_ms_bucket; an empty window means they never reached "
+                "the server or monitoring is off."
             )
             failure_state["failed"] = True
-        if server["error_rate"] > max_error_rate:
-            logger.error(
-                "Server error rate FAILED: {e:.2%} of requests were server errors "
-                "({f:.0f} of {r:.0f}), above {m:.2%}",
-                e=server["error_rate"],
-                f=server["server_errors"],
-                r=server["requests"],
-                m=max_error_rate,
-            )
-            failure_state["failed"] = True
-        if (
-            server["p99_ms"]
-            and server["p99_ms"] <= max_server_p99_ms
-            and (server["error_rate"] <= max_error_rate)
-        ):
-            logger.info(
-                "Server latency and error rate PASSED: p99 {p:.0f}ms, errors {e:.2%}",
-                p=server["p99_ms"],
-                e=server["error_rate"],
-            )
+        else:
+            if server["p99_ms"] and server["p99_ms"] > max_server_p99_ms:
+                logger.error(
+                    "Server latency FAILED: p99 {p:.0f}ms over the restart window, above {m:.0f}ms",
+                    p=server["p99_ms"],
+                    m=max_server_p99_ms,
+                )
+                failure_state["failed"] = True
+            if server["error_rate"] > max_error_rate:
+                logger.error(
+                    "Server error rate FAILED: {e:.2%} of requests were server errors "
+                    "({f:.0f} of {r:.0f}), above {m:.2%}",
+                    e=server["error_rate"],
+                    f=server["server_errors"],
+                    r=server["requests"],
+                    m=max_error_rate,
+                )
+                failure_state["failed"] = True
+            if (
+                server["p99_ms"]
+                and server["p99_ms"] <= max_server_p99_ms
+                and (server["error_rate"] <= max_error_rate)
+            ):
+                logger.info(
+                    "Server latency and error rate PASSED: p99 {p:.0f}ms, errors {e:.2%}",
+                    p=server["p99_ms"],
+                    e=server["error_rate"],
+                )
 
     # A rate, not a count: the number of writes attempted varies with the window
     # and the pacing, so an absolute tolerance needs re-guessing every time one of
