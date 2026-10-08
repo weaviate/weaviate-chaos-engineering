@@ -134,7 +134,7 @@ class TestValidateBenchmarkCsv(unittest.TestCase):
 
     def test_short_window_is_not_judged_on_latency(self):
         """
-        At 20 QPS a row covers ~20 queries, so its p99 is really a maximum. Over
+        A row covers one second of queries, so its p99 is really a maximum. Over
         180 rows the degraded share is still too noisy to gate on -- the same
         build produced 32 timeouts in one run and 0 in the next.
         """

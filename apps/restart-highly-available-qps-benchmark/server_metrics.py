@@ -1,10 +1,11 @@
 """
 Read query latency and error rate from Weaviate's own metrics.
 
-Why server-side: the benchmark client reports a p99 per one-second row, and at
-20 QPS a row covers ~20 queries, so that "p99" is really a maximum and swings
-between runs. queries_durations_ms_bucket is a histogram over every query the
-server answered, which is what made the regression unmissable in production.
+Why server-side: the benchmark client reports a p99 per one-second row, so a row
+covers only that second's queries and its "p99" is really a maximum over them,
+which swings between runs. queries_durations_ms_bucket is a histogram over every
+query the server answered, which is what made the regression unmissable in
+production.
 
 The histogram is observed in one place, Traverser.GetClass, which both the REST
 GraphQL handler and the gRPC search service call, so hybrid search over the gRPC
@@ -194,7 +195,9 @@ def summarise_window(
     error_rate counts server_error only, over REST/GraphQL requests (see the
     module docstring for why gRPC is absent). user_error is a rejected request, not a
     broken cluster, so folding it in would let a malformed query fail a rollout;
-    it is returned separately so a run can still show it.
+    it is returned separately so a run can still show it. With no requests at all
+    it is None, not 0.0: a rate over an empty denominator is unknown, and a
+    caller that reads it as zero passes a gate that judged nothing.
     """
     buckets: Dict[float, float] = {}
     statuses: Dict[str, float] = {}
@@ -230,7 +233,7 @@ def summarise_window(
         "server_errors": server_errors,
         "user_errors": user_errors,
         "requests": total,
-        "error_rate": (server_errors / total) if total else 0.0,
+        "error_rate": (server_errors / total) if total else None,
         "pods": float(len(after)),
         "pods_restarted": float(restarts),
         "pods_missing": float(len(set(before) - set(after))),
