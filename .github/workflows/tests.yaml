@@ -2907,15 +2907,15 @@ jobs:
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'mt-tenant-activation-latency' || github.event.inputs.test_to_run == 'qps' || github.event.inputs.test_to_run == '')}}
     name: MT tenant activation latency during rollout
     runs-on: ubicloud-standard-8
-    timeout-minutes: 60
+    # seeding ~1min, baseline 20s, the roll itself ~5-7min, then a short settle
+    timeout-minutes: 25
     env:
-      # Enough tenants for the burst to build an apply backlog, few enough that
-      # seeding them stays inside the job timeout.
-      CHURN_TENANTS: 400
-      PROBE_TENANTS: 4
-      ACTIVATION_WORKERS: 16
-      # Before the fix the probe queries sat in the tens of seconds; after, they
-      # stay around a second. 5s separates the two without sitting on either.
+      # Enough tenants that reconciling them on each node's reload is real work,
+      # few enough that seeding stays under a minute.
+      TENANTS: 400
+      SEED_WORKERS: 16
+      # Before the fix queries during the roll sat in the tens of seconds; after,
+      # around a second. 5s separates the two without sitting on either.
       MAX_QUERY_MS: 5000
       VALUES_OVERRIDE: |
         env:
@@ -2956,7 +2956,7 @@ jobs:
         uses: weaviate/github-common-actions/.github/actions/capture-logs@main
         with:
           action: start
-      - name: Weaviate - wake cold tenants, then roll the cluster, while querying others
+      - name: Weaviate - query and write across many tenants while the cluster rolls
         run: |
           cd apps/mt-tenant-activation-latency
           python3 activation_latency.py
