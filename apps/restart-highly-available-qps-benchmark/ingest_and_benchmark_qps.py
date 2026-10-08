@@ -767,17 +767,9 @@ def main() -> None:
     if not csv_files:
         logger.error("No benchmark CSV files found for this run — cannot validate QPS")
         failure_state["failed"] = True
-    # Reported separately: a query past the per-request timeout records no latency,
-    # so no percentile can see it. This is the production signal -- queries held
-    # for seconds -- and a count over the whole window is stable where a
-    # per-second percentile over ~20 samples is not.
-    # Writes refused while the cluster rolls were a signal in their own right in
-    # production: none during a healthy rollout, a steady rate during a bad one.
-    # The tolerance is deliberately loose and uncalibrated -- it exists so a
-    # vectorizer hiccup does not fail the run, not as a measured bound.
     # What production watched: the server's own query latency histogram and its
     # failed-request count over the restart window. A histogram over every query
-    # resolves a stall that a client-side p99 over ~20 samples per second cannot.
+    # resolves a stall that a client-side p99 over one second's samples cannot.
     if pre_snapshot is None or post_snapshot is None:
         # Already logged which pods were missing. Judging a partial window would
         # either import a pod's lifetime counters or drop its share of the restart.
@@ -787,7 +779,7 @@ def main() -> None:
         server = summarise_window(pre_snapshot, post_snapshot)
         logger.info(
             "Server during the restart window: {q:.0f} queries over {n:.0f} pod(s), p50={p50}, "
-            "p99={p99}, server_errors={f:.0f} of {r:.0f} REST/GraphQL requests ({e:.2%}), "
+            "p99={p99}, server_errors={f:.0f} of {r:.0f} REST/GraphQL requests ({e}), "
             "user_errors={u:.0f}",
             q=server["queries"] or 0,
             n=server["pods"] or 0,
@@ -795,7 +787,7 @@ def main() -> None:
             p99=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
             f=server["server_errors"] or 0,
             r=server["requests"] or 0,
-            e=server["error_rate"] or 0,
+            e=f"{server['error_rate']:.2%}" if server["error_rate"] is not None else "n/a",
             u=server["user_errors"] or 0,
         )
         if server["pods_missing"]:
@@ -824,7 +816,17 @@ def main() -> None:
                     m=max_server_p99_ms,
                 )
                 failure_state["failed"] = True
-            if server["error_rate"] > max_error_rate:
+            if not server["requests"]:
+                # Nothing to divide by, so the rate cannot clear a threshold it was
+                # never measured against. The aggregate driver's GraphQL calls
+                # populate requests_total on every run; none arriving means they
+                # never reached the handler, or monitoring is off.
+                logger.error(
+                    "Server error rate judged nothing: no REST/GraphQL requests were "
+                    "counted in the window, so the rate has no denominator"
+                )
+                failure_state["failed"] = True
+            elif server["error_rate"] > max_error_rate:
                 logger.error(
                     "Server error rate FAILED: {e:.2%} of requests were server errors "
                     "({f:.0f} of {r:.0f}), above {m:.2%}",
@@ -837,7 +839,8 @@ def main() -> None:
             if (
                 server["p99_ms"]
                 and server["p99_ms"] <= max_server_p99_ms
-                and (server["error_rate"] <= max_error_rate)
+                and server["requests"]
+                and server["error_rate"] <= max_error_rate
             ):
                 logger.info(
                     "Server latency and error rate PASSED: p99 {p:.0f}ms, errors {e:.2%}",
@@ -849,7 +852,9 @@ def main() -> None:
     # and the pacing, so an absolute tolerance needs re-guessing every time one of
     # those changes -- it was set to 50, tripped at 213, set to 400, tripped at
     # 425. Observed failures were 0.3-0.6% of writes attempted, while production's
-    # bad rollout refused writes steadily for minutes.
+    # bad rollout refused writes steadily for minutes. The tolerance is loose on
+    # purpose: it exists so a vectorizer hiccup does not fail the run, not as a
+    # measured bound.
     max_write_error_rate = get_env_float("MAX_WRITE_ERROR_RATE", 0.02)
     total_write_errors = sum(s["window_errors"] for s in write_stats.values())
     total_attempted = sum(s["window_attempted"] for s in write_stats.values())
@@ -920,6 +925,10 @@ def main() -> None:
             n=agg_stats["count"],
         )
 
+    # A query past the per-request timeout records no latency, so no percentile
+    # can see it. This is the production signal -- queries held for seconds -- and
+    # a count over the whole window is stable where a percentile over one
+    # second's samples is not.
     max_timeouts = get_env_int("MAX_QUERY_TIMEOUTS", 0)
     total_timeouts = sum(timeout_counts.values())
     if timeout_counts:
@@ -945,10 +954,10 @@ def main() -> None:
         )
 
     # Per-collection client numbers are recorded, not gated. Each CSV row covers
-    # ~20 queries, so its "p99" is a maximum, and one collection crossing a
-    # threshold has repeatedly meant nothing -- the same collection tripped on
-    # both a fixed and an unfixed build in the same run. The cluster-wide server
-    # histogram above is what decides, as it did in production.
+    # one second of queries, so its "p99" is a maximum, and one collection
+    # crossing a threshold has repeatedly meant nothing -- the same collection
+    # tripped on both a fixed and an unfixed build in the same run. The
+    # cluster-wide server histogram above is what decides, as it did in production.
     for csv_path in csv_files:
         passed, reason = validate_benchmark_csv(
             csv_path,

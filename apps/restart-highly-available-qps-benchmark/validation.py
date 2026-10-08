@@ -6,10 +6,10 @@ can be tested against recorded CSVs without a cluster. See test_validation.py.
 
 On what is measured
 -------------------
-At 20 QPS each CSV row covers ~20 queries, so a row's "p99" is really the
-maximum of 20 samples and swings wildly between runs -- the same build has
-produced 32 per-request timeouts in one run and 0 in the next. A single row
-therefore cannot support a verdict.
+Each CSV row covers one second of queries, so a row's "p99" is really the
+maximum over that second's samples and swings wildly between runs -- the same
+build has produced 32 per-request timeouts in one run and 0 in the next. A
+single row therefore cannot support a verdict.
 
 Production found weaviate/weaviate#13396 by rolling the cluster and watching how
 *long* latency stayed bad: p999 of 46s over 5-minute windows, from histograms

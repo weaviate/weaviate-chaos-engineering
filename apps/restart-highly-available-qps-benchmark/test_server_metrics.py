@@ -135,7 +135,7 @@ class TestWindow(unittest.TestCase):
     def test_window_with_a_stall_is_visible(self):
         """
         The production shape: most queries fine, the tail past 5s. A client-side
-        p99 over ~20 samples per second missed this; the histogram cannot.
+        p99 over one second's samples missed this; the histogram cannot.
         """
         before = snapshot_pods({"w-0": flat(100, ok=100, start_time=1000.0)})
         after = snapshot_pods(
@@ -292,6 +292,20 @@ class TestWindow(unittest.TestCase):
         self.assertEqual(s["queries"], 40)
         self.assertEqual(s["requests"], 40)
         self.assertEqual(s["pods_restarted"], 0)  # unprovable, so not claimed
+
+    def test_no_requests_leaves_the_error_rate_unknown(self):
+        """
+        requests_total is REST/GraphQL only, so a window can hold gRPC queries
+        and no requests at all. A rate of 0.0 there would clear MAX_ERROR_RATE
+        on a gate that measured nothing, so it is None and the caller has to
+        decide what to do about it.
+        """
+        before = snapshot_pods({"w-0": flat(0, start_time=1000.0)})
+        after = snapshot_pods({"w-0": flat(1000, start_time=1000.0)})
+        s = summarise_window(before, after)
+        self.assertEqual(s["queries"], 1000)
+        self.assertEqual(s["requests"], 0)
+        self.assertIsNone(s["error_rate"])
 
 
 class TestQuantiles(unittest.TestCase):
