@@ -32,7 +32,6 @@ from weaviate.classes.config import DataType, Property
 from weaviate.classes.tenants import Tenant
 
 from gates import count_deadline_waits, evaluate, get_env_float, get_env_int
-from server_metrics import snapshot_pods, summarise_window
 
 CLASS = os.getenv("CLASS_NAME", "MtRolloutLatency")
 NAMESPACE = os.getenv("K8S_NAMESPACE", "weaviate")
@@ -42,7 +41,12 @@ QUERY_INTERVAL_S = get_env_float("QUERY_INTERVAL_S", 0.2)
 WRITE_INTERVAL_S = get_env_float("WRITE_INTERVAL_S", 0.1)
 BASELINE_S = get_env_float("BASELINE_S", 20)
 SETTLE_S = get_env_float("SETTLE_S", 15)
-MAX_QUERY_MS = get_env_float("MAX_QUERY_MS", 5000)
+# Percentiles, not extremes: the client's port-forward breaks during the roll and
+# one reconnect costs seconds on a healthy build. Measured p99s were 11,218/12,134ms
+# before the fix against 12.8/34.8ms after, and writes 7,585/1,354ms against
+# 159/164ms, so both limits sit roughly an order of magnitude clear of each side.
+MAX_QUERY_P99_MS = get_env_float("MAX_QUERY_P99_MS", 1000)
+MAX_WRITE_P99_MS = get_env_float("MAX_WRITE_P99_MS", 500)
 MIN_QUERIES = get_env_int("MIN_QUERIES", 30)
 ROLLOUT_TIMEOUT_S = get_env_int("ROLLOUT_TIMEOUT_S", 900)
 
@@ -105,8 +109,8 @@ def scrape_pods() -> Dict[str, str]:
     return texts
 
 
-def deadline_waits(texts: Dict[str, str]) -> Optional[int]:
-    return count_deadline_waits(texts)
+def deadline_waits(before: Dict[str, str], after: Dict[str, str]) -> Optional[int]:
+    return count_deadline_waits(before, after)
 
 
 def rolling_restart() -> Tuple[float, float]:
@@ -214,7 +218,7 @@ def main() -> int:
         logger.info("{s:.0f}s of quiet load for a baseline", s=BASELINE_S)
         time.sleep(BASELINE_S)
         quiet_end = time.monotonic()
-        before = snapshot_pods(scrape_pods())
+        before_texts = scrape_pods()
 
         logger.info("rolling the cluster with load running")
         roll_began, roll_ended = rolling_restart()
@@ -226,16 +230,14 @@ def main() -> int:
         for t in threads:
             t.join(timeout=15)
 
-        after_texts = scrape_pods()
-        server = summarise_window(before, snapshot_pods(after_texts))
         passed, lines = evaluate(
             within(queries, 0, quiet_end),
             within(queries, roll_began, roll_window_end),
             [ms for _, ms in writes],
-            deadline_waits(after_texts),
-            MAX_QUERY_MS,
+            deadline_waits(before_texts, scrape_pods()),
+            MAX_QUERY_P99_MS,
+            MAX_WRITE_P99_MS,
             MIN_QUERIES,
-            server=server,
         )
         logger.info("rollout took {s:.0f}s", s=roll_ended - roll_began)
         for line in lines:
