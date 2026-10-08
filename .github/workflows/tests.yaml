@@ -2984,6 +2984,7 @@ jobs:
             grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
             exit 1
           fi
+
   rolling-restart-highly-available-qps-benchmark:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rolling-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == 'qps' || github.event.inputs.test_to_run == '')}}
