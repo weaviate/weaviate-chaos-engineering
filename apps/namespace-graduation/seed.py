@@ -167,24 +167,16 @@ async def _seed_namespace(cfg: Config, root: Rest, index: int) -> SeededNamespac
             f"{name}: built-in-only (no custom role); expecting skipRoles at backup"
         )
     else:
+        # A namespace-local role must be assigned by the namespace admin, not root (a global
+        # operator is refused by validateLocalRoleAssignment). users[0]/users[1] are the global
+        # admin/viewer assigned above; the rest get the namespace custom role.
         async with principal_rest(cfg, cfg.source, admin) as admin_rest:
             await _create_role(cfg, admin_rest, namespace.role_short)
-            # A namespace-local role can only be assigned by a caller confined to its namespace, so
-            # this runs as the namespace admin and not as root: a global operator is refused by
-            # design, which is what stops one namespace's role from reaching another's subjects
-            # (validateLocalRoleAssignment, handlers_authz.go:147-158). Both references are short —
-            # the handler qualifies them against the confined caller's namespace
-            # (QualifyUserIDForLookup at handlers_authz.go:791, resolveAssignableRoles at :819) — and
-            # a short name carries no namespace, so it passes the locality check by construction.
-            # users[0] is the global admin and users[1] the global viewer, both assigned above by the
-            # operator; the remaining users carry the namespace-local custom role.
             for user in namespace.users[2:]:
                 await _assign_role(cfg, admin_rest, user.short_id, [namespace.role_short])
-                # Assigned by the namespace-confined admin, so it is stored qualified on the source
-                # ({ns}:role_short) but graduates stripped to its short name on the target.
+                # Stored qualified on the source ({ns}:role_short); graduates stripped to its short
+                # name on the target. The read below is issued as root, so it returns the qualified name.
                 user.expected_roles = frozenset({namespace.role_short})
-                # The server stores the role qualified, and this read is issued as root, so the
-                # qualified name is what comes back.
                 await _await_role_visible(cfg, root, user, namespace.role_qualified)
 
     async with wvclient.connected(cfg.source, admin.api_key) as client:
