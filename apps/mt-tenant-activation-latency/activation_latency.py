@@ -57,6 +57,14 @@ ROLLOUT_TIMEOUT_S = get_env_int("ROLLOUT_TIMEOUT_S", 900)
 # refusals are expected on any build and this only catches a workload that spent
 # the window erroring instead of being served. See gates.evaluate.
 MAX_FAILURE_RATIO = get_env_float("MAX_FAILURE_RATIO", 0.5)
+# A failed call that waited this long was not a refusal. 20s sits above the worst
+# reconnect artifact measured on a healthy build (15,015ms) and below the
+# client's query timeouts, so a request that timed out lands here and a reconnect
+# does not.
+STALL_MS = get_env_float("STALL_MS", 20_000)
+# A couple, so one pathological reconnect cannot fail a run on its own, while the
+# handful of timeouts a real stall produces does.
+MAX_STALLED_CALLS = get_env_int("MAX_STALLED_CALLS", 2)
 # These counters reset with the process, so the window has to be sampled while it
 # is open rather than differenced across the roll. See gates.DeadlineAccumulator.
 SCRAPE_INTERVAL_S = get_env_float("SCRAPE_INTERVAL_S", 5)
@@ -196,10 +204,15 @@ def rolling_restart(problems: List[str]) -> Tuple[float, float]:
     return began, time.monotonic()
 
 
-def within(samples: List[Sample], lo: float, hi: float) -> Tuple[List[float], int]:
-    """Latencies the cluster served in the window, and how many calls it refused."""
+def within(samples: List[Sample], lo: float, hi: float) -> Tuple[List[float], List[float]]:
+    """What the window's calls cost, split by whether the cluster served them.
+
+    The failures keep their durations rather than being counted: a refusal that
+    came back instantly and a request that waited out a 30s timeout are both
+    failures, and only the duration tells them apart. See gates.evaluate.
+    """
     served = [ms for at, ms, ok in samples if ok and lo <= at <= hi]
-    failed = sum(1 for at, _, ok in samples if not ok and lo <= at <= hi)
+    failed = [ms for at, ms, ok in samples if not ok and lo <= at <= hi]
     return served, failed
 
 
@@ -256,10 +269,11 @@ def main() -> int:
                 try:
                     do(tenant)
                 except Exception as e:
-                    # Time the caller waited, but not a request the cluster
-                    # served, so it is counted rather than kept as a latency
-                    # sample -- an instant refusal would otherwise look like the
-                    # fastest query of the run.
+                    # The wait is kept either way; only `ok` decides whether it
+                    # counts as a request the cluster served. A refusal that came
+                    # back instantly must not fill min_queries, and a 30s timeout
+                    # must not be dropped -- it is the stall itself. gates.evaluate
+                    # tells the two apart by how long they waited.
                     ok = False
                     logger.warning("{w} on {t} failed: {e}", w=what, t=tenant, e=e)
                 samples.append((began, (time.monotonic() - began) * 1000, ok))
@@ -384,9 +398,9 @@ def main() -> int:
                 problems.append(f"could not complete the final deadline scrape: {e}")
                 logger.error("could not complete the final deadline scrape: {e}", e=e)
 
-        quiet_ms, quiet_failed = within(queries, 0, quiet_end)
-        rolling_ms, rolling_failed = within(queries, roll_began, roll_window_end)
-        write_ms, write_failed = within(writes, 0, roll_window_end)
+        quiet_ms, quiet_failed_ms = within(queries, 0, quiet_end)
+        rolling_ms, rolling_failed_ms = within(queries, roll_began, roll_window_end)
+        write_ms, write_failed_ms = within(writes, 0, roll_window_end)
         passed, lines = evaluate(
             quiet_ms,
             rolling_ms,
@@ -396,15 +410,17 @@ def main() -> int:
             MAX_WRITE_P99_MS,
             MIN_QUERIES,
             min_writes=MIN_WRITES,
-            query_failures=rolling_failed,
-            write_failures=write_failed,
             max_failure_ratio=MAX_FAILURE_RATIO,
+            max_stalled_calls=MAX_STALLED_CALLS,
+            stall_ms=STALL_MS,
+            query_failed_ms=rolling_failed_ms,
+            write_failed_ms=write_failed_ms,
             problems=problems,
         )
         logger.info(
             "rollout took {s:.0f}s; {n} queries refused in the quiet window",
             s=roll_ended - roll_began,
-            n=quiet_failed,
+            n=len(quiet_failed_ms),
         )
         for line in lines:
             (logger.error if "FAILED" in line else logger.info)(line)
