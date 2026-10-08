@@ -31,7 +31,7 @@ import weaviate
 from weaviate.classes.config import DataType, Property
 from weaviate.classes.tenants import Tenant
 
-from gates import count_deadline_waits, evaluate, get_env_float, get_env_int
+from gates import DeadlineAccumulator, evaluate, get_env_float, get_env_int
 
 CLASS = os.getenv("CLASS_NAME", "MtRolloutLatency")
 NAMESPACE = os.getenv("K8S_NAMESPACE", "weaviate")
@@ -48,11 +48,27 @@ SETTLE_S = get_env_float("SETTLE_S", 15)
 MAX_QUERY_P99_MS = get_env_float("MAX_QUERY_P99_MS", 1000)
 MAX_WRITE_P99_MS = get_env_float("MAX_WRITE_P99_MS", 500)
 MIN_QUERIES = get_env_int("MIN_QUERIES", 30)
+# Writes run the whole time at WRITE_INTERVAL_S, so hundreds are expected; this
+# only catches a write worker that never really got going, whose p99 would be
+# whatever its handful of samples happened to be.
+MIN_WRITES = get_env_int("MIN_WRITES", 30)
 ROLLOUT_TIMEOUT_S = get_env_int("ROLLOUT_TIMEOUT_S", 900)
+# Deliberately wide: the roll costs the client its port-forward, so a few
+# refusals are expected on any build and this only catches a workload that spent
+# the window erroring instead of being served. See gates.evaluate.
+MAX_FAILURE_RATIO = get_env_float("MAX_FAILURE_RATIO", 0.5)
+# These counters reset with the process, so the window has to be sampled while it
+# is open rather than differenced across the roll. See gates.DeadlineAccumulator.
+SCRAPE_INTERVAL_S = get_env_float("SCRAPE_INTERVAL_S", 5)
+# Longer than the worst single request seen on a healthy build (a ~15s
+# port-forward reconnect), so a worker still blocked after this is a stall, not
+# an artifact.
+WORKER_DRAIN_S = get_env_float("WORKER_DRAIN_S", 60)
 
 VEC = [0.1] * 8
-# (monotonic seconds, milliseconds) so a sample can be attributed to a window
-Sample = Tuple[float, float]
+# (monotonic seconds, milliseconds, whether the call was served) so a sample can
+# be attributed to a window and refusals kept out of the latency distribution
+Sample = Tuple[float, float, bool]
 
 
 def _no_vectorizer(kwargs: dict) -> dict:
@@ -67,6 +83,12 @@ def _no_vectorizer(kwargs: dict) -> dict:
 
 
 def pod_names() -> List[str]:
+    """Every weaviate pod, or a raise.
+
+    An unanswered listing is not an empty cluster: returning [] would scrape
+    nobody, and nobody scraped reads as a build that does not expose the metric,
+    which lets the deadline gate stand down on a run where it measured nothing.
+    """
     out = subprocess.run(
         [
             "kubectl",
@@ -81,6 +103,8 @@ def pod_names() -> List[str]:
         text=True,
         check=False,
     )
+    if out.returncode != 0:
+        raise RuntimeError(f"kubectl get pods exited {out.returncode}: {out.stderr.strip()[:200]}")
     return [p for p in out.stdout.split() if p.startswith("weaviate-") and p[-1].isdigit()]
 
 
@@ -88,6 +112,10 @@ def scrape_pods() -> Dict[str, str]:
     """Each pod's metrics text, keyed by pod, for a reset-aware per-pod delta.
 
     Served through the API proxy because the image carries no curl.
+
+    Best effort by design: a pod being restarted cannot be scraped and the
+    sampler needs whoever answers rather than all-or-nothing. Use
+    scrape_every_pod where the scrape has to be complete.
     """
     texts = {}
     for pod in pod_names():
@@ -109,12 +137,43 @@ def scrape_pods() -> Dict[str, str]:
     return texts
 
 
-def deadline_waits(before: Dict[str, str], after: Dict[str, str]) -> Optional[int]:
-    return count_deadline_waits(before, after)
+def scrape_every_pod(attempts: int = 5, pause_s: float = 3.0) -> Dict[str, str]:
+    """A scrape covering every weaviate pod, or a raise.
+
+    For the two scrapes that have to be complete, the accumulator's baseline and
+    the final one. A pod missing from the baseline looks newly started, so its
+    lifetime deadline count would be charged to the window; a pod missing from
+    the last scrape drops whatever it accrued since its previous sample, which
+    reads as fewer deadlines than really happened. Retry rather than judge
+    either. The samples in between are best effort -- see scrape_pods.
+    """
+    expected: List[str] = []
+    texts: Dict[str, str] = {}
+    why = "all (no pods found)"
+    for attempt in range(attempts):
+        try:
+            expected = pod_names()
+            texts = scrape_pods()
+            if expected and set(expected) <= set(texts):
+                return texts
+            why = str(sorted(set(expected) - set(texts)) or "all (no pods found)")
+        except Exception as e:
+            # A listing that itself failed is worth another attempt rather than
+            # the run: the API server is also being talked to by the roll.
+            why = str(e)
+        if attempt < attempts - 1:
+            time.sleep(pause_s)
+    raise RuntimeError(f"incomplete after {attempts} attempts: {why}")
 
 
-def rolling_restart() -> Tuple[float, float]:
-    """Restart every pod in turn; returns the window it occupied."""
+def rolling_restart(problems: List[str]) -> Tuple[float, float]:
+    """Restart every pod in turn; returns the window it occupied.
+
+    Either command failing has to fail the run. A rejected restart or a rollout
+    that never reports ready leaves a cluster that was never rolled, and the
+    settle period then supplies a window full of fast samples that pass every
+    latency gate.
+    """
     began = time.monotonic()
     for args in (
         ["rollout", "restart", "sts/weaviate"],
@@ -129,11 +188,19 @@ def rolling_restart() -> Tuple[float, float]:
             rc=out.returncode,
             o=(out.stdout or out.stderr).strip()[:200],
         )
+        if out.returncode != 0:
+            problems.append(
+                f"kubectl rollout {args[1]} exited {out.returncode}:"
+                f" {(out.stderr or out.stdout).strip()[:200]}"
+            )
     return began, time.monotonic()
 
 
-def within(samples: List[Sample], lo: float, hi: float) -> List[float]:
-    return [ms for at, ms in samples if lo <= at <= hi]
+def within(samples: List[Sample], lo: float, hi: float) -> Tuple[List[float], int]:
+    """Latencies the cluster served in the window, and how many calls it refused."""
+    served = [ms for at, ms, ok in samples if ok and lo <= at <= hi]
+    failed = sum(1 for at, _, ok in samples if not ok and lo <= at <= hi)
+    return served, failed
 
 
 def main() -> int:
@@ -174,23 +241,47 @@ def main() -> int:
         queries: List[Sample] = []
         writes: List[Sample] = []
         stop = threading.Event()
+        # Anything that went wrong collecting the measurement, rather than in the
+        # measurement itself. Appended to from the worker threads, which is safe
+        # for a list and keeps the verdict in one place: gates.evaluate fails the
+        # run on any of them.
+        problems: List[str] = []
 
         def loop(samples: List[Sample], interval: float, do: callable, what: str) -> None:
             rng = random.Random(len(what))
             while not stop.is_set():
                 tenant = tenants[rng.randrange(len(tenants))]
                 began = time.monotonic()
+                ok = True
                 try:
                     do(tenant)
                 except Exception as e:
-                    # a refusal is still time the caller waited for
+                    # Time the caller waited, but not a request the cluster
+                    # served, so it is counted rather than kept as a latency
+                    # sample -- an instant refusal would otherwise look like the
+                    # fastest query of the run.
+                    ok = False
                     logger.warning("{w} on {t} failed: {e}", w=what, t=tenant, e=e)
-                samples.append((began, (time.monotonic() - began) * 1000))
+                samples.append((began, (time.monotonic() - began) * 1000, ok))
                 stop.wait(interval)
+
+        def worker(samples: List[Sample], interval: float, do: callable, what: str) -> None:
+            """loop, with its death made visible.
+
+            An exception in a thread target reaches threading.excepthook and dies
+            there: join() does not re-raise it. Without this a dead worker shows
+            up only as fewer samples, and fewer samples is what a percentile gate
+            reads as a clean run.
+            """
+            try:
+                loop(samples, interval, do, what)
+            except Exception as e:
+                problems.append(f"the {what} worker died, so its window is partial: {e}")
+                logger.error("the {w} worker died: {e}", w=what, e=e)
 
         threads = [
             threading.Thread(
-                target=loop,
+                target=worker,
                 name="query",
                 daemon=True,
                 args=(
@@ -201,7 +292,7 @@ def main() -> int:
                 ),
             ),
             threading.Thread(
-                target=loop,
+                target=worker,
                 name="write",
                 daemon=True,
                 args=(
@@ -218,28 +309,103 @@ def main() -> int:
         logger.info("{s:.0f}s of quiet load for a baseline", s=BASELINE_S)
         time.sleep(BASELINE_S)
         quiet_end = time.monotonic()
-        before_texts = scrape_pods()
+
+        accumulator: Optional[DeadlineAccumulator] = None
+        try:
+            accumulator = DeadlineAccumulator(scrape_every_pod())
+        except Exception as e:
+            problems.append(f"could not baseline the deadline counters on every pod: {e}")
+            logger.error("could not baseline the deadline counters: {e}", e=e)
+
+        scrape_stop = threading.Event()
+
+        def deadline_sampler() -> None:
+            try:
+                while not scrape_stop.is_set():
+                    try:
+                        # Mid-roll a pod, or the API server itself, is legitimately
+                        # unreachable. Take whoever answers and keep going: the
+                        # accumulator resumes a pod on its next sample, so one
+                        # missed observation costs at most one interval, and the
+                        # complete scrape at the end is what catches a kubectl
+                        # that stayed broken.
+                        accumulator.observe(scrape_pods())
+                    except Exception as e:
+                        logger.warning("deadline sample skipped: {e}", e=e)
+                    scrape_stop.wait(SCRAPE_INTERVAL_S)
+            except Exception as e:
+                problems.append(f"the deadline sampler died, so the window is partial: {e}")
+                logger.error("the deadline sampler died: {e}", e=e)
+
+        sampler: Optional[threading.Thread] = None
+        if accumulator is not None:
+            sampler = threading.Thread(target=deadline_sampler, name="deadlines", daemon=True)
+            sampler.start()
 
         logger.info("rolling the cluster with load running")
-        roll_began, roll_ended = rolling_restart()
+        roll_began, roll_ended = rolling_restart(problems)
         # the apply backlog outlives the restart that caused it
         time.sleep(SETTLE_S)
         roll_window_end = time.monotonic()
 
+        # Stop the load before the sampler: a worker can still be inside a call
+        # here, and the waits that call is stuck behind belong in the window.
         stop.set()
         for t in threads:
-            t.join(timeout=15)
+            t.join(timeout=WORKER_DRAIN_S)
+            if t.is_alive():
+                # Samples are appended once a call returns, so a worker still
+                # inside one holds the slowest sample of the run. Evaluating
+                # without it would pass on the fast ones that came before.
+                problems.append(
+                    f"the {t.name} worker was still waiting on a request"
+                    f" {WORKER_DRAIN_S:.0f}s after being told to stop, so its"
+                    " slowest sample never reached the gate"
+                )
 
+        if sampler is not None:
+            scrape_stop.set()
+            sampler.join(timeout=SCRAPE_INTERVAL_S + 30)
+            if sampler.is_alive():
+                # It still holds the accumulator, so reading the total here would
+                # race a half-folded observation against the final scrape.
+                problems.append(
+                    "the deadline sampler was still mid-scrape after being told to"
+                    " stop, so the deadline total is not a complete window"
+                )
+
+        deadline_waits: Optional[int] = None
+        if accumulator is not None:
+            try:
+                # The final scrape has to be complete, unlike the sampler's.
+                accumulator.observe(scrape_every_pod())
+                deadline_waits = accumulator.total()
+            except Exception as e:
+                problems.append(f"could not complete the final deadline scrape: {e}")
+                logger.error("could not complete the final deadline scrape: {e}", e=e)
+
+        quiet_ms, quiet_failed = within(queries, 0, quiet_end)
+        rolling_ms, rolling_failed = within(queries, roll_began, roll_window_end)
+        write_ms, write_failed = within(writes, 0, roll_window_end)
         passed, lines = evaluate(
-            within(queries, 0, quiet_end),
-            within(queries, roll_began, roll_window_end),
-            [ms for _, ms in writes],
-            deadline_waits(before_texts, scrape_pods()),
+            quiet_ms,
+            rolling_ms,
+            write_ms,
+            deadline_waits,
             MAX_QUERY_P99_MS,
             MAX_WRITE_P99_MS,
             MIN_QUERIES,
+            min_writes=MIN_WRITES,
+            query_failures=rolling_failed,
+            write_failures=write_failed,
+            max_failure_ratio=MAX_FAILURE_RATIO,
+            problems=problems,
         )
-        logger.info("rollout took {s:.0f}s", s=roll_ended - roll_began)
+        logger.info(
+            "rollout took {s:.0f}s; {n} queries refused in the quiet window",
+            s=roll_ended - roll_began,
+            n=quiet_failed,
+        )
         for line in lines:
             (logger.error if "FAILED" in line else logger.info)(line)
         return 0 if passed else 1

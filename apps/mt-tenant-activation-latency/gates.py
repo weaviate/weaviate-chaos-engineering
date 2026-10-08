@@ -21,7 +21,7 @@ of magnitude, so they gate and the extremes are reported.
 
 import os
 import re
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
 
 WAIT_METRIC = "weaviate_cluster_store_wait_for_index_duration_seconds"
 _START_TIME = re.compile(r"^process_start_time_seconds\s+([0-9.e+]+)$", re.M)
@@ -54,30 +54,82 @@ def _deadline_count(text: str) -> Tuple[int, bool]:
     return total, exposed
 
 
+class _Reading(NamedTuple):
+    """One pod's deadline counter, with the process identity needed to read it."""
+
+    start_time: Optional[float]
+    count: int
+    exposed: bool
+
+
+def _read(text: str) -> _Reading:
+    count, exposed = _deadline_count(text)
+    return _Reading(_start_time(text), count, exposed)
+
+
+class DeadlineAccumulator:
+    """
+    Deadline waits accumulated per pod across restarts, by sampling the window.
+
+    Two scrapes cannot describe a rolling restart. These counters reset with the
+    process, so for each pod only what it served after its *own* restart survives
+    differencing a before against an after -- and the waits this gate exists to
+    catch are the ones a pod serves while an *earlier* pod is down, which are
+    exactly what the reset throws away. A counter that climbs 0 to 7 and then
+    resets to 0 reports as zero.
+
+    Sampling keeps them. Each observation closes a delta against that pod's
+    previous sample, so a pod that restarts has already contributed everything up
+    to its last sample, and the loss is bounded by the sampling interval instead
+    of being the whole pre-restart window. The same reasoning and the same shape
+    as server_metrics.WindowAccumulator in the restart QPS benchmark.
+
+    A pod missing from an observation is simply not advanced; it resumes on its
+    next appearance. Only the baseline and the final scrape have to be complete,
+    and the caller is responsible for making them so.
+    """
+
+    def __init__(self, baseline: Dict[str, str]) -> None:
+        self._last: Dict[str, _Reading] = {pod: _read(text) for pod, text in baseline.items()}
+        self._exposed = any(r.exposed for r in self._last.values())
+        self._total = 0
+
+    def observe(self, texts: Dict[str, str]) -> None:
+        """Fold one scrape of every reachable pod into the window."""
+        for pod, text in texts.items():
+            now = _read(text)
+            self._exposed = self._exposed or now.exposed
+            was = self._last.get(pod)
+            if was is None or was.start_time != now.start_time:
+                # new, or restarted since its last sample: its counters are the
+                # window, and nothing is subtracted from them
+                self._total += now.count
+            else:
+                self._total += max(0, now.count - was.count)
+            self._last[pod] = now
+
+    def total(self) -> Optional[int]:
+        """
+        Deadline waits over the window, or None when no pod exposed the metric.
+
+        A healthy cluster never observes the deadline outcome, so that child
+        series is simply absent; keying "exposed" on it would report a clean run
+        as unmeasurable.
+        """
+        return self._total if self._exposed else None
+
+
 def count_deadline_waits(before: Dict[str, str], after: Dict[str, str]) -> Optional[int]:
     """
-    Schema-version waits that ran out of time during the window.
+    Schema-version waits that ran out of time between two scrapes.
 
-    Per pod, because these counters reset when a pod restarts -- which is exactly
-    what the window under test does. A pod whose process start time changed is
-    counted from zero, so waits it served before restarting are not subtracted
-    away; otherwise the delta is taken.
-
-    None only when no pod exposes the metric at all. A healthy cluster never
-    observes the deadline outcome, so that child series is simply absent, and
-    keying "exposed" on it would report a clean run as unmeasurable.
+    Sound only when at most one pod restarted. Use DeadlineAccumulator for a
+    rolling restart, where every pod resets and this loses whatever each one
+    accrued before its own restart -- see its docstring.
     """
-    total, exposed = 0, False
-    for pod, after_text in after.items():
-        count, pod_exposed = _deadline_count(after_text)
-        exposed = exposed or pod_exposed
-        before_text = before.get(pod)
-        if before_text is None or _start_time(before_text) != _start_time(after_text):
-            total += count  # new or restarted: its counters are the window
-        else:
-            was, _ = _deadline_count(before_text)
-            total += max(0, count - was)
-    return total if exposed else None
+    accumulator = DeadlineAccumulator(before)
+    accumulator.observe(after)
+    return accumulator.total()
 
 
 def percentile(samples: Sequence[float], q: float) -> Optional[float]:
@@ -116,6 +168,11 @@ def evaluate(
     max_query_p99_ms: float,
     max_write_p99_ms: float,
     min_queries: int,
+    min_writes: int = 0,
+    query_failures: int = 0,
+    write_failures: int = 0,
+    max_failure_ratio: float = 0.5,
+    problems: Sequence[str] = (),
 ) -> Tuple[bool, List[str]]:
     """
     Returns (passed, report lines).
@@ -124,6 +181,20 @@ def evaluate(
     reconnect does not move, and they separated the builds 8-45x on p99. Query p99
     gates too, separating ~900x. The quiet window and the extremes are reported for
     context and never gate.
+
+    The latency arguments are *served* requests only. A call that raised is not a
+    request the cluster answered, and its duration says nothing about how long
+    serving took, so counting refusals as samples would let an instant connection
+    refusal fill min_queries and hold p99 down. They are counted separately and
+    gated on their share of what was attempted, with max_failure_ratio left wide:
+    the roll breaks the client's port-forward, so a handful of failures is normal
+    and only a workload that is mostly erroring means nothing was measured.
+
+    `problems` are collection and orchestration failures the caller hit -- a
+    rollout that was rejected, a worker that never finished, a scrape that could
+    not be completed. Each one fails the run. A number that went missing must
+    never read as a pass: that is the whole failure mode this gate guards, and the
+    gate itself is the easiest place to lose it.
     """
     q = summarise(rollout_ms)
     b = summarise(baseline_ms)
@@ -137,8 +208,18 @@ def evaluate(
     passed = True
     if q["count"] < min_queries:
         lines.append(
-            f"FAILED: only {int(q['count'])} queries ran while the cluster rolled,"
-            f" fewer than {min_queries}; nothing was measured where it matters"
+            f"FAILED: only {int(q['count'])} queries were served while the cluster"
+            f" rolled, fewer than {min_queries}; nothing was measured where it matters"
+        )
+        passed = False
+
+    # Writes carry the same risk as queries, from the other direction: a p99 over
+    # a handful of samples is whatever those samples were, and a worker that
+    # barely ran leaves a thin, fast distribution that clears any limit.
+    if w["count"] < min_writes:
+        lines.append(
+            f"FAILED: only {int(w['count'])} writes were served over the whole run,"
+            f" fewer than {min_writes}; too thin a distribution to gate a p99 on"
         )
         passed = False
 
@@ -158,6 +239,24 @@ def evaluate(
             passed = False
         else:
             lines.append(f"PASSED: {label} p99 {s['p99']:.0f}ms, under {limit:.0f}ms")
+
+    for label, s, failed in (("query", q, query_failures), ("write", w, write_failures)):
+        attempted = int(s["count"]) + failed
+        if not attempted or not failed:
+            continue
+        share = failed / attempted
+        if share > max_failure_ratio:
+            lines.append(
+                f"FAILED: {failed} of {attempted} {label} calls failed ({share:.0%}),"
+                f" over the {max_failure_ratio:.0%} a reconnect can account for."
+                " A workload that is mostly erroring has not measured serving latency"
+            )
+            passed = False
+        else:
+            lines.append(
+                f"  note: {failed} of {attempted} {label} calls failed ({share:.0%}),"
+                " within what losing the port-forward mid-roll accounts for"
+            )
 
     if q["max"] is not None and q["max"] > max_query_p99_ms:
         lines.append(
@@ -179,5 +278,9 @@ def evaluate(
         passed = False
     else:
         lines.append("PASSED: no schema-version wait hit its deadline")
+
+    for problem in problems:
+        lines.append(f"FAILED: {problem}")
+        passed = False
 
     return passed, lines
