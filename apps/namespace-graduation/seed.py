@@ -43,11 +43,7 @@ class SeededUser:
     short_id: str
     api_key: str
     capability: str
-    # The role names this user must hold on the TARGET after graduation, by their
-    # stripped (namespace-free) names. Populated once the source assignment is made.
-    # The namespace's admin arrives via the *global* built-in "admin" role, which is
-    # the exact binding a `{ns}:*`-scoped backup can fail to carry — so asserting it
-    # survived is what catches a graduated user coming back with no roles.
+    # Role names this user must hold on the target after graduation (stripped of any namespace).
     expected_roles: frozenset[str] = frozenset()
 
 
@@ -151,26 +147,19 @@ async def _seed_namespace(cfg: Config, root: Rest, index: int) -> SeededNamespac
     # _create_role.
     await _await_role_visible(cfg, root, admin, "admin")
 
-    # The second user holds the other GLOBAL built-in, viewer. Like admin it is operator-assigned
-    # (global roles bypass validateLocalRoleAssignment) and read-only, so its capability is narrow.
-    # It exercises the same global-built-in binding path as admin: exactly what a {ns}:*-scoped
-    # graduation backup can fail to carry, leaving the user with no roles on the target.
+    # The second user holds the other global built-in, viewer: operator-assigned like admin, and
+    # read-only, so its capability is narrow.
     viewer = namespace.users[1]
     await _assign_role(cfg, root, viewer.user_id, ["viewer"])
     viewer.expected_roles = frozenset({"viewer"})
     await _await_role_visible(cfg, root, viewer, "viewer")
 
-    # Verification switch for the skipRoles bug: when set, the GRADUATING namespace owns NO custom
-    # role, so its users hold only the GLOBAL built-in roles. includeRoles:["{ns}:*"] then resolves
-    # to nothing, the source sets skipRoles=true and skips the RBAC snapshot entirely
-    # (weaviate usecases/backup/scheduler.go), the backup still reports SUCCESS, and every key
-    # graduates with no roles — the 100%-reproducible production symptom.
+    # See config.graduating_namespace_builtin_only for what this scenario exercises.
     builtin_only = index == 1 and cfg.graduating_namespace_builtin_only
 
     if builtin_only:
         namespace.has_custom_role = False
         for user in namespace.users[2:]:
-            # Built-in viewer is global, so it is operator-assigned like admin/viewer above.
             await _assign_role(cfg, root, user.user_id, ["viewer"])
             user.expected_roles = frozenset({"viewer"})
             await _await_role_visible(cfg, root, user, "viewer")

@@ -363,14 +363,9 @@ async def assert_migrated_role_bindings(
 ) -> None:
     """Every migrated user still holds its assigned role(s) on the target, by name.
 
-    This is the binding-level counterpart to assert_migrated_users_behave. The behavioural
-    probe can pass even when a user's role assignment was lost: on a namespaces-off target
-    the built-in roles carry wildcard policies (rbac/model.go:181-193), so a user that came
-    back with NO role can still look like an admin to a create probe. Reading the explicit
-    assignment is the only check that catches a user graduating with "no roles assigned" —
-    the failure seen when a `{ns}:*`-scoped backup does not carry a user's binding to the
-    GLOBAL built-in `admin`/`viewer` role. Each user's expected set is recorded at seed time
-    by its stripped (namespace-free) name.
+    The binding-level counterpart to assert_migrated_users_behave: on a namespaces-off target
+    built-ins carry wildcard policies, so a user that lost its binding can still pass a create
+    probe. Reading the explicit assignment is the only check that catches "no roles assigned".
     """
     assertion = "migrated-role-bindings"
     if _not_quiescent(f, assertion, load):
@@ -420,12 +415,9 @@ async def assert_no_leakage_of_neighbour_principals(
 ) -> None:
     """No neighbour tenant's users or roles reach the graduated target.
 
-    The graduation scopes users/roles with `includeUsers`/`includeRoles` = ["<ns>:*"]. The
-    `omitempty` on those fields is a footgun: if either is ever sent as an empty slice it vanishes
-    from the JSON and flips the request to a WHOLE-CLUSTER RBAC/user snapshot, which on a shared
-    parent would carry every other tenant's principals into the graduated cluster — a cross-tenant
-    disclosure. This asserts none of the neighbours' user ids or custom roles appear on the target,
-    so that regression is caught rather than shipped.
+    Guards the `includeUsers`/`includeRoles` omitempty footgun: an empty slice drops the field
+    and flips the request to a whole-cluster snapshot, which on a shared parent would carry every
+    other tenant's principals into the graduated cluster — a cross-tenant disclosure.
     """
     assertion = "no-leakage-principals"
     if _not_quiescent(f, assertion, load):
