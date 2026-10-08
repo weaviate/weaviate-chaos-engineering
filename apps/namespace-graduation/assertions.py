@@ -326,7 +326,11 @@ async def assert_target_user_and_role_sets(
         return
     try:
         expected_users = {user.short_id for user in state.graduating.users}
-        expected_roles = {state.graduating.role_short}
+        # A built-in-only graduating namespace created no custom role, so none is expected on the
+        # target; otherwise exactly the one namespace custom role (stripped) should be present.
+        expected_roles = (
+            {state.graduating.role_short} if state.graduating.has_custom_role else set()
+        )
         # Both claims are cluster-wide and both reads are leader queries
         # (cluster/raft_query_endpoints.go:374-404), so one rotating read each answers from
         # authoritative state. db_env_user entries are the target's own static API-key users,
@@ -354,6 +358,38 @@ async def assert_target_user_and_role_sets(
         f.add(assertion, f"raised {exc!r}")
 
 
+async def assert_migrated_role_bindings(
+    f: Failures, root: Rest, state: SourceState, load: NeighbourLoad
+) -> None:
+    """Every migrated user still holds its assigned role(s) on the target, by name.
+
+    The binding-level counterpart to assert_migrated_users_behave: on a namespaces-off target
+    built-ins carry wildcard policies, so a user that lost its binding can still pass a create
+    probe. Reading the explicit assignment is the only check that catches "no roles assigned".
+    """
+    assertion = "migrated-role-bindings"
+    if _not_quiescent(f, assertion, load):
+        return
+    for user in state.graduating.users:
+        try:
+            actual = set(await root.roles_for_user(user.short_id))
+        except Exception as exc:
+            f.add(assertion, f"user {user.short_id}: reading target roles raised {exc!r}")
+            continue
+        if not actual:
+            f.add(
+                assertion,
+                f"user {user.short_id} has NO roles on the target (expected "
+                f"{sorted(user.expected_roles)}); the graduation dropped its role assignment",
+            )
+        elif actual != set(user.expected_roles):
+            f.add(
+                assertion,
+                f"user {user.short_id} target roles {sorted(actual)} != "
+                f"expected {sorted(user.expected_roles)}",
+            )
+
+
 async def assert_no_leakage_of_neighbour_collections(
     f: Failures, root: Rest, state: SourceState, load: NeighbourLoad
 ) -> None:
@@ -370,6 +406,33 @@ async def assert_no_leakage_of_neighbour_collections(
                 for name in (seeded.qualified_name, seeded.short_name):
                     if name in target_classes:
                         f.add(assertion, f"neighbour collection {name} appears on the target")
+    except Exception as exc:
+        f.add(assertion, f"raised {exc!r}")
+
+
+async def assert_no_leakage_of_neighbour_principals(
+    f: Failures, root: Rest, state: SourceState, load: NeighbourLoad
+) -> None:
+    """No neighbour tenant's users or roles reach the graduated target.
+
+    Guards the `includeUsers`/`includeRoles` omitempty footgun: an empty slice drops the field
+    and flips the request to a whole-cluster snapshot, which on a shared parent would carry every
+    other tenant's principals into the graduated cluster — a cross-tenant disclosure.
+    """
+    assertion = "no-leakage-principals"
+    if _not_quiescent(f, assertion, load):
+        return
+    try:
+        target_users = set(dynamic_user_ids(await root.list_db_users()))
+        target_roles = set(await root.list_roles())
+        for namespace in state.neighbours:
+            for user in namespace.users:
+                for uid in (user.user_id, user.short_id):
+                    if uid in target_users:
+                        f.add(assertion, f"neighbour user {uid} appears on the target")
+            for role in (namespace.role_qualified, namespace.role_short):
+                if role in target_roles:
+                    f.add(assertion, f"neighbour role {role} appears on the target")
     except Exception as exc:
         f.add(assertion, f"raised {exc!r}")
 

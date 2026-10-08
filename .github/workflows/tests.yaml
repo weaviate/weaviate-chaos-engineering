@@ -1481,8 +1481,14 @@ jobs:
           password: ${{secrets.DOCKER_PASSWORD}}
       - name: Collect Workflow Telemetry
         uses: catchpoint/workflow-telemetry-action@master
-      - name: Run chaos test
+      - name: Run chaos test (custom role present)
         run: ./namespace_graduation.sh
+      # The real Free-Tier default: the graduating namespace owns no custom role, its keys hold
+      # only the built-in admin/viewer. This is the scenario where includeRoles:["<ns>:*"] matches
+      # nothing, the source skips the RBAC snapshot, and keys graduate with no roles. Guards that
+      # regression; the run above keeps the custom-role-migration coverage.
+      - name: Run chaos test (built-in roles only — graduation RBAC regression)
+        run: GRADUATING_NS_BUILTIN_ONLY=true ./namespace_graduation.sh
   compare-recall:
     name: Compare Recall after import to after restart
     runs-on: ubicloud-standard-2

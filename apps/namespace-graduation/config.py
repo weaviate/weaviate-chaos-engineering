@@ -170,6 +170,12 @@ class Config:
     backup_id_prefix: str
     target_replication_factor: int
     allow_target_store_replacement: bool
+    # When true, the graduating namespace owns NO custom role: its users hold only the global
+    # built-in admin/viewer. This is the real Free-Tier default (a user who only ever used the
+    # built-in keys) and the condition that makes includeRoles:["<ns>:*"] match nothing, so the
+    # source skips the RBAC snapshot (skipRoles) and the keys graduate with no roles. Neighbours
+    # keep their custom roles regardless.
+    graduating_namespace_builtin_only: bool
 
     poll_interval_s: float
     rest_connect_timeout_s: float
@@ -262,8 +268,10 @@ class Config:
             raise ConfigError("NEIGHBOUR_NAMESPACE_COUNT must be at least 2")
         if self.collections_per_namespace < 2:
             raise ConfigError("COLLECTIONS_PER_NAMESPACE must be at least 2")
-        if self.users_per_namespace < 2:
-            raise ConfigError("USERS_PER_NAMESPACE must be at least 2")
+        if self.users_per_namespace < 3:
+            # One global built-in admin, one global built-in viewer, and at least one
+            # namespace-local custom-role user — the three RBAC bindings graduation must carry.
+            raise ConfigError("USERS_PER_NAMESPACE must be at least 3")
         if self.objects_per_collection < 1:
             raise ConfigError("OBJECTS_PER_COLLECTION must be at least 1")
         if self.per_replica_sweep_concurrency < 1:
@@ -304,12 +312,13 @@ class Config:
             collections_per_namespace=_env_int("COLLECTIONS_PER_NAMESPACE", 2),
             objects_per_collection=_env_int("OBJECTS_PER_COLLECTION", 200),
             vector_dim=_env_int("VECTOR_DIM", 32),
-            users_per_namespace=_env_int("USERS_PER_NAMESPACE", 2),
+            users_per_namespace=_env_int("USERS_PER_NAMESPACE", 3),
             neighbour_set_target=_env_int("NEIGHBOUR_SET_TARGET", 400),
             backup_backend=_env_str("BACKUP_BACKEND", "s3"),
             backup_id_prefix=_env_str("BACKUP_ID_PREFIX", "nsgrad"),
             target_replication_factor=_env_int("TARGET_REPLICATION_FACTOR", 3),
             allow_target_store_replacement=_env_bool("ALLOW_TARGET_STORE_REPLACEMENT", False),
+            graduating_namespace_builtin_only=_env_bool("GRADUATING_NS_BUILTIN_ONLY", False),
             poll_interval_s=_env_float("POLL_INTERVAL_S", 3),
             rest_connect_timeout_s=_env_float("REST_CONNECT_TIMEOUT_S", 5),
             rest_read_timeout_s=_env_float("REST_READ_TIMEOUT_S", 30),

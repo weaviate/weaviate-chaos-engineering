@@ -43,6 +43,8 @@ class SeededUser:
     short_id: str
     api_key: str
     capability: str
+    # Role names this user must hold on the target after graduation (stripped of any namespace).
+    expected_roles: frozenset[str] = frozenset()
 
 
 @dataclass
@@ -60,6 +62,8 @@ class SeededNamespace:
     role_qualified: str
     users: list[SeededUser] = field(default_factory=list)
     collections: list[SeededCollection] = field(default_factory=list)
+    # False when this namespace was seeded built-in-only (no custom role was created).
+    has_custom_role: bool = True
 
     @property
     def admin_user(self) -> SeededUser:
@@ -136,25 +140,44 @@ async def _seed_namespace(cfg: Config, root: Rest, index: int) -> SeededNamespac
     # The built-in admin is a global role, so the operator may assign it: validateLocalRoleAssignment
     # only blocks roles carrying a namespace (handlers_authz.go:147-158).
     await _assign_role(cfg, root, admin.user_id, ["admin"])
+    # The stripped name is unchanged: "admin" is global, so it carries no namespace to strip.
+    admin.expected_roles = frozenset({"admin"})
     # The binding must be applied in RAFT before the admin acts. This poll proves that much and no
     # more; node 0's enforcer holding the binding is proven separately, by the 403 retry in
     # _create_role.
     await _await_role_visible(cfg, root, admin, "admin")
 
-    async with principal_rest(cfg, cfg.source, admin) as admin_rest:
-        await _create_role(cfg, admin_rest, namespace.role_short)
-        # A namespace-local role can only be assigned by a caller confined to its namespace, so
-        # this runs as the namespace admin and not as root: a global operator is refused by design,
-        # which is what stops one namespace's role from reaching another's subjects
-        # (validateLocalRoleAssignment, handlers_authz.go:147-158). Both references are short —
-        # the handler qualifies them against the confined caller's namespace
-        # (QualifyUserIDForLookup at handlers_authz.go:791, resolveAssignableRoles at :819) — and a
-        # short name carries no namespace, so it passes the locality check by construction.
-        for user in namespace.users[1:]:
-            await _assign_role(cfg, admin_rest, user.short_id, [namespace.role_short])
-            # The server stores the role qualified, and this read is issued as root, so the
-            # qualified name is what comes back.
-            await _await_role_visible(cfg, root, user, namespace.role_qualified)
+    # The second user holds the other global built-in, viewer: operator-assigned like admin, and
+    # read-only, so its capability is narrow.
+    viewer = namespace.users[1]
+    await _assign_role(cfg, root, viewer.user_id, ["viewer"])
+    viewer.expected_roles = frozenset({"viewer"})
+    await _await_role_visible(cfg, root, viewer, "viewer")
+
+    # See config.graduating_namespace_builtin_only for what this scenario exercises.
+    builtin_only = index == 1 and cfg.graduating_namespace_builtin_only
+
+    if builtin_only:
+        namespace.has_custom_role = False
+        for user in namespace.users[2:]:
+            await _assign_role(cfg, root, user.user_id, ["viewer"])
+            user.expected_roles = frozenset({"viewer"})
+            await _await_role_visible(cfg, root, user, "viewer")
+        logger.warning(
+            f"{name}: built-in-only (no custom role); expecting skipRoles at backup"
+        )
+    else:
+        # A namespace-local role must be assigned by the namespace admin, not root (a global
+        # operator is refused by validateLocalRoleAssignment). users[0]/users[1] are the global
+        # admin/viewer assigned above; the rest get the namespace custom role.
+        async with principal_rest(cfg, cfg.source, admin) as admin_rest:
+            await _create_role(cfg, admin_rest, namespace.role_short)
+            for user in namespace.users[2:]:
+                await _assign_role(cfg, admin_rest, user.short_id, [namespace.role_short])
+                # Stored qualified on the source ({ns}:role_short); graduates stripped to its short
+                # name on the target. The read below is issued as root, so it returns the qualified name.
+                user.expected_roles = frozenset({namespace.role_short})
+                await _await_role_visible(cfg, root, user, namespace.role_qualified)
 
     async with wvclient.connected(cfg.source, admin.api_key) as client:
         for serial in cfg.collection_serials(index):

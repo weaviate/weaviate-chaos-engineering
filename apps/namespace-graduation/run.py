@@ -283,7 +283,9 @@ async def journey(cfg: Config, src_root: Rest, tgt_root: Rest) -> int:
     await assertions.assert_migrated_data_per_replica(cfg, failures, tgt_root, state, load)
     await assertions.assert_migrated_users_behave(cfg, failures, state, load)
     await assertions.assert_target_user_and_role_sets(failures, tgt_root, state, load)
+    await assertions.assert_migrated_role_bindings(failures, tgt_root, state, load)
     await assertions.assert_no_leakage_of_neighbour_collections(failures, tgt_root, state, load)
+    await assertions.assert_no_leakage_of_neighbour_principals(failures, tgt_root, state, load)
     await assertions.assert_neighbour_integrity(
         cfg, failures, src_root, state, load, "after-ns-delete"
     )

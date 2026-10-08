@@ -209,6 +209,7 @@ container_id=$(docker run -d --add-host=host.docker.internal:host-gateway \
   -e NEIGHBOUR_LOAD_OPS_PER_SECOND \
   -e RESTORE_NODE_MAPPING \
   -e RESTORE_INCLUDE \
+  -e GRADUATING_NS_BUILTIN_ONLY \
   -t namespace_graduation python3 run.py "$MODE")
 
 echo "Following the logs until ${MODE} completes"
