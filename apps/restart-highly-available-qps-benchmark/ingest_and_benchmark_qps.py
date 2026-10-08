@@ -457,6 +457,23 @@ def main() -> None:
         return int(m.group(1)) if m else 0
 
     def ingest_target(name: str, is_mt: bool) -> None:
+        # The thread is a daemon and join() does not re-raise, so an escape here
+        # would be invisible: the collection would simply be absent from
+        # write_stats and its writes would vanish from the gate's denominator.
+        try:
+            ingest_loop(name, is_mt)
+        except Exception as e:
+            logger.error(
+                "Ingestion for {name} died, so its writes are unjudged: {e}", name=name, e=e
+            )
+            failure_state["failed"] = True
+        finally:
+            # The loop sets this itself once the seed round ends, so this only
+            # covers a raise before the loop is entered -- where the main thread
+            # would otherwise sit out the whole SEED_TIMEOUT_S waiting for it.
+            seeded[name].set()
+
+    def ingest_loop(name: str, is_mt: bool) -> None:
         auto_tenants = 1 if is_mt else 0
         rounds = 0
         stats = {"errors": 0, "attempted": 0, "window_errors": 0, "window_attempted": 0}
@@ -564,6 +581,15 @@ def main() -> None:
     agg_classes = [cfg["name"] for cfg in collections if not cfg["multitenant"]]
 
     def aggregate_driver() -> None:
+        try:
+            aggregate_loop()
+        except Exception as e:
+            # count > 0 would slip past the "no aggregates ran" guard below, so a
+            # death part-way through would otherwise be judged as a clean sample.
+            logger.error("The aggregate driver died, so its sample is partial: {e}", e=e)
+            failure_state["failed"] = True
+
+    def aggregate_loop() -> None:
         i = 0
         while not agg_stop.is_set():
             cls = agg_classes[i % len(agg_classes)]
@@ -617,10 +643,31 @@ def main() -> None:
                 failure_state["failed"] = True
 
         tasks = [benchmark_one(cfg["name"]) for cfg in collections]
-        await asyncio.gather(*tasks)
+        # return_exceptions, because the default propagates the first failure and
+        # asyncio.run then cancels the siblings mid-query. A cancelled collection
+        # records no timeout count, and a missing count reads as zero timeouts.
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for cfg, result in zip(collections, results):
+            if isinstance(result, BaseException):
+                logger.error(
+                    "Benchmark for {name} raised, so it produced nothing to judge: {e}",
+                    name=cfg["name"],
+                    e=result,
+                )
+                failure_state["failed"] = True
+
+    def run_benchmarks() -> None:
+        # An exception in a thread target reaches threading.excepthook and dies
+        # there: join() does not re-raise it, so without this the run would carry
+        # on and every later gate could pass on a benchmark that never ran.
+        try:
+            asyncio.run(run_all_benchmarks())
+        except Exception as e:
+            logger.error("The benchmark thread died, so the run measured nothing: {e}", e=e)
+            failure_state["failed"] = True
 
     bench_thread = threading.Thread(
-        target=lambda: asyncio.run(run_all_benchmarks()),
+        target=run_benchmarks,
         name="benchmarks-qps",
         daemon=False,
     )
@@ -856,6 +903,14 @@ def main() -> None:
     # purpose: it exists so a vectorizer hiccup does not fail the run, not as a
     # measured bound.
     max_write_error_rate = get_env_float("MAX_WRITE_ERROR_RATE", 0.02)
+    missing_writes = [name for name in collection_names if name not in write_stats]
+    if missing_writes:
+        logger.error(
+            "No write accounting for {m}: that ingestion never finished, and the rate below "
+            "would be taken over the remaining collections only",
+            m=sorted(missing_writes),
+        )
+        failure_state["failed"] = True
     total_write_errors = sum(s["window_errors"] for s in write_stats.values())
     total_attempted = sum(s["window_attempted"] for s in write_stats.values())
     seed_errors = sum(s["errors"] - s["window_errors"] for s in write_stats.values())
@@ -930,6 +985,14 @@ def main() -> None:
     # a count over the whole window is stable where a percentile over one
     # second's samples is not.
     max_timeouts = get_env_int("MAX_QUERY_TIMEOUTS", 0)
+    missing_counts = [name for name in collection_names if name not in timeout_counts]
+    if missing_counts:
+        logger.error(
+            "No timeout result for {m}: that benchmark never reached the end, and summing "
+            "what is left would read those collections as zero timeouts",
+            m=sorted(missing_counts),
+        )
+        failure_state["failed"] = True
     total_timeouts = sum(timeout_counts.values())
     if timeout_counts:
         logger.info(
