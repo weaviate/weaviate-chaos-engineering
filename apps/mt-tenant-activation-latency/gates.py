@@ -4,11 +4,11 @@ Gates for the tenant-activation latency test.
 Kept free of the weaviate and k8s clients so the thresholds can be tested on
 recorded numbers. See test_gates.py.
 
-Why this test exists: activating a tenant is applied from the replicated log, and
-that apply is serial. Anything expensive done there delays every entry behind it,
-so a request that needs a recent schema version waits -- and the existing restart
-benchmark cannot see this, because it drives a single tenant per collection and
-never moves one from COLD to HOT.
+Why this test exists: reconciling tenant status and activating a tenant are both
+applied from the replicated log, and that apply is serial. Anything expensive done
+there delays every entry behind it, so a request needing a recent schema version
+waits. The restart QPS benchmark cannot see it because it drives a single tenant
+per collection, leaving nothing for either path to walk.
 """
 
 import os
@@ -23,6 +23,29 @@ def get_env_int(name: str, default: int) -> int:
 def get_env_float(name: str, default: float) -> float:
     v = os.getenv(name, "").strip()
     return float(v) if v else default
+
+
+WAIT_METRIC = "weaviate_cluster_store_wait_for_index_duration_seconds"
+
+
+def count_deadline_waits(texts: Dict[str, str]) -> Optional[int]:
+    """
+    Schema-version waits that ran out of time, summed over pods' metrics text.
+
+    None only when the build exposes no such metric at all. A healthy cluster
+    never observes the deadline outcome, so that child series is simply absent --
+    keying "exposed" on it would report a clean run as unmeasurable. Presence is
+    decided from any outcome, since `immediate` is observed constantly.
+    """
+    total, exposed = 0, False
+    for text in texts.values():
+        for line in text.splitlines():
+            if not line.startswith(WAIT_METRIC):
+                continue
+            exposed = True
+            if line.startswith(WAIT_METRIC + "_count") and 'outcome="deadline"' in line:
+                total += int(float(line.rsplit(" ", 1)[1]))
+    return total if exposed else None
 
 
 def percentile(samples: Sequence[float], q: float) -> Optional[float]:
@@ -47,8 +70,9 @@ def summarise(samples: Sequence[float]) -> Dict[str, Optional[float]]:
 
 
 def evaluate(
-    query_ms: Sequence[float],
-    activation_ms: Sequence[float],
+    baseline_ms: Sequence[float],
+    rollout_ms: Sequence[float],
+    write_ms: Sequence[float],
     deadline_waits: Optional[int],
     max_query_ms: float,
     min_queries: int,
@@ -57,46 +81,49 @@ def evaluate(
     """
     Returns (passed, report lines).
 
-    The client probe gates, because it is what separated the two builds: 50.2s
-    before the fix against 1.35s after. deadline_waits counts the pathology
-    directly and gates too, but only when the build exposes the metric, otherwise
-    an older image would pass by simply not reporting.
+    Gates on the queries issued while the cluster is rolling, with the quiet
+    window reported beside them so a run shows how much the rollout cost rather
+    than just an absolute number. The client is what separated the two builds:
+    50.2s before the fix against 1.35s after.
 
-    The server's own query histogram is reported and NOT gated. It is the signal
-    the team watches, so a run should be comparable to it, but measured on the
-    same two builds it did not separate them (262-360ms against 263-432ms), and
-    the alarming cluster-wide figure it once showed was an artifact of taking a
-    quantile across pods that restart mid-window.
+    deadline_waits counts the pathology directly and gates too, but only when the
+    build exposes the metric, otherwise an older image would pass by not
+    reporting. The server's own query histogram is reported and NOT gated: on
+    these same builds it read 262-360ms against 263-432ms and did not separate
+    them, because a query stalled on a schema version is usually refused rather
+    than recorded as slow.
     """
-    q = summarise(query_ms)
-    a = summarise(activation_ms)
+    q = summarise(rollout_ms)
+    b = summarise(baseline_ms)
+    w = summarise(write_ms)
     lines = [
-        "queries during activation: "
-        + f"n={int(q['count'])} p50={q['p50']} p99={q['p99']} max={q['max']} (ms)",
-        "tenant activations:        "
-        + f"n={int(a['count'])} p50={a['p50']} p99={a['p99']} max={a['max']} (ms)",
+        f"queries, quiet:   n={int(b['count'])} p50={b['p50']} p99={b['p99']} max={b['max']} (ms)",
+        f"queries, rolling: n={int(q['count'])} p50={q['p50']} p99={q['p99']} max={q['max']} (ms)",
+        f"writes,  overall: n={int(w['count'])} p50={w['p50']} p99={w['p99']} max={w['max']} (ms)",
     ]
 
     passed = True
     if q["count"] < min_queries:
         lines.append(
-            f"FAILED: only {int(q['count'])} queries ran, fewer than {min_queries};"
-            " nothing was measured, so the run cannot judge anything"
+            f"FAILED: only {int(q['count'])} queries ran while the cluster rolled,"
+            f" fewer than {min_queries}; nothing was measured where it matters"
         )
         passed = False
     elif q["max"] is not None and q["max"] > max_query_ms:
         lines.append(
-            f"FAILED: slowest query {q['max']:.0f}ms over {max_query_ms:.0f}ms."
-            " A query waiting on a schema version that a backed-up apply loop has"
-            " not reached is what this test exists to catch"
+            f"FAILED: slowest query while rolling {q['max']:.0f}ms over"
+            f" {max_query_ms:.0f}ms. A query waiting on a schema version that a"
+            " backed-up apply loop has not reached is what this test exists to catch"
         )
         passed = False
     else:
-        lines.append(f"PASSED: slowest query {q['max']:.0f}ms, under {max_query_ms:.0f}ms")
+        lines.append(
+            f"PASSED: slowest query while rolling {q['max']:.0f}ms," f" under {max_query_ms:.0f}ms"
+        )
 
     if deadline_waits is None:
         lines.append(
-            "wait-for-version outcomes unavailable on this build; query latency is"
+            "wait-for-version outcomes unavailable on this build; client latency is"
             " the only gate for this run"
         )
     elif deadline_waits > 0:
