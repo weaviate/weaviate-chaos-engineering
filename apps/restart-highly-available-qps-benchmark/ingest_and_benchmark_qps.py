@@ -482,7 +482,14 @@ def main() -> None:
     def ingest_loop(name: str, is_mt: bool) -> None:
         auto_tenants = 1 if is_mt else 0
         rounds = 0
-        stats = {"errors": 0, "attempted": 0, "window_errors": 0, "window_attempted": 0}
+        stats = {
+            "errors": 0,
+            "attempted": 0,
+            "window_errors": 0,
+            "window_attempted": 0,
+            "window_rounds": 0,
+            "window_failed_rounds": 0,
+        }
         logger.info(
             "Starting ingestion for {name} (limit={limit}, tenants={auto_tenants}, "
             "sustained={sustained})",
@@ -526,6 +533,9 @@ def main() -> None:
             if not seeding and measure_writes.is_set():
                 stats["window_errors"] += errors
                 stats["window_attempted"] += limit
+                stats["window_rounds"] += 1
+                if errors:
+                    stats["window_failed_rounds"] += 1
             if not sustained_writes or writes_done.is_set():
                 break
             if writes_done.wait(timeout=sustained_write_pause_s):
@@ -933,14 +943,13 @@ def main() -> None:
                     e=server["error_rate"],
                 )
 
-    # A rate, not a count: the number of writes attempted varies with the window
-    # and the pacing, so an absolute tolerance needs re-guessing every time one of
-    # those changes -- it was set to 50, tripped at 213, set to 400, tripped at
-    # 425. Observed failures were 0.3-0.6% of writes attempted, while production's
-    # bad rollout refused writes steadily for minutes. The tolerance is loose on
-    # purpose: it exists so a vectorizer hiccup does not fail the run, not as a
-    # measured bound.
-    max_write_error_rate = get_env_float("MAX_WRITE_ERROR_RATE", 0.02)
+    # Rounds, not objects: writes go out in batches, so a quorum blip loses a whole
+    # batch at once. Over objects the gate was bimodal -- 100 failed objects of
+    # ~9,100 is 1.1% and passes, 200 is 2.2% and fails, with nothing in between, so
+    # one extra blip decided the run. A round denominator (~88 in the window) gives
+    # the threshold room to sit between quanta. Production's bad rollout refused
+    # writes steadily for minutes, which is tens of rounds, not two.
+    max_write_round_failure_rate = get_env_float("MAX_WRITE_ROUND_FAILURE_RATE", 0.10)
     missing_writes = [name for name in collection_names if name not in write_stats]
     if missing_writes:
         logger.error(
@@ -951,36 +960,45 @@ def main() -> None:
         failure_state["failed"] = True
     total_write_errors = sum(s["window_errors"] for s in write_stats.values())
     total_attempted = sum(s["window_attempted"] for s in write_stats.values())
+    total_rounds = sum(s["window_rounds"] for s in write_stats.values())
+    failed_rounds = sum(s["window_failed_rounds"] for s in write_stats.values())
     seed_errors = sum(s["errors"] - s["window_errors"] for s in write_stats.values())
-    write_error_rate = (total_write_errors / total_attempted) if total_attempted else 0.0
-    by_collection = {n: s["window_errors"] for n, s in write_stats.items() if s["window_errors"]}
+    round_failure_rate = (failed_rounds / total_rounds) if total_rounds else 0.0
+    by_collection = {
+        n: s["window_failed_rounds"] for n, s in write_stats.items() if s["window_failed_rounds"]
+    }
     if total_write_errors or seed_errors:
         logger.info(
-            "Write errors in the restart window: {n} of {a} attempted ({r:.2%}) by "
-            "collection: {c}. Before the window: {s}, not gated",
+            "Write errors in the restart window: {f} of {t} rounds lost writes ({r:.1%}), "
+            "{n} object(s) of {a} attempted, by collection: {c}. Before the window: {s}, not gated",
+            f=failed_rounds,
+            t=total_rounds,
+            r=round_failure_rate,
             n=total_write_errors,
             a=total_attempted,
-            r=write_error_rate,
             c=by_collection,
             s=seed_errors,
         )
-    if not total_attempted:
+    if not total_rounds:
         # Nothing to divide by: the gate would read 0% and pass whatever happened.
         if sustained_writes:
             logger.error(
-                "No writes were attempted inside the restart window, so the write error "
-                "rate judges nothing. The benchmark ended before a sustained round began."
+                "No write rounds ran inside the restart window, so the write gate judges "
+                "nothing. The benchmark ended before a sustained round began."
             )
             failure_state["failed"] = True
         else:
             logger.info("SUSTAINED_WRITES is off, so there is no write rate to gate")
-    elif write_error_rate > max_write_error_rate:
+    elif round_failure_rate > max_write_round_failure_rate:
         logger.error(
-            "Write validation FAILED: {r:.2%} of writes failed ({n} of {a}), above {m:.2%}",
-            r=write_error_rate,
+            "Write validation FAILED: {f} of {t} rounds lost writes ({r:.1%}), above {m:.1%} "
+            "({n} object(s) of {a})",
+            f=failed_rounds,
+            t=total_rounds,
+            r=round_failure_rate,
+            m=max_write_round_failure_rate,
             n=total_write_errors,
             a=total_attempted,
-            m=max_write_error_rate,
         )
         failure_state["failed"] = True
 
