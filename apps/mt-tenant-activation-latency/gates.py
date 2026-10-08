@@ -1,5 +1,5 @@
 """
-Gates for the tenant-activation latency test.
+Gates for the tenant-activation-during-rollout test.
 
 Kept free of the weaviate and k8s clients so the thresholds can be tested on
 recorded numbers. See test_gates.py.
@@ -9,10 +9,22 @@ applied from the replicated log, and that apply is serial. Anything expensive do
 there delays every entry behind it, so a request needing a recent schema version
 waits. The restart QPS benchmark cannot see it because it drives a single tenant
 per collection, leaving nothing for either path to walk.
+
+What to gate on, learned the hard way: the client reaches the cluster through a
+port-forward, and a rolling restart breaks that connection. A single query can
+therefore sit for 15s on a perfectly healthy build. Gating on the slowest sample
+made the verdict a coin toss on reconnect timing -- it failed one post-fix leg at
+15,015ms and passed another at 3,014ms, both artifacts. Percentiles over hundreds
+of samples are not moved by one reconnect, and they separate the builds by orders
+of magnitude, so they gate and the extremes are reported.
 """
 
 import os
+import re
 from typing import Dict, List, Optional, Sequence, Tuple
+
+WAIT_METRIC = "weaviate_cluster_store_wait_for_index_duration_seconds"
+_START_TIME = re.compile(r"^process_start_time_seconds\s+([0-9.e+]+)$", re.M)
 
 
 def get_env_int(name: str, default: int) -> int:
@@ -25,26 +37,46 @@ def get_env_float(name: str, default: float) -> float:
     return float(v) if v else default
 
 
-WAIT_METRIC = "weaviate_cluster_store_wait_for_index_duration_seconds"
+def _start_time(text: str) -> Optional[float]:
+    m = _START_TIME.search(text)
+    return float(m.group(1)) if m else None
 
 
-def count_deadline_waits(texts: Dict[str, str]) -> Optional[int]:
+def _deadline_count(text: str) -> Tuple[int, bool]:
+    """(deadline count, whether this build exposes the metric at all)."""
+    total, exposed = 0, False
+    for line in text.splitlines():
+        if not line.startswith(WAIT_METRIC):
+            continue
+        exposed = True
+        if line.startswith(WAIT_METRIC + "_count") and 'outcome="deadline"' in line:
+            total += int(float(line.rsplit(" ", 1)[1]))
+    return total, exposed
+
+
+def count_deadline_waits(before: Dict[str, str], after: Dict[str, str]) -> Optional[int]:
     """
-    Schema-version waits that ran out of time, summed over pods' metrics text.
+    Schema-version waits that ran out of time during the window.
 
-    None only when the build exposes no such metric at all. A healthy cluster
-    never observes the deadline outcome, so that child series is simply absent --
-    keying "exposed" on it would report a clean run as unmeasurable. Presence is
-    decided from any outcome, since `immediate` is observed constantly.
+    Per pod, because these counters reset when a pod restarts -- which is exactly
+    what the window under test does. A pod whose process start time changed is
+    counted from zero, so waits it served before restarting are not subtracted
+    away; otherwise the delta is taken.
+
+    None only when no pod exposes the metric at all. A healthy cluster never
+    observes the deadline outcome, so that child series is simply absent, and
+    keying "exposed" on it would report a clean run as unmeasurable.
     """
     total, exposed = 0, False
-    for text in texts.values():
-        for line in text.splitlines():
-            if not line.startswith(WAIT_METRIC):
-                continue
-            exposed = True
-            if line.startswith(WAIT_METRIC + "_count") and 'outcome="deadline"' in line:
-                total += int(float(line.rsplit(" ", 1)[1]))
+    for pod, after_text in after.items():
+        count, pod_exposed = _deadline_count(after_text)
+        exposed = exposed or pod_exposed
+        before_text = before.get(pod)
+        if before_text is None or _start_time(before_text) != _start_time(after_text):
+            total += count  # new or restarted: its counters are the window
+        else:
+            was, _ = _deadline_count(before_text)
+            total += max(0, count - was)
     return total if exposed else None
 
 
@@ -69,37 +101,37 @@ def summarise(samples: Sequence[float]) -> Dict[str, Optional[float]]:
     }
 
 
+def _fmt(s: Dict[str, Optional[float]]) -> str:
+    def n(v):
+        return "-" if v is None else f"{v:.0f}"
+
+    return f"n={int(s['count'])} p50={n(s['p50'])} p99={n(s['p99'])} max={n(s['max'])} (ms)"
+
+
 def evaluate(
     baseline_ms: Sequence[float],
     rollout_ms: Sequence[float],
     write_ms: Sequence[float],
     deadline_waits: Optional[int],
-    max_query_ms: float,
+    max_query_p99_ms: float,
+    max_write_p99_ms: float,
     min_queries: int,
-    server: Optional[Dict[str, Optional[float]]] = None,
 ) -> Tuple[bool, List[str]]:
     """
     Returns (passed, report lines).
 
-    Gates on the queries issued while the cluster is rolling, with the quiet
-    window reported beside them so a run shows how much the rollout cost rather
-    than just an absolute number. The client is what separated the two builds:
-    50.2s before the fix against 1.35s after.
-
-    deadline_waits counts the pathology directly and gates too, but only when the
-    build exposes the metric, otherwise an older image would pass by not
-    reporting. The server's own query histogram is reported and NOT gated: on
-    these same builds it read 262-360ms against 263-432ms and did not separate
-    them, because a query stalled on a schema version is usually refused rather
-    than recorded as slow.
+    Writes gate first: they are the broadest signal, hundreds of samples that a
+    reconnect does not move, and they separated the builds 8-45x on p99. Query p99
+    gates too, separating ~900x. The quiet window and the extremes are reported for
+    context and never gate.
     """
     q = summarise(rollout_ms)
     b = summarise(baseline_ms)
     w = summarise(write_ms)
     lines = [
-        f"queries, quiet:   n={int(b['count'])} p50={b['p50']} p99={b['p99']} max={b['max']} (ms)",
-        f"queries, rolling: n={int(q['count'])} p50={q['p50']} p99={q['p99']} max={q['max']} (ms)",
-        f"writes,  overall: n={int(w['count'])} p50={w['p50']} p99={w['p99']} max={w['max']} (ms)",
+        f"queries, quiet:   {_fmt(b)}",
+        f"queries, rolling: {_fmt(q)}",
+        f"writes,  overall: {_fmt(w)}",
     ]
 
     passed = True
@@ -109,16 +141,29 @@ def evaluate(
             f" fewer than {min_queries}; nothing was measured where it matters"
         )
         passed = False
-    elif q["max"] is not None and q["max"] > max_query_ms:
+
+    for label, s, limit in (
+        ("write", w, max_write_p99_ms),
+        ("query", q, max_query_p99_ms),
+    ):
+        if s["p99"] is None:
+            lines.append(f"FAILED: no {label} samples at all")
+            passed = False
+        elif s["p99"] > limit:
+            lines.append(
+                f"FAILED: {label} p99 {s['p99']:.0f}ms over {limit:.0f}ms."
+                " Requests queued behind a backed-up apply loop is what this test"
+                " exists to catch"
+            )
+            passed = False
+        else:
+            lines.append(f"PASSED: {label} p99 {s['p99']:.0f}ms, under {limit:.0f}ms")
+
+    if q["max"] is not None and q["max"] > max_query_p99_ms:
         lines.append(
-            f"FAILED: slowest query while rolling {q['max']:.0f}ms over"
-            f" {max_query_ms:.0f}ms. A query waiting on a schema version that a"
-            " backed-up apply loop has not reached is what this test exists to catch"
-        )
-        passed = False
-    else:
-        lines.append(
-            f"PASSED: slowest query while rolling {q['max']:.0f}ms," f" under {max_query_ms:.0f}ms"
+            f"  note: slowest single query was {q['max']:.0f}ms. Not gated -- a"
+            " rolling restart breaks the client's port-forward, and the reconnect"
+            " alone costs seconds on a healthy build"
         )
 
     if deadline_waits is None:
@@ -134,17 +179,5 @@ def evaluate(
         passed = False
     else:
         lines.append("PASSED: no schema-version wait hit its deadline")
-
-    if server:
-        lines.append(
-            "server-side queries (reported, not gated): "
-            + f"n={server.get('queries')} p50={server.get('p50_ms')}ms "
-            + f"p99={server.get('p99_ms')}ms over {server.get('pods')} pod(s)"
-        )
-        if server.get("pods_missing"):
-            lines.append(
-                f"  {server['pods_missing']} pod(s) could not be scraped at the end,"
-                " so their share of the window is missing"
-            )
 
     return passed, lines

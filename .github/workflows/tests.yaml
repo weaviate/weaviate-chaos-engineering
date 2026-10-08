@@ -2907,16 +2907,20 @@ jobs:
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'mt-tenant-activation-latency' || github.event.inputs.test_to_run == 'qps' || github.event.inputs.test_to_run == '')}}
     name: MT tenant activation latency during rollout
     runs-on: ubicloud-standard-8
-    # seeding ~1min, baseline 20s, the roll itself ~5-7min, then a short settle
+    # seeding ~1min, baseline 20s, the roll ~45-60s on three pods holding a couple
+    # of objects per shard, then a short settle. Budget is generous on purpose.
     timeout-minutes: 25
     env:
       # Enough tenants that reconciling them on each node's reload is real work,
       # few enough that seeding stays under a minute.
       TENANTS: 400
       SEED_WORKERS: 16
-      # Before the fix queries during the roll sat in the tens of seconds; after,
-      # around a second. 5s separates the two without sitting on either.
-      MAX_QUERY_MS: 5000
+      # Percentiles rather than extremes: the client reaches the cluster through a
+      # port-forward that the roll breaks, and one reconnect costs seconds on a
+      # healthy build. Measured p99 before the fix against after: queries
+      # 11,218/12,134ms vs 12.8/34.8ms, writes 7,585/1,354ms vs 159/164ms.
+      MAX_QUERY_P99_MS: 1000
+      MAX_WRITE_P99_MS: 500
       VALUES_OVERRIDE: |
         env:
           ASYNC_INDEXING: true
