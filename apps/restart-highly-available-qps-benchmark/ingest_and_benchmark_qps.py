@@ -40,7 +40,7 @@ from weaviate_cli.managers.collection_manager import CollectionManager
 from weaviate_cli.managers.data_manager import DataManager
 from weaviate_cli.managers.benchmark_manager import PER_REQUEST_TIMEOUT_S, BenchmarkQPSManager
 
-from server_metrics import PodSnapshot, snapshot_pods, summarise_window
+from server_metrics import PodSnapshot, WindowAccumulator, snapshot_pods
 from validation import (
     annotate_csvs_with_restart,
     get_env_float,
@@ -98,7 +98,11 @@ def scrape_pod_metrics(ns: str) -> Dict[str, str]:
 
     Kept separate rather than concatenated: these counters reset when a pod
     restarts, so the delta has to be taken per pod before anything is summed.
-    See server_metrics.summarise_window.
+    See server_metrics.WindowAccumulator.
+
+    Best effort by design: a pod being restarted cannot be scraped, and the
+    sampler needs whoever answers rather than all-or-nothing. Use
+    snapshot_server_metrics where the scrape has to be complete.
     """
     texts: Dict[str, str] = {}
     for pod in get_pod_names(ns):
@@ -122,10 +126,12 @@ def snapshot_server_metrics(
 ) -> Optional[Dict[str, PodSnapshot]]:
     """A snapshot covering every weaviate pod, or None if one never answered.
 
-    A partial snapshot cannot be used. A pod missing from the baseline looks
-    newly started to summarise_window, which then counts its lifetime history as
-    window traffic; a pod missing afterwards drops its share of the window. So
-    retry until the scrape is complete rather than judge either.
+    Used for the two scrapes that have to be complete: the baseline and the
+    final one. A pod missing from the baseline looks newly started, so its
+    lifetime history would be counted as window traffic; a pod missing from the
+    last scrape drops whatever it served since its previous sample. So retry
+    until the scrape is complete rather than judge either. The samples in
+    between are best effort -- see scrape_pod_metrics.
     """
     texts: Dict[str, str] = {}
     expected: List[str] = []
@@ -688,6 +694,30 @@ def main() -> None:
     measure_writes.set()
     agg_thread.start()
 
+    # Sample the window while it is open. Every pod resets during a rolling
+    # restart, so differencing the baseline against a final scrape would keep
+    # only what each pod served after its own restart -- the healthy tail --
+    # and discard the stalls this gate exists to catch. See WindowAccumulator.
+    accumulator = WindowAccumulator(pre_snapshot) if pre_snapshot is not None else None
+    metrics_stop = threading.Event()
+    scrape_interval_s = get_env_float("SERVER_SCRAPE_INTERVAL_S", 5.0)
+
+    def metrics_sampler() -> None:
+        try:
+            while not metrics_stop.is_set():
+                # Mid-restart a pod is legitimately unreachable, so take whoever
+                # answers; the accumulator resumes a pod on its next appearance.
+                accumulator.observe(snapshot_pods(scrape_pod_metrics(ns)))
+                metrics_stop.wait(timeout=scrape_interval_s)
+        except Exception as e:
+            logger.error("The metrics sampler died, so the window is partial: {e}", e=e)
+            failure_state["failed"] = True
+
+    sampler_thread: Optional[threading.Thread] = None
+    if accumulator is not None:
+        sampler_thread = threading.Thread(target=metrics_sampler, name="metrics", daemon=True)
+        sampler_thread.start()
+
     # --- Disruption phase (variant-specific) ---
     # restart_events accumulates (timestamp, event_name) pairs; each entry will
     # become one sentinel row in the benchmark CSVs so the pre/post split is
@@ -773,7 +803,15 @@ def main() -> None:
             "Aggregate driver still running after {t:.0f}s; its last sample may be missing",
             t=agg_timeout_s + 5,
         )
+    metrics_stop.set()
+    if sampler_thread is not None:
+        sampler_thread.join(timeout=scrape_interval_s + 10)
+
+    # The last scrape has to be complete, so it goes through the retrying helper
+    # rather than the sampler's best-effort one.
     post_snapshot = snapshot_server_metrics(ns)
+    if accumulator is not None and post_snapshot is not None:
+        accumulator.observe(post_snapshot)
     logger.info("Benchmark finished.")
 
     # Display RAFT leader change summary
@@ -823,7 +861,7 @@ def main() -> None:
         logger.error("Server metrics incomplete, so the server gates cannot judge the window")
         failure_state["failed"] = True
     else:
-        server = summarise_window(pre_snapshot, post_snapshot)
+        server = accumulator.summary()
         logger.info(
             "Server during the restart window: {q:.0f} queries over {n:.0f} pod(s), p50={p50}, "
             "p99={p99}, server_errors={f:.0f} of {r:.0f} REST/GraphQL requests ({e}), "

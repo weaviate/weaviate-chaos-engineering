@@ -19,6 +19,7 @@ which did not restart from donating its lifetime history to the window.
 import unittest
 
 from server_metrics import (
+    WindowAccumulator,
     bucket_delta,
     parse_latency_buckets,
     parse_request_counts,
@@ -305,6 +306,68 @@ class TestWindow(unittest.TestCase):
         s = summarise_window(before, after)
         self.assertEqual(s["queries"], 1000)
         self.assertEqual(s["requests"], 0)
+        self.assertIsNone(s["error_rate"])
+
+
+class TestRollingRestartAccumulation(unittest.TestCase):
+    """
+    A rolling restart resets every pod, so differencing a baseline against a
+    final scrape keeps only what each pod served after its own restart -- the
+    healthy tail. The stalls happen before the resets, which is exactly what the
+    gate is for, so the window has to be sampled while it is open.
+    """
+
+    # 1000 fast queries already served when the window opens
+    BASELINE = {pod: flat(1000, ok=1000, start_time=100.0) for pod in ("w-0", "w-1", "w-2")}
+
+    # each pod then serves 100 queries past 5s, still on its original process
+    STALLED = {
+        pod: metrics(
+            [1000, 1000, 1000, 1000, 1000, 1000, 1100, 1100, 1100, 1100],
+            ok=1100,
+            start_time=100.0,
+        )
+        for pod in ("w-0", "w-1", "w-2")
+    }
+
+    # all three come back on a new process with only fast traffic since
+    RESTARTED = {pod: flat(50, ok=50, start_time=200.0) for pod in ("w-0", "w-1", "w-2")}
+
+    def test_sampling_keeps_the_stalls_the_restart_would_erase(self):
+        acc = WindowAccumulator(snapshot_pods(self.BASELINE))
+        acc.observe(snapshot_pods(self.STALLED))
+        acc.observe(snapshot_pods(self.RESTARTED))
+        s = acc.summary()
+
+        # 300 stalled queries plus 150 fast ones after the restarts
+        self.assertEqual(s["queries"], 450)
+        self.assertEqual(s["pods_restarted"], 3)
+        self.assertGreater(s["p99_ms"], 5000)
+
+    def test_two_snapshots_lose_them(self):
+        """The failure mode the accumulator exists to avoid, pinned."""
+        s = summarise_window(snapshot_pods(self.BASELINE), snapshot_pods(self.RESTARTED))
+        self.assertEqual(s["queries"], 150)  # the 300 stalled queries are gone
+        self.assertLess(s["p99_ms"], 100)  # and the window looks healthy
+
+    def test_a_pod_missing_from_one_sample_resumes_on_the_next(self):
+        """A restarting pod cannot be scraped; that must not drop the others."""
+        acc = WindowAccumulator(snapshot_pods(self.BASELINE))
+        acc.observe(snapshot_pods({p: t for p, t in self.STALLED.items() if p != "w-2"}))
+        acc.observe(snapshot_pods(self.RESTARTED))
+        s = acc.summary()
+        # w-0 and w-1 contributed 100 stalls each; w-2's were lost with its reset,
+        # which is the bounded loss the sampling interval buys down
+        self.assertEqual(s["queries"], 350)
+        self.assertGreater(s["p99_ms"], 5000)
+
+    def test_steady_state_does_not_double_count(self):
+        acc = WindowAccumulator(snapshot_pods(self.BASELINE))
+        acc.observe(snapshot_pods(self.BASELINE))
+        acc.observe(snapshot_pods(self.BASELINE))
+        s = acc.summary()
+        self.assertEqual(s["queries"], 0)
+        self.assertEqual(s["pods_restarted"], 0)
         self.assertIsNone(s["error_rate"])
 
 
