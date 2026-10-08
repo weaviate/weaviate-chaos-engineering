@@ -181,6 +181,10 @@ def summarise_window(
     """
     Latency quantiles and error rate for the interval between two snapshots.
 
+    Only sound when at most one pod restarted. Use WindowAccumulator for a
+    rolling restart, where differencing two snapshots discards most of the
+    window -- see its docstring.
+
     A pod whose process start time changed restarted during the window, so its
     counters already *are* the window and nothing is subtracted. That is exact
     where the backwards-delta rule is only a guess: a pod that reset and then
@@ -221,6 +225,23 @@ def summarise_window(
         for status, count in pod_requests.items():
             statuses[status] = statuses.get(status, 0.0) + count
 
+    return _summarise(
+        buckets,
+        statuses,
+        pods=len(after),
+        restarts=restarts,
+        pods_missing=len(set(before) - set(after)),
+    )
+
+
+def _summarise(
+    buckets: Dict[float, float],
+    statuses: Dict[str, float],
+    pods: int,
+    restarts: int,
+    pods_missing: int,
+) -> Dict[str, Optional[float]]:
+    """Shared shape for both ways of measuring a window."""
     server_errors = max(statuses.get(STATUS_SERVER_ERROR, 0.0), 0.0)
     user_errors = max(statuses.get(STATUS_USER_ERROR, 0.0), 0.0)
     ok = max(statuses.get(STATUS_OK, 0.0), 0.0)
@@ -234,7 +255,70 @@ def summarise_window(
         "user_errors": user_errors,
         "requests": total,
         "error_rate": (server_errors / total) if total else None,
-        "pods": float(len(after)),
+        "pods": float(pods),
         "pods_restarted": float(restarts),
-        "pods_missing": float(len(set(before) - set(after))),
+        "pods_missing": float(pods_missing),
     }
+
+
+class WindowAccumulator:
+    """
+    Per-pod counter deltas accumulated across restarts, by sampling the window.
+
+    Two snapshots cannot describe a rolling restart. Every pod resets, so for
+    each one only the traffic after its *own* restart survives differencing, and
+    the stalls this gate exists to catch -- queries a pod coordinated while an
+    earlier pod was down -- are discarded along with its pre-restart counters.
+    What is left is largely the healthy tail after the last pod came back.
+
+    Sampling keeps them. Each observation closes a delta against that pod's
+    previous sample, so a pod that restarts has already contributed everything
+    up to its last sample. The loss is then bounded by the sampling interval
+    instead of being the whole pre-restart window. Removing it entirely needs a
+    metrics backend that can be queried over a range.
+
+    A pod missing from an observation is simply not advanced; it resumes on its
+    next appearance, and the slice between its last sample and its restart is
+    the bounded loss. Only the baseline has to be complete.
+    """
+
+    def __init__(self, baseline: Dict[str, PodSnapshot]) -> None:
+        self._last: Dict[str, PodSnapshot] = dict(baseline)
+        self._pods: set = set(baseline)
+        self.buckets: Dict[float, float] = {}
+        self.requests: Dict[str, float] = {}
+        self.restarts = 0
+
+    def observe(self, snapshots: Dict[str, PodSnapshot]) -> None:
+        """Fold one scrape of every reachable pod into the window."""
+        for pod, snap in snapshots.items():
+            self._pods.add(pod)
+            prev = self._last.get(pod)
+            if prev is None:
+                # Came up during the window, so all of it belongs to the window.
+                self.restarts += 1
+                pod_buckets, pod_requests = snap.buckets, snap.requests
+            elif (
+                snap.start_time is not None
+                and prev.start_time is not None
+                and snap.start_time != prev.start_time
+            ):
+                self.restarts += 1
+                pod_buckets, pod_requests = snap.buckets, snap.requests
+            else:
+                pod_buckets = bucket_delta(prev.buckets, snap.buckets)
+                pod_requests = counter_delta(prev.requests, snap.requests)
+            for bound, count in pod_buckets.items():
+                self.buckets[bound] = self.buckets.get(bound, 0.0) + count
+            for status, count in pod_requests.items():
+                self.requests[status] = self.requests.get(status, 0.0) + count
+            self._last[pod] = snap
+
+    def summary(self) -> Dict[str, Optional[float]]:
+        return _summarise(
+            self.buckets,
+            self.requests,
+            pods=len(self._pods),
+            restarts=self.restarts,
+            pods_missing=0,
+        )
