@@ -19,6 +19,7 @@ of samples are not moved by one reconnect, and they separate the builds by order
 of magnitude, so they gate and the extremes are reported.
 """
 
+import math
 import os
 import re
 from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
@@ -133,13 +134,18 @@ def count_deadline_waits(before: Dict[str, str], after: Dict[str, str]) -> Optio
 
 
 def percentile(samples: Sequence[float], q: float) -> Optional[float]:
-    """Nearest-rank percentile. None for an empty sample."""
+    """
+    Nearest-rank percentile. None for an empty sample.
+
+    ceil(q*n)-1, not round(q*(n-1)): the latter interpolates a rank and rounds it
+    down into the fast mass, so 149 queries at 4ms with two at 10s reports a p99
+    of 4ms -- 1.3% of queries over ten seconds, read as a clean run. Nearest rank
+    puts the boundary where the definition does and reports 10s.
+    """
     if not samples:
         return None
     ordered = sorted(samples)
-    if len(ordered) == 1:
-        return ordered[0]
-    rank = max(0, min(len(ordered) - 1, int(round(q * (len(ordered) - 1)))))
+    rank = max(0, min(len(ordered) - 1, math.ceil(q * len(ordered)) - 1))
     return ordered[rank]
 
 
@@ -169,9 +175,11 @@ def evaluate(
     max_write_p99_ms: float,
     min_queries: int,
     min_writes: int = 0,
-    query_failures: int = 0,
-    write_failures: int = 0,
     max_failure_ratio: float = 0.5,
+    max_stalled_calls: int = 2,
+    stall_ms: float = 20_000.0,
+    query_failed_ms: Sequence[float] = (),
+    write_failed_ms: Sequence[float] = (),
     problems: Sequence[str] = (),
 ) -> Tuple[bool, List[str]]:
     """
@@ -182,13 +190,24 @@ def evaluate(
     gates too, separating ~900x. The quiet window and the extremes are reported for
     context and never gate.
 
-    The latency arguments are *served* requests only. A call that raised is not a
-    request the cluster answered, and its duration says nothing about how long
-    serving took, so counting refusals as samples would let an instant connection
-    refusal fill min_queries and hold p99 down. They are counted separately and
-    gated on their share of what was attempted, with max_failure_ratio left wide:
-    the roll breaks the client's port-forward, so a handful of failures is normal
-    and only a workload that is mostly erroring means nothing was measured.
+    Calls that raised come in separately, as *how long each one waited* rather
+    than a count, because that duration decides which failure it was and the two
+    are not comparable. An instant connection refusal measured nothing, so it
+    must not count toward min_queries -- the gate would otherwise be satisfied by
+    a cluster that refused everything. A request that waited 30s and then timed
+    out measured exactly what this test looks for, so dropping it would hide the
+    stall it proves. So failures do not count as served requests, but their waits
+    do join the distribution that p99 gates, and the three failure modes are
+    gated separately:
+
+      * min_queries / min_writes, over served requests only.
+      * max_failure_ratio, over their share of what was attempted. Left wide: the
+        roll breaks the client's port-forward, so a handful of failures is normal
+        and only a workload that is mostly erroring measured nothing.
+      * max_stalled_calls, over failures that waited longer than stall_ms. The
+        worst reconnect artifact measured on a healthy build was 15,015ms, so a
+        default stall_ms above that cannot be tripped by one, while a request
+        that waited past it and was never served is the thing being hunted.
 
     `problems` are collection and orchestration failures the caller hit -- a
     rollout that was rejected, a worker that never finished, a scrape that could
@@ -196,9 +215,9 @@ def evaluate(
     never read as a pass: that is the whole failure mode this gate guards, and the
     gate itself is the easiest place to lose it.
     """
-    q = summarise(rollout_ms)
+    q = summarise(list(rollout_ms) + list(query_failed_ms))
     b = summarise(baseline_ms)
-    w = summarise(write_ms)
+    w = summarise(list(write_ms) + list(write_failed_ms))
     lines = [
         f"queries, quiet:   {_fmt(b)}",
         f"queries, rolling: {_fmt(q)}",
@@ -206,9 +225,9 @@ def evaluate(
     ]
 
     passed = True
-    if q["count"] < min_queries:
+    if len(rollout_ms) < min_queries:
         lines.append(
-            f"FAILED: only {int(q['count'])} queries were served while the cluster"
+            f"FAILED: only {len(rollout_ms)} queries were served while the cluster"
             f" rolled, fewer than {min_queries}; nothing was measured where it matters"
         )
         passed = False
@@ -216,9 +235,9 @@ def evaluate(
     # Writes carry the same risk as queries, from the other direction: a p99 over
     # a handful of samples is whatever those samples were, and a worker that
     # barely ran leaves a thin, fast distribution that clears any limit.
-    if w["count"] < min_writes:
+    if len(write_ms) < min_writes:
         lines.append(
-            f"FAILED: only {int(w['count'])} writes were served over the whole run,"
+            f"FAILED: only {len(write_ms)} writes were served over the whole run,"
             f" fewer than {min_writes}; too thin a distribution to gate a p99 on"
         )
         passed = False
@@ -240,8 +259,8 @@ def evaluate(
         else:
             lines.append(f"PASSED: {label} p99 {s['p99']:.0f}ms, under {limit:.0f}ms")
 
-    for label, s, failed in (("query", q, query_failures), ("write", w, write_failures)):
-        attempted = int(s["count"]) + failed
+    for label, s, failed_ms in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
+        attempted, failed = int(s["count"]), len(failed_ms)
         if not attempted or not failed:
             continue
         share = failed / attempted
@@ -258,9 +277,30 @@ def evaluate(
                 " within what losing the port-forward mid-roll accounts for"
             )
 
-    if q["max"] is not None and q["max"] > max_query_p99_ms:
+        stalled = [ms for ms in failed_ms if ms >= stall_ms]
+        if len(stalled) > max_stalled_calls:
+            lines.append(
+                f"FAILED: {len(stalled)} {label} calls waited longer than"
+                f" {stall_ms:.0f}ms and were never served, more than the"
+                f" {max_stalled_calls} a reconnect can account for; the slowest"
+                f" waited {max(stalled):.0f}ms. A request that waits that long and"
+                " gets nothing is the stall this test exists to catch, whether or"
+                " not enough of them moved the p99"
+            )
+            passed = False
+        elif stalled:
+            lines.append(
+                f"  note: {len(stalled)} {label} calls waited over {stall_ms:.0f}ms"
+                f" before failing, the slowest {max(stalled):.0f}ms"
+            )
+
+    # Over served queries only. The note exists to excuse one slow *answer*; a
+    # slow failure is the stall gate's business, and saying "not gated" about a
+    # call that gate just failed on would read as a contradiction.
+    served_max = max(rollout_ms) if rollout_ms else None
+    if served_max is not None and served_max > max_query_p99_ms:
         lines.append(
-            f"  note: slowest single query was {q['max']:.0f}ms. Not gated -- a"
+            f"  note: slowest single query was {served_max:.0f}ms. Not gated -- a"
             " rolling restart breaks the client's port-forward, and the reconnect"
             " alone costs seconds on a healthy build"
         )

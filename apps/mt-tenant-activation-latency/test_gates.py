@@ -51,6 +51,19 @@ class TestPercentile(unittest.TestCase):
         self.assertEqual(percentile([1, 2, 3, 4, 5], 0.0), 1)
         self.assertEqual(percentile([1, 2, 3, 4, 5], 1.0), 5)
 
+    def test_nearest_rank_does_not_round_a_slow_tail_away(self):
+        """149 fast queries and two at 10s is 1.3% slow, so the p99 is the slow one."""
+        self.assertEqual(percentile([4.0] * 149 + [10_000.0] * 2, 0.99), 10_000.0)
+
+    def test_a_tail_under_one_percent_stays_out_of_p99(self):
+        """The other side of the same boundary: 0.5% slow must not move it."""
+        self.assertEqual(percentile([4.0] * 199 + [10_000.0], 0.99), 4.0)
+
+    def test_the_slow_tail_reaches_the_gate(self):
+        passed, lines = evaluate(QUIET, [4.0] * 149 + [10_000.0] * 2, WRITES_AFTER, 0, **LIMITS)
+        self.assertFalse(passed)
+        self.assertTrue(any("FAILED: query p99" in l for l in lines))
+
     def test_summary_of_empty_is_not_a_crash(self):
         s = summarise([])
         self.assertEqual(s["count"], 0)
@@ -182,39 +195,101 @@ class TestDeadlinesBeforeARestart(unittest.TestCase):
 class TestFailedCallsDoNotPassAsLatency(unittest.TestCase):
     """
     A refused call is not a request the cluster served. Counting refusals as
-    samples lets an instant connection refusal fill min_queries and hold p99
-    down, so they are counted separately and gated on their share.
+    served samples lets an instant connection refusal fill min_queries and hold
+    p99 down, so they are kept out of the served count and gated on their share.
     """
 
     def test_a_window_of_refusals_cannot_satisfy_min_queries(self):
-        passed, lines = evaluate(QUIET, [1.0] * 3, WRITES_AFTER, 0, **LIMITS, query_failures=500)
+        passed, lines = evaluate(
+            QUIET, [1.0] * 3, WRITES_AFTER, 0, **LIMITS, query_failed_ms=[1.0] * 500
+        )
         self.assertFalse(passed)
         self.assertTrue(any("nothing was measured where it matters" in l for l in lines))
 
     def test_mostly_failing_queries_fail_the_run(self):
         passed, lines = evaluate(
-            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failures=400
+            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failed_ms=[1.0] * 400
         )
         self.assertFalse(passed)
         self.assertTrue(any("query calls failed" in l and "FAILED" in l for l in lines))
 
     def test_mostly_failing_writes_fail_the_run(self):
         passed, lines = evaluate(
-            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, write_failures=10_000
+            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, write_failed_ms=[1.0] * 10_000
         )
         self.assertFalse(passed)
         self.assertTrue(any("write calls failed" in l and "FAILED" in l for l in lines))
 
     def test_a_handful_of_reconnect_refusals_only_gets_a_note(self):
-        passed, lines = evaluate(QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failures=4)
+        passed, lines = evaluate(
+            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failed_ms=[2.0] * 4
+        )
         self.assertTrue(passed, lines)
         self.assertTrue(any("note:" in l and "query calls failed" in l for l in lines))
 
     def test_the_allowance_is_tunable(self):
         passed, _ = evaluate(
-            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failures=4, max_failure_ratio=0.0
+            QUIET,
+            ROLLING_AFTER,
+            WRITES_AFTER,
+            0,
+            **LIMITS,
+            query_failed_ms=[2.0] * 4,
+            max_failure_ratio=0.0,
         )
         self.assertFalse(passed)
+
+
+class TestTimeoutsAreNotRefusals(unittest.TestCase):
+    """
+    A refusal that came back instantly and a request that waited out its timeout
+    are both failures, and only the duration tells them apart. Dropping the slow
+    one hides the stall it proves: the deadline metric can be unavailable, the
+    refusal share can be tiny, and the served samples that remain are all fast.
+    """
+
+    def test_a_few_timeouts_among_fast_queries_fail_the_run(self):
+        """Copilot's case: 100 fast queries and three 30s timeouts."""
+        passed, lines = evaluate(
+            QUIET, [4.0] * 100, WRITES_AFTER, None, **LIMITS, query_failed_ms=[30_000.0] * 3
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any("never served" in l for l in lines))
+
+    def test_their_waits_reach_the_percentile_too(self):
+        """Not only the stall count: the waits are in the distribution p99 gates."""
+        passed, lines = evaluate(
+            QUIET,
+            [4.0] * 100,
+            WRITES_AFTER,
+            None,
+            **LIMITS,
+            query_failed_ms=[30_000.0] * 3,
+            max_stalled_calls=99,
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any("FAILED: query p99" in l for l in lines))
+
+    def test_timed_out_writes_fail_the_run(self):
+        passed, lines = evaluate(
+            QUIET, ROLLING_AFTER, [6.4] * 600, None, **LIMITS, write_failed_ms=[90_000.0] * 3
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any("never served" in l and "write" in l for l in lines))
+
+    def test_one_slow_reconnect_failure_is_still_an_artifact(self):
+        """15,015ms was measured on a healthy build, so it must not gate alone."""
+        passed, lines = evaluate(
+            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failed_ms=[15_015.0]
+        )
+        self.assertTrue(passed, lines)
+
+    def test_quick_refusals_are_not_counted_as_stalls(self):
+        passed, lines = evaluate(
+            QUIET, ROLLING_AFTER, WRITES_AFTER, 0, **LIMITS, query_failed_ms=[2.0] * 20
+        )
+        self.assertTrue(passed, lines)
+        self.assertFalse(any("never served" in l for l in lines))
 
 
 class TestCollectionProblemsFailTheRun(unittest.TestCase):
