@@ -2904,13 +2904,25 @@ jobs:
 
   rolling-restart-highly-available-qps-benchmark:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
-    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rolling-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == '')}}
+    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rolling-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == 'qps' || github.event.inputs.test_to_run == '')}}
     name: Measuring QPS during rolling restart
     runs-on: ubicloud-standard-8
     timeout-minutes: 60
     env:
       OBJECTS_PER_CLASS: 15000
       BATCH_SIZE: 1000
+      # Production identified this by rolling the cluster and watching how long
+      # latency stayed bad. At 15 QPS a CSV row covers ~15 queries, so its p99 is
+      # really a maximum; only a long window makes the degraded share of it
+      # stable enough to judge. 300s at 15 QPS gives ~4.5k queries, enough for
+      # the degraded share to stand out against the healthy rows.
+      # The stall shows within minutes of the rollout starting, so the window only
+      # has to outlast the rollout itself.
+      BENCHMARK_DURATION: 300
+      RESTART_DELAY_SECONDS: 45
+      # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
+      # inflating latency on any build and leaving the baseline too low to judge.
+      BENCHMARK_QPS: 15
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -2922,7 +2934,6 @@ jobs:
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}
-      # Only include HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE and DISABLE_LAZY_LOAD_SHARDS if version is older than 1.36.0
     steps:
       # - name: Collect Workflow Telemetry
       #   uses: catchpoint/workflow-telemetry-action@v2
@@ -2937,6 +2948,10 @@ jobs:
         run: |
           cd apps/restart-highly-available-qps-benchmark
           pip3 install -r requirements.txt
+      - name: Verify failover degradation detection
+        run: |
+          cd apps/restart-highly-available-qps-benchmark
+          python3 -m unittest discover -s . -p "test_*.py" -v
       - name: Weaviate - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
@@ -2978,13 +2993,25 @@ jobs:
           fi
   single-pod-restart-highly-available-qps-benchmark:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
-    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'single-pod-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == '')}}
+    if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'single-pod-restart-highly-available-qps-benchmark' || github.event.inputs.test_to_run == 'qps' || github.event.inputs.test_to_run == '')}}
     name: Measuring QPS during single-pod restart. Starts with a non-RAFT leader pod restart followed by the RAFT leader pod restart.
     runs-on: ubicloud-standard-8
     timeout-minutes: 60
     env:
       OBJECTS_PER_CLASS: 15000
       BATCH_SIZE: 1000
+      # Production identified this by rolling the cluster and watching how long
+      # latency stayed bad. At 15 QPS a CSV row covers ~15 queries, so its p99 is
+      # really a maximum; only a long window makes the degraded share of it
+      # stable enough to judge. 300s at 15 QPS gives ~4.5k queries, enough for
+      # the degraded share to stand out against the healthy rows.
+      # The stall shows within minutes of the rollout starting, so the window only
+      # has to outlast the rollout itself.
+      BENCHMARK_DURATION: 300
+      RESTART_DELAY_SECONDS: 45
+      # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
+      # inflating latency on any build and leaving the baseline too low to judge.
+      BENCHMARK_QPS: 15
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -2995,8 +3022,7 @@ jobs:
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
-          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}
-      # Only include HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE and DISABLE_LAZY_LOAD_SHARDS if version is older than 1.36.0
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}      
     steps:
       # - name: Collect Workflow Telemetry
       #   uses: catchpoint/workflow-telemetry-action@v2
@@ -3011,6 +3037,10 @@ jobs:
         run: |
           cd apps/restart-highly-available-qps-benchmark
           pip3 install -r requirements.txt
+      - name: Verify failover degradation detection
+        run: |
+          cd apps/restart-highly-available-qps-benchmark
+          python3 -m unittest discover -s . -p "test_*.py" -v
       - name: Weaviate - setup K8s 3-node cluster
         uses: weaviate/weaviate-local-k8s@v2
         with:
