@@ -282,11 +282,6 @@ jobs:
         uses: catchpoint/workflow-telemetry-action@master
       - name: Run chaos test
         run: ./filter_memory_leak.sh
-  lint:
-    runs-on: ubicloud-standard-2
-    steps:
-      - uses: actions/checkout@v5
-      - uses: psf/black@26.1.0
   ann-benchmarks-sift-aws:
     name: "[bench AWS] SIFT1M pq=false"
     if: false # disabled: AWS ANN benchmarks turned off
