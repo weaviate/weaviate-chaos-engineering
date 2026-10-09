@@ -232,6 +232,7 @@ def main() -> int:
             multi_tenancy_config=Configure.multi_tenancy(
                 enabled=True, auto_tenant_creation=True, auto_tenant_activation=True
             ),
+            replication_config=Configure.replication(factor=3),
             properties=[Property(name="body", data_type=DataType.TEXT)],
             **_no_vectorizer({}),
         )
