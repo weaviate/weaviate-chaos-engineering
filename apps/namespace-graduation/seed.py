@@ -163,9 +163,7 @@ async def _seed_namespace(cfg: Config, root: Rest, index: int) -> SeededNamespac
             await _assign_role(cfg, root, user.user_id, ["viewer"])
             user.expected_roles = frozenset({"viewer"})
             await _await_role_visible(cfg, root, user, "viewer")
-        logger.warning(
-            f"{name}: built-in-only (no custom role); expecting skipRoles at backup"
-        )
+        logger.warning(f"{name}: built-in-only (no custom role); expecting skipRoles at backup")
     else:
         # A namespace-local role must be assigned by the namespace admin, not root (a global
         # operator is refused by validateLocalRoleAssignment). users[0]/users[1] are the global
