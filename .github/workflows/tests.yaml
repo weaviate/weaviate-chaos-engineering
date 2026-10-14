@@ -2934,10 +2934,8 @@ jobs:
       # few enough that seeding stays under a minute.
       TENANTS: 400
       SEED_WORKERS: 16
-      # Percentiles rather than extremes: the client reaches the cluster through a
-      # port-forward that the roll breaks, and one reconnect costs seconds on a
-      # healthy build. Measured p99 before the fix against after: queries
-      # 11,218/12,134ms vs 12.8/34.8ms, writes 7,585/1,354ms vs 159/164ms.
+      # Percentiles rather than extremes: the roll breaks the client's port-forward, and
+      # one reconnect costs seconds even on a build that is fine.
       MAX_QUERY_P99_MS: 1000
       MAX_WRITE_P99_MS: 500
       MAX_TENANT_CREATE_P90_MS: 1000
@@ -2953,15 +2951,12 @@ jobs:
       # rolling. 139ms is the top of the at-rest band, so a leg that stays inside what
       # the suite measures at rest is never failed on the ratio.
       QUERY_P99_FLOOR_MS: 139
-      # Client-visible 4xx during the roll, from the server's own requests_total, which
-      # nothing gated before: 107 on the candidate against 39 on the baseline over three
-      # A/B rounds. Healthy legs ran 1-9 each, so this fails only a leg that beat them.
-      # A count, not a rate -- revisit if SETTLE_S or WRITE_INTERVAL_S move the window.
+      # Client-visible 4xx during the roll, which nothing gated before: 107 on the
+      # candidate against 39 on the baseline. Healthy legs ran 1-9 each. A count, not a
+      # rate -- revisit if SETTLE_S or WRITE_INTERVAL_S move the window.
       MAX_USER_ERRORS: 9
-      # Window after a pod reports ready, while its shards are still unopened stubs and
-      # the first query per tenant pays a shard load. Three scrape intervals, so a restart
-      # seen a cycle late still leaves ~10s inside it. Reported but not gated on latency:
-      # one port-forward cannot say which pod answered, so the percentiles are diluted.
+      # Window after a pod reports ready, while its shards are still unopened stubs.
+      # Reported but not gated on latency: one port-forward cannot say which pod answered.
       FRESH_POD_WINDOW_S: 15
       # Three pods x the window at QUERY_INTERVAL_S is ~225 queries; this only catches
       # a window that measured nothing.
@@ -2973,9 +2968,8 @@ jobs:
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
-          # 0 turns lazy shard loading on outright. It otherwise depends on a local
-          # shard count this test stays under, activation would load eagerly on
-          # every build, and there would be nothing to tell apart.
+          # 0 turns lazy shard loading on outright; otherwise it depends on a shard count
+          # this test stays under, and there would be nothing to tell apart.
           LAZY_LOAD_SHARD_COUNT_THRESHOLD: 0
     steps:
       - uses: actions/checkout@v5
@@ -3039,13 +3033,9 @@ jobs:
     env:
       OBJECTS_PER_CLASS: 15000
       BATCH_SIZE: 1000
-      # Production identified this by rolling the cluster and watching how long
-      # latency stayed bad. At 15 QPS a CSV row covers ~15 queries, so its p99 is
-      # really a maximum; only a long window makes the degraded share of it
-      # stable enough to judge. 300s at 15 QPS gives ~4.5k queries, enough for
-      # the degraded share to stand out against the healthy rows.
-      # The stall shows within minutes of the rollout starting, so the window only
-      # has to outlast the rollout itself.
+      # At 15 QPS a CSV row covers ~15 queries, so its p99 is really a maximum; only a
+      # long window makes the degraded share stable enough to judge. 300s gives ~4.5k
+      # queries, and the stall shows within minutes of the rollout starting.
       BENCHMARK_DURATION: 300
       RESTART_DELAY_SECONDS: 45
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
@@ -3128,13 +3118,9 @@ jobs:
     env:
       OBJECTS_PER_CLASS: 15000
       BATCH_SIZE: 1000
-      # Production identified this by rolling the cluster and watching how long
-      # latency stayed bad. At 15 QPS a CSV row covers ~15 queries, so its p99 is
-      # really a maximum; only a long window makes the degraded share of it
-      # stable enough to judge. 300s at 15 QPS gives ~4.5k queries, enough for
-      # the degraded share to stand out against the healthy rows.
-      # The stall shows within minutes of the rollout starting, so the window only
-      # has to outlast the rollout itself.
+      # At 15 QPS a CSV row covers ~15 queries, so its p99 is really a maximum; only a
+      # long window makes the degraded share stable enough to judge. 300s gives ~4.5k
+      # queries, and the stall shows within minutes of the rollout starting.
       BENCHMARK_DURATION: 300
       RESTART_DELAY_SECONDS: 45
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,

@@ -100,11 +100,11 @@ def metrics_text(start: float, deadline: int = 0, immediate: int = 100) -> str:
 def requests_text(
     start: float, ok: int = 1000, user_errors: int = 0, server_errors: int = 0
 ) -> str:
-    """One pod's metrics, as the 4xx accounting reads them.
+    """
+    One pod's metrics, as the 4xx accounting reads them.
 
-    requests_total is a gauge with four labels, and the user_error child series
-    does not exist until a 4xx happens -- which is why "exposed" has to key on the
-    metric and not on that child.
+    The user_error child series does not exist until a 4xx happens, which is why
+    "exposed" keys on the metric and not on that child.
     """
     s = f"process_start_time_seconds {start}\n"
     s += (
@@ -235,11 +235,9 @@ class TestDeadlineWaitsAcrossRestarts(unittest.TestCase):
 
 class TestDeadlinesBeforeARestart(unittest.TestCase):
     """
-    The waits worth catching are the ones a pod serves while an *earlier* pod is
-    down, so they are on its counter before it restarts in its turn. Two scrapes
-    across a rolling restart cannot see them: the reset means the final value is
-    all that is left, and a counter that climbed to 7 and then reset reports as
-    zero. Sampling the window keeps them.
+    The waits worth catching are the ones a pod serves while an *earlier* pod is down, so
+    they sit on its counter before it restarts in turn. Two scrapes across a rolling
+    restart cannot see them: a counter that climbed to 7 and reset reports as zero.
     """
 
     def test_two_scrapes_lose_them(self):
@@ -322,10 +320,8 @@ class TestFailedCallsDoNotPassAsLatency(unittest.TestCase):
 
 class TestTimeoutsAreNotRefusals(unittest.TestCase):
     """
-    A refusal that came back instantly and a request that waited out its timeout
-    are both failures, and only the duration tells them apart. Dropping the slow
-    one hides the stall it proves: the deadline metric can be unavailable, the
-    refusal share can be tiny, and the served samples that remain are all fast.
+    A refusal that came back instantly and a request that waited out its timeout are both
+    failures, and only the duration tells them apart. Dropping the slow one hides the stall.
     """
 
     def test_a_few_timeouts_among_fast_queries_fail_the_run(self):
@@ -374,10 +370,8 @@ class TestTimeoutsAreNotRefusals(unittest.TestCase):
 
 class TestCollectionProblemsFailTheRun(unittest.TestCase):
     """
-    A run whose numbers are otherwise spotless must still fail when something
-    went wrong collecting them -- a rejected rollout, a worker that never
-    finished, a scrape that could not be completed. Each of those makes the
-    latency look good for the wrong reason.
+    A run whose numbers are otherwise spotless must still fail when something went wrong
+    collecting them, since each of those makes the latency look good for the wrong reason.
     """
 
     def test_a_problem_fails_an_otherwise_clean_run(self):
@@ -403,10 +397,8 @@ class TestCollectionProblemsFailTheRun(unittest.TestCase):
 
 class TestTenantChurnGate(unittest.TestCase):
     """
-    The gap this closes: the suite had one tenant-lifecycle call, the seed, and it
-    ran before the roll. Nothing was created or deleted while the cluster rolled,
-    so the build whose tenant create p99 went 0.095s -> 3.56s and delete
-    0.49s -> 3.32s under a rollout passed 18/18 legs across three rounds.
+    The gap this closes: the suite's only lifecycle call was the seed, before the roll, so
+    a build whose tenant create p99 went 0.095s -> 3.56s under a rollout passed every leg.
     """
 
     def test_a_healthy_rollout_passes(self):
@@ -514,12 +506,9 @@ class TestTenantChurnGate(unittest.TestCase):
 
 class TestQueryP99AgainstItsOwnQuietWindow(unittest.TestCase):
     """
-    What the ceiling alone could not say. "During rollout, query p99 under 1
-    second, and the customer should not see that a rollout happened": 1,000ms
-    against the 43-139ms these legs measure at rest is 7-20x of headroom, which is
-    more than the 3.6-4.3x degradation (830-990ms at rest, a 3,540ms rollout peak)
-    that passed this suite 18/18. The rolling p99 is now bounded by the leg's own
-    quiet window as well as by the ceiling, whichever is lower.
+    What the ceiling alone could not say. 1,000ms against the 43-139ms these legs measure
+    at rest is 7-20x of headroom, more than the 3.6-4.3x degradation that passed this
+    suite. The rolling p99 is now bounded by the leg's own quiet window as well.
     """
 
     def test_a_degradation_the_ceiling_permits_now_fails(self):
@@ -600,11 +589,8 @@ class TestQueryP99AgainstItsOwnQuietWindow(unittest.TestCase):
 
 class TestUserErrorsAreGated(unittest.TestCase):
     """
-    What escaped here: across three A/B rounds the candidate logged 107
-    client-visible 4xx against the baseline's 39 -- 67 vs 24 on rolling legs, 40
-    vs 15 on single-pod legs -- consistently, on both access strategies, while
-    server_errors stayed at 0.00% on both sides. Nothing counted them, so all 18
-    legs passed.
+    What escaped here: the candidate logged 107 client-visible 4xx against the baseline's
+    39 while server_errors stayed at 0.00% on both sides, and nothing counted them.
     """
 
     def test_the_candidate_count_fails(self):
@@ -657,10 +643,8 @@ class TestUserErrorsAreGated(unittest.TestCase):
 
 class TestUserErrorAccounting(unittest.TestCase):
     """
-    requests_total is a gauge that is only ever Inc()d, so it resets with the
-    process just like the deadline counter -- and the 4xx worth catching are the
-    ones a pod answers while an *earlier* pod is down, which is exactly what the
-    reset throws away.
+    requests_total resets with the process just like the deadline counter, and the 4xx
+    worth catching are the ones a pod answers while an *earlier* pod is down.
     """
 
     def test_a_cluster_with_no_4xx_reports_zero_not_unknown(self):
@@ -735,11 +719,9 @@ class TestUserErrorAccounting(unittest.TestCase):
 
 class TestFreshPodWindow(unittest.TestCase):
     """
-    A restarted pod reports ready with lazy shard stubs and no shards open, so the
-    first query per tenant pays a shard load behind a node-wide limiter. The suite
-    treated the roll as one window, so that pod averaged into four minutes of
-    samples. This window is now carved out and reported; see evaluate_fresh_pod
-    for why the client side cannot carry a latency threshold on it.
+    A restarted pod reports ready with lazy shard stubs, so the first query per tenant pays
+    a shard load -- which the suite used to average into a window minutes long. See
+    evaluate_fresh_pod for why the client side cannot carry a latency threshold on it.
     """
 
     FRESH = [40.0] * 200 + [120.0] * 25
@@ -776,10 +758,11 @@ class TestFreshPodWindow(unittest.TestCase):
         self.assertTrue(any("fresh-pod window unavailable" in l for l in lines))
 
     def test_a_slow_fresh_window_is_caught_by_the_query_gate_not_this_one(self):
-        """Why no latency threshold here. These windows are about a fifth of the
-        roll-plus-settle window, so a tenth of them going slow is around two per
-        cent of it -- inside what a p99 over it reads, and the query gate reads it
-        against the leg's own quiet window rather than a number nobody measured."""
+        """
+        These windows are about a fifth of the roll-plus-settle window, so a tenth of them
+        going slow stays inside what a p99 over it reads -- and that gate reads it against the
+        leg's own quiet window.
+        """
         slow = [40.0] * 200 + [3_540.0] * 25
         passed, _ = evaluate_fresh_pod(Phase(AT_REST_WORST, slow), 3, 15.0, 30)
         self.assertTrue(passed, "this gate only says the window was measured")

@@ -48,13 +48,10 @@ from validation import (
     validate_benchmark_csv,
 )
 
-# weaviate-cli reports ingestion and benchmark errors by printing them, and the
-# counts below are recovered from that text. contextlib.redirect_stdout swaps the
-# process-global sys.stdout, so with four ingestion threads and four gathered
-# benchmark coroutines the printers interleave and one collection's errors land in
-# another's buffer. A ContextVar is per thread and is copied into each asyncio
-# Task, so it attributes output correctly in both cases. Output still reaches the
-# real stdout, which the redirect used to swallow for the whole run.
+# weaviate-cli reports errors by printing them, and the counts below are recovered from
+# that text. redirect_stdout swaps the process-global sys.stdout, so with four threads
+# and four gathered coroutines one collection's errors land in another's buffer. A
+# ContextVar is per thread and is copied into each Task, so it attributes correctly.
 _capture: ContextVar[Optional[io.StringIO]] = ContextVar("capture", default=None)
 
 
@@ -150,12 +147,9 @@ def snapshot_server_metrics(
     return None
 
 
-# Production's worst signal was p999 46s, and those were aggregates: CountObjects
-# pulls with a one-minute budget, so a replica that cannot serve is waited on
-# rather than skipped. Hybrid search takes the ordinary path, where one restarting
-# node of three still leaves a quorum and a spare, which is why searches alone
-# never showed this. Aggregates are not in queries_durations_ms either -- only
-# get_graphql is instrumented -- so they have to be timed from here.
+# Production's worst signal was p999 46s, and those were aggregates: CountObjects pulls
+# with a one-minute budget, so a replica that cannot serve is waited on rather than
+# skipped. Aggregates are not in queries_durations_ms either, so they are timed here.
 def aggregate_once(class_name: str, timeout_s: float, port: int = 8080) -> Tuple[float, bool]:
     """Run one count aggregate; returns (elapsed_ms, ok)."""
     graphql_class = class_name[:1].upper() + class_name[1:]
@@ -419,10 +413,8 @@ def main() -> None:
                 async_enabled=cfg["async_enabled"],
                 replication_deletion_strategy="no_automated_resolution",
                 vectorizer="transformers",
-                # Shards are loaded lazily, so shard size decides how long a pod
-                # that already reports ready still cannot answer -- the window this
-                # test depends on. Spreading the same objects over more shards
-                # shrinks it: 15k over 4 shards loads in well under a second.
+                # Shards load lazily, so shard size decides how long a pod that already reports ready
+                # still cannot answer. 15k over 4 shards loads in well under a second.
                 shards=(0 if cfg["multitenant"] else get_env_int("NO_MT_SHARDS", 4)),
             )
         except Exception as e:  # pragma: no cover
@@ -431,17 +423,10 @@ def main() -> None:
     # Start background ingestion for each collection
     ingestion_threads: List[threading.Thread] = []
 
-    # Production was under continuous writes while it was rolled, which is what
-    # keeps schema versions advancing and so what makes a restarting node
-    # measurably behind. One bounded pass finishes long before the window ends
-    # and leaves the rest of the run read-only, so keep writing in rounds until
-    # the benchmark is done.
-    # Only sustained rounds that overlap the restart window feed the write gate.
-    # The seeding round writes objects_per_class (15k x 4 collections) against
-    # sustained_write_objects for later rounds, so counting it would leave 60k
-    # pre-restart attempts in the denominator and dilute a real refusal rate into
-    # a pass. Seeding is waited on before the benchmark starts, so it never
-    # overlaps the window.
+    # Continuous writes are what keep schema versions advancing, and so what makes a
+    # restarting node measurably behind; one bounded pass would leave the rest of the run
+    # read-only. Only sustained rounds overlapping the restart window feed the write gate:
+    # counting the 15k x 4 seeding round would dilute a real refusal rate into a pass.
     write_stats: Dict[str, Dict[str, int]] = {}
     writes_done = threading.Event()
     measure_writes = threading.Event()
@@ -509,10 +494,9 @@ def main() -> None:
                 errors = ingest_round(name, auto_tenants, limit)
                 rounds += 1
             except Exception as e:  # pragma: no cover
-                # A write refused mid-restart is the thing being measured, not a
-                # reason to stop writing. The round's outcome is unknown, so all
-                # of it counts as failed: scoring it as one error out of `limit`
-                # would let a fully refused round pass the rate gate.
+                # A write refused mid-restart is the thing being measured, not a reason to stop. The
+                # round's outcome is unknown, so all of it counts as failed -- scoring it as one error
+                # out of `limit` would let a fully refused round pass the rate gate.
                 logger.warning("Ingestion round for {name} failed: {e}", name=name, e=e)
                 errors = limit
                 rounds += 1
@@ -526,10 +510,8 @@ def main() -> None:
                     seeded[name].set()
             stats["errors"] += errors
             stats["attempted"] += limit
-            # measure_writes is only ever set, so checking it after the round
-            # catches every round that overlapped the window, including one that
-            # was in flight when it opened. Sustained rounds are small, so the
-            # pre-window part of that one is negligible.
+            # measure_writes is only ever set, so checking it after the round catches every round
+            # that overlapped the window, including one in flight when it opened.
             if not seeding and measure_writes.is_set():
                 stats["window_errors"] += errors
                 stats["window_attempted"] += limit
@@ -697,16 +679,14 @@ def main() -> None:
     # the restart window.
     pre_snapshot = snapshot_server_metrics(ns)
 
-    # The window opens here, so the aggregate driver and the write accounting
-    # start here too. Starting the driver with the benchmarks put the warm-up's
-    # first aggregates -- cold caches over freshly seeded data -- into a gate
-    # that tolerates none, and agg_stats has no baseline to subtract.
+    # The window opens here, so the driver and the write accounting start here too: starting
+    # it with the benchmarks put the warm-up's cold-cache aggregates into a gate that
+    # tolerates none.
     measure_writes.set()
     agg_thread.start()
 
-    # Sample the window while it is open. Every pod resets during a rolling
-    # restart, so differencing the baseline against a final scrape would keep
-    # only what each pod served after its own restart -- the healthy tail --
+    # Sample the window while it is open. Every pod resets during a rolling restart, so
+    # differencing a baseline against a final scrape would keep only each pod's healthy tail
     # and discard the stalls this gate exists to catch. See WindowAccumulator.
     accumulator = WindowAccumulator(pre_snapshot) if pre_snapshot is not None else None
     metrics_stop = threading.Event()
@@ -729,9 +709,8 @@ def main() -> None:
         sampler_thread.start()
 
     # --- Disruption phase (variant-specific) ---
-    # restart_events accumulates (timestamp, event_name) pairs; each entry will
-    # become one sentinel row in the benchmark CSVs so the pre/post split is
-    # unambiguous when validating or inspecting artifacts manually.
+    # restart_events accumulates (timestamp, event_name) pairs, one sentinel row per entry
+    # in the benchmark CSVs so the pre/post split is unambiguous.
     leader_before: Optional[str] = None
     leader_after: Optional[str] = None
     restart_events: List[Tuple[float, str]] = []
@@ -800,11 +779,9 @@ def main() -> None:
     logger.info("Waiting for benchmark threads to finish...")
     bench_thread.join()
 
-    # Close the window before measuring it: stop generating load, then let the
-    # last aggregate land. Setting agg_stop does not interrupt one already
-    # blocked in requests.post, and that is the one most likely to be slow, so
-    # reading agg_stats without joining can drop the very sample this gate is
-    # for.
+    # Close the window before measuring it: setting agg_stop does not interrupt an aggregate
+    # already blocked in requests.post, and that is the one most likely to be slow, so
+    # reading agg_stats without joining can drop the very sample this gate is for.
     agg_stop.set()
     writes_done.set()
     agg_thread.join(timeout=agg_timeout_s + 5)
@@ -842,12 +819,9 @@ def main() -> None:
     for t in ingestion_threads:
         t.join()
 
-    # Annotate every benchmark CSV with one sentinel row per disruption event so the
-    # pre/post split is unambiguous in both the validation below and any manual
-    # inspection of the artifacts.
-    #
-    # rolling-restart:       one row  → "rolling_restart_event"
-    # single-pod-restart:    two rows → "non_leader_restart_event", "leader_restart_event"
+    # One sentinel row per disruption event, so the pre/post split is unambiguous in the
+    # validation below and in the artifacts: rolling-restart writes one row,
+    # single-pod-restart two (non_leader_restart_event, leader_restart_event).
     collection_names = [cfg["name"] for cfg in collections]
     for rt, event_name in restart_events:
         annotate_csvs_with_restart(rt, collection_names, test_start_time, event_name=event_name)
@@ -912,10 +886,8 @@ def main() -> None:
                 )
                 failure_state["failed"] = True
             if not server["requests"]:
-                # Nothing to divide by, so the rate cannot clear a threshold it was
-                # never measured against. The aggregate driver's GraphQL calls
-                # populate requests_total on every run; none arriving means they
-                # never reached the handler, or monitoring is off.
+                # Nothing to divide by, so the rate cannot clear a threshold it was never measured
+                # against. None arriving means they never reached the handler, or monitoring is off.
                 logger.error(
                     "Server error rate judged nothing: no REST/GraphQL requests were "
                     "counted in the window, so the rate has no denominator"
@@ -943,12 +915,9 @@ def main() -> None:
                     e=server["error_rate"],
                 )
 
-    # Rounds, not objects: writes go out in batches, so a quorum blip loses a whole
-    # batch at once. Over objects the gate was bimodal -- 100 failed objects of
-    # ~9,100 is 1.1% and passes, 200 is 2.2% and fails, with nothing in between, so
-    # one extra blip decided the run. A round denominator (~88 in the window) gives
-    # the threshold room to sit between quanta. Production's bad rollout refused
-    # writes steadily for minutes, which is tens of rounds, not two.
+    # Rounds, not objects: writes go in batches, so a quorum blip loses a whole batch. Over
+    # objects the gate was bimodal -- 100 failed of ~9,100 passes, 200 fails, nothing in
+    # between -- so one blip decided the run. A round denominator (~88) sits between quanta.
     max_write_round_failure_rate = get_env_float("MAX_WRITE_ROUND_FAILURE_RATE", 0.10)
     missing_writes = [name for name in collection_names if name not in write_stats]
     if missing_writes:
@@ -1036,10 +1005,8 @@ def main() -> None:
             n=agg_stats["count"],
         )
 
-    # A query past the per-request timeout records no latency, so no percentile
-    # can see it. This is the production signal -- queries held for seconds -- and
-    # a count over the whole window is stable where a percentile over one
-    # second's samples is not.
+    # A query past the per-request timeout records no latency, so no percentile sees it.
+    # A count over the whole window is stable where a percentile over one second's is not.
     max_timeouts = get_env_int("MAX_QUERY_TIMEOUTS", 0)
     missing_counts = [name for name in collection_names if name not in timeout_counts]
     if missing_counts:
@@ -1072,11 +1039,9 @@ def main() -> None:
             m=max_timeouts,
         )
 
-    # Per-collection client numbers are recorded, not gated. Each CSV row covers
-    # one second of queries, so its "p99" is a maximum, and one collection
-    # crossing a threshold has repeatedly meant nothing -- the same collection
-    # tripped on both a fixed and an unfixed build in the same run. The
-    # cluster-wide server histogram above is what decides, as it did in production.
+    # Per-collection client numbers are recorded, not gated: each CSV row covers one second,
+    # so its p99 is a maximum, and one collection crossing a threshold has repeatedly meant
+    # nothing. The cluster-wide server histogram above is what decides.
     for csv_path in csv_files:
         passed, reason = validate_benchmark_csv(
             csv_path,

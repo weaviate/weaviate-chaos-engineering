@@ -117,22 +117,15 @@ class _CounterAccumulator:
     """
     One counter accumulated per pod across restarts, by sampling the window.
 
-    Two scrapes cannot describe a rolling restart. These counters reset with the
-    process, so for each pod only what it served after its *own* restart survives
-    differencing a before against an after -- and what these gates exist to catch
-    is what a pod did while an *earlier* pod was down, which is exactly what the
-    reset throws away. A counter that climbs 0 to 7 and then resets to 0 reports
-    as zero.
+    Two scrapes cannot describe a rolling restart: these counters reset with the process,
+    so differencing a before against an after keeps only what each pod served after its
+    *own* restart -- and what these gates catch is what a pod did while an *earlier* pod
+    was down. A counter that climbs 0 to 7 and resets reports as zero.
 
-    Sampling keeps them. Each observation closes a delta against that pod's
-    previous sample, so a pod that restarts has already contributed everything up
-    to its last sample, and the loss is bounded by the sampling interval instead
-    of being the whole pre-restart window. The same reasoning and the same shape
-    as server_metrics.WindowAccumulator in the restart QPS benchmark.
-
-    A pod missing from an observation is simply not advanced; it resumes on its
-    next appearance. Only the baseline and the final scrape have to be complete,
-    and the caller is responsible for making them so.
+    Sampling keeps them: each observation closes a delta against that pod's previous
+    sample, so the loss is bounded by the sampling interval. Same shape as
+    server_metrics.WindowAccumulator. A pod missing from an observation is not advanced and
+    resumes on its next appearance; only the baseline and the final scrape must be complete.
     """
 
     def __init__(self, baseline: Dict[str, str], read: Callable[[str], _Reading]) -> None:
@@ -189,17 +182,14 @@ class UserErrorAccumulator(_CounterAccumulator):
     """
     Client-visible 4xx the cluster answered with, over a window that includes a roll.
 
-    Read from the server on purpose. The client's own failed calls are counted
-    too, but a client cannot tell a 4xx apart from its port-forward dropping, and
-    that ambiguity is why every client-side failure gate in this file has to be
-    loose enough to pass half the calls failing. requests_total only moves when a
-    request reached a handler and was answered, so a reconnect never touches it
-    and the gate over it can be tight. Same scrape and same window as the deadline
-    counter; see _CounterAccumulator.
+    Read from the server on purpose: a client cannot tell a 4xx from its port-forward
+    dropping, which is why every client-side failure gate here has to be loose.
+    requests_total only moves when a request reached a handler and was answered, so a
+    reconnect never touches it and this gate can be tight. Same scrape and window as the
+    deadline counter; see _CounterAccumulator.
 
-    Zero is a real reading here, not an absent one: a cluster that returned no 4xx
-    still exposes requests_total{status="ok"}, so "exposed" keys on the metric and
-    not on the user_error child series.
+    Zero is a real reading here, not an absent one, so "exposed" keys on the metric rather
+    than on the user_error child series.
     """
 
     def __init__(self, baseline: Dict[str, str]) -> None:
@@ -223,23 +213,11 @@ class RestartWatcher:
     """
     When each pod came back, as the metrics sampler saw it.
 
-    The mechanism this exists to expose: a restarted pod reports ready with lazy
-    shard stubs and no shards open, so the first query per tenant pays a shard
-    load behind a node-wide limiter. The suite treats the roll as one window, so a
-    pod that accepted traffic before it could serve it averages into 240s of
-    samples and disappears.
-
-    process_start_time_seconds changes only when the process does, and it is in
-    the same scrape the deadline counter is read from, so "a pod came back" costs
-    no extra kubectl. What it buys is a timestamp, not an identity: the client
-    reaches the cluster through one port-forward and does not know which pod
-    answered a given query, which is why evaluate_fresh_pod reports this window
-    and does not put a latency threshold on it.
-
-    The timestamp is the sampler's, so it trails the pod's real start by up to one
-    scrape interval. Windows are therefore kept several intervals long, and a pod
-    whose metrics text carries no start time is left alone rather than counted as
-    having restarted.
+    process_start_time_seconds changes only when the process does, and rides in the same
+    scrape as the deadline counter, so this costs no extra kubectl. It buys a timestamp,
+    not an identity: the client reaches the cluster through one port-forward and does not
+    know which pod answered, which is why evaluate_fresh_pod reports this window without
+    putting a latency threshold on it.
     """
 
     def __init__(self, baseline: Dict[str, str]) -> None:
@@ -336,59 +314,25 @@ def evaluate(
     """
     Returns (passed, report lines).
 
-    Writes gate first: they are the broadest signal, hundreds of samples that a
-    reconnect does not move, and they separated the builds 8-45x on p99. Query p99
-    gates too, separating ~900x. The extremes are reported for context and never
-    gate.
+    Writes gate first: hundreds of samples a reconnect does not move. Query p99 gates
+    against the lower of max_query_p99_ms and max_query_p99_ratio x this leg's own quiet
+    p99, because a fixed ceiling only says "under a second" and leaves 7-20x of headroom
+    against the 43-139ms measured at rest. The ceiling stays as well, or a leg whose
+    quiet window was itself terrible would pass; query_p99_floor_ms keeps the ratio out
+    of the noise. Extremes are reported, never gated.
 
-    The query limit is the lower of max_query_p99_ms and a multiple of this leg's
-    own quiet p99, because a fixed ceiling cannot express the target. The goal is
-    "during rollout, query p99 under 1 second, and the customer should not see
-    that a rollout happened"; max_query_p99_ms alone says only the first half of
-    that, and against the 43-139ms this suite measures at rest it leaves 7-20x of
-    headroom -- more than the regression that escaped to a production-like
-    environment, where query p99 went from 830-990ms at rest to a 3,540ms rollout
-    peak, 3.6-4.3x. Bounding the roll against the leg's own quiet window says the
-    second half too, and it says the same thing in both environments.
+    Calls that raised arrive as how long each waited, not as a count: an instant refusal
+    measured nothing and must not satisfy min_queries, while a request that waited 30s
+    and timed out is the stall being hunted and must not be dropped. So failures are not
+    served requests, but their waits join the distribution p99 gates, and they are gated
+    three ways -- min_queries/min_writes over served calls, max_failure_ratio over their
+    share of attempts (wide, since the roll breaks the port-forward), and
+    max_stalled_calls over failures past stall_ms, which sits above the worst reconnect
+    seen on a healthy build.
 
-    The ceiling stays rather than being replaced: a ratio alone would pass a leg
-    whose quiet window was itself terrible, and the quiet window is the reference,
-    not a gate. In an environment that is already at 830-990ms at rest the ratio
-    works out at 2.5-3s, so there the ceiling is what binds -- and it is exactly
-    the stated goal. In this suite the ratio binds, at a few hundred milliseconds.
-
-    query_p99_floor_ms keeps the ratio out of the noise. A ratio between two
-    single-digit millisecond numbers measures nothing: this suite's own healthy
-    legs have gone from a 4ms quiet p99 to 12.8ms while rolling, 3.2x, on a build
-    known to be fine. Below the floor the ratio is not applied, and the floor is
-    the top of the at-rest band, so a leg whose rolling p99 stays inside what this
-    suite measures at rest is never failed on the ratio however fast its quiet
-    window happened to be.
-
-    Calls that raised come in separately, as *how long each one waited* rather
-    than a count, because that duration decides which failure it was and the two
-    are not comparable. An instant connection refusal measured nothing, so it
-    must not count toward min_queries -- the gate would otherwise be satisfied by
-    a cluster that refused everything. A request that waited 30s and then timed
-    out measured exactly what this test looks for, so dropping it would hide the
-    stall it proves. So failures do not count as served requests, but their waits
-    do join the distribution that p99 gates, and the three failure modes are
-    gated separately:
-
-      * min_queries / min_writes, over served requests only.
-      * max_failure_ratio, over their share of what was attempted. Left wide: the
-        roll breaks the client's port-forward, so a handful of failures is normal
-        and only a workload that is mostly erroring measured nothing.
-      * max_stalled_calls, over failures that waited longer than stall_ms. The
-        worst reconnect artifact measured on a healthy build was 15,015ms, so a
-        default stall_ms above that cannot be tripped by one, while a request
-        that waited past it and was never served is the thing being hunted.
-
-    `problems` are collection and orchestration failures the caller hit -- a
-    rollout that was rejected, a worker that never finished, a scrape that could
-    not be completed. Each one fails the run. A number that went missing must
-    never read as a pass: that is the whole failure mode this gate guards, and the
-    gate itself is the easiest place to lose it.
+    `problems` are collection failures the caller hit -- a rejected rollout, a worker
+    that never finished, an incomplete scrape. Each fails the run: a number that went
+    missing must never read as a pass.
     """
     q = summarise(list(rollout_ms) + list(query_failed_ms))
     b = summarise(baseline_ms)
@@ -522,37 +466,16 @@ def evaluate_user_errors(
     """
     Returns (passed, report lines) for the 4xx the cluster answered with.
 
-    Why this is gated at all: across three A/B rounds in a production-like
-    simulation environment the candidate image logged 107 user_errors against the
-    baseline's 39 -- 67 vs 24 on rolling legs, 40 vs 15 on single-pod legs --
-    consistently, on both access strategies. server_errors stayed at 0.00% on
-    both sides throughout, so the two must not be conflated: these are requests
-    that reached a handler and were refused with a client-visible 4xx, which on
-    this workload means a tenant the node's schema did not know about yet
-    (ErrMultiTenancy classifies as a user error). Nothing in the suite looked at
-    them, so all 18 legs passed.
+    Gated because nothing looked at these: across three A/B rounds the candidate logged
+    107 against the baseline's 39, consistently, while server_errors stayed at 0.00% on
+    both sides -- so the two must not be conflated. These reached a handler and were
+    refused, which on this workload means a tenant the node's schema did not know yet.
 
-    Why an absolute count and not a rate. The figures above are counts per leg and
-    no denominator was recorded beside them, so a rate threshold would have to be
-    invented rather than derived. A rate would also be governed by the write
-    worker's volume rather than by the cluster: 15 refusals among the couple of
-    thousand REST inserts a leg issues is well under 1%, a number that cannot be
-    told apart from zero by eye and that moves whenever WRITE_INTERVAL_S or the
-    window length does. The count compares directly against the measurement, and
-    the window it is counted over -- the roll plus the settle period, about four
-    minutes -- is the same order as the 5m windows those figures came from.
-
-    Where the threshold sits, and what it cannot do. The two ranges overlap:
-    1-9 per leg on the baseline, 4-15 on the candidate. No per-leg threshold can
-    separate every leg of one from every leg of the other, and pretending
-    otherwise would buy a flaky gate. The default sits at the top of the healthy
-    range, so a leg fails only when it answered more 4xx than any healthy leg was
-    seen to -- the strongest claim this measurement supports, and enough: the
-    candidate put 5 of its 18 legs above it.
-
-    The quiet window is reported next to the rolling one and never gates, like
-    every other quiet window here. A 4xx on an idle cluster is worth seeing, but
-    it is the reference, not the measurement.
+    An absolute count, not a rate: those figures carry no denominator, and a rate would
+    track the write worker's volume rather than the cluster. The ranges overlap (1-9 per
+    leg healthy, 4-15 regressed), so the default sits at the top of the healthy range and
+    fails a leg only when it answered more 4xx than any healthy leg did. The quiet window
+    is reported beside it and never gates.
     """
     if rolling is None:
         return True, [
@@ -636,30 +559,18 @@ def evaluate_churn(
     """
     Returns (passed, report lines) for the tenant-churn worker.
 
-    Create and delete gate separately and on absolute limits. Separately because
-    they sit ~5x apart at baseline (95ms against 490ms), so one combined limit
-    would have to clear the slower one and would then let the faster one regress
-    37x unnoticed -- which is exactly the regression that got through. Absolute
-    because a ratio against this run's own quiet window is a ratio between two
-    small samples, and the quiet window is 20s long.
+    Create and delete gate separately, on absolute limits. Separately because they sit ~5x
+    apart at baseline (95ms against 490ms), so one combined limit would have to clear the
+    slower and would let the faster regress 37x -- the regression that got through.
+    Absolute because the quiet window is 20s of small samples.
 
-    Why a p90 and not the p99 the other gates use. The reconnect problem from
-    evaluate applies here too -- the roll breaks the client's port-forward and one
-    reconnect cost 15,015ms on a healthy build -- and percentiles only shrug that
-    off when there are hundreds of samples under them. A churn iteration is four
-    round trips including two replicated schema writes, so a rolling window holds
-    tens of them, and at n<100 the nearest-rank p99 *is* the maximum: gating it
-    would be gating the slowest sample, which this suite already learned is a coin
-    toss. A p90 over n>=20 discards the slowest tenth, so two or three reconnect
-    artifacts cannot reach it, while the measured regression stalled a third of
-    its window and moves it by thousands of milliseconds. The p99 and the max are
-    reported next to it so a reader sees what was discarded.
+    A p90 rather than a p99: an iteration is four round trips, so a rolling window holds
+    tens of them, and at n<100 the nearest-rank p99 is the maximum -- gating it would gate
+    the slowest sample, which one port-forward reconnect can make 15s on a healthy build.
+    A p90 over n>=20 discards the slowest tenth, while the measured regression stalled a
+    third of its window. The p99 and max are reported beside it.
 
-    Failures are counted and gated here rather than folded into evaluate's
-    max_failure_ratio, which passes up to 50% failed calls: at that allowance a
-    build where every second tenant create fails outright reads as clean. A
-    failed iteration is one that could not complete the create, the write, the
-    read-back or the delete.
+    Failures are gated here rather than by evaluate's max_failure_ratio, which allows 50%.
     """
     passed = True
     lines: List[str] = []
@@ -731,37 +642,16 @@ def evaluate_fresh_pod(
     """
     Returns (passed, report lines) for the first window_s after each pod came back.
 
-    What this closes: nothing in the suite isolated "latency in the first seconds
-    after a pod reports ready". The mechanism is known -- a restarted pod reports
-    ready with lazy shard stubs and no shards open, so the first query per tenant
-    pays a shard load behind a node-wide limiter -- and the suite treats the roll
-    as one window, so a pod that accepted traffic before it could serve it
-    averages into four minutes of samples.
+    A restarted pod reports ready with lazy shard stubs, so the first query per tenant
+    pays a shard load -- which the suite otherwise averages into a window minutes long.
 
-    This reports that window and gates only that it was measured. The latency in
-    it is deliberately *not* given a threshold of its own, for three reasons, and
-    a gate that looks like one and cannot fail is worse than none:
-
-      * It would be dominated by the gate above it. These windows are 3 x
-        window_s of a roll-plus-settle window several times longer -- about a
-        fifth of it at the defaults -- so a tenth of the fresh samples going slow
-        is around two per cent of the rolling window, well inside what a p99 over
-        it reads. Anything an absolute limit here would fail, evaluate's query p99
-        already fails, and it does so against this leg's own quiet window rather
-        than against a number nobody has measured.
-      * The client cannot say which pod answered. It reaches the cluster through
-        one port-forward, so the share of these samples that actually touched the
-        fresh pod is 0, a third, or all of them depending on whether that forward
-        balances over the Service or pins to a pod -- which this harness does not
-        know. Every percentile here is therefore diluted by an unknown factor,
-        and a threshold calibrated on a diluted number is a coin toss.
-      * The window's start is the sampler's timestamp for the first scrape that
-        saw the new process, so it trails readiness by up to one scrape interval.
-
-    What is gated is that the window exists and holds samples, because this file's
-    standing rule is that a number which went missing must never read as a pass.
-    A roll in which no pod was observed coming back measured the scrape, not the
-    cluster, and a window with nothing in it measured nothing at all.
+    The latency in it is reported, not gated, because a gate that cannot fail is worse
+    than none: these windows are about a fifth of the rolling one, so anything an absolute
+    limit would catch evaluate's query p99 catches already; the client reaches the cluster
+    through one port-forward and cannot say which pod answered, so every percentile here is
+    diluted by an unknown factor; and the window's start trails readiness by up to one
+    scrape interval. What is gated is that the window exists and holds samples, since a
+    number that went missing must never read as a pass.
     """
     pct = int(round(quantile * 100))
     if windows is None:
