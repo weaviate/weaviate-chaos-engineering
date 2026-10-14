@@ -87,6 +87,8 @@ KUBE_CONTEXT = resolve_kube_context()
 def kubectl(*args: str) -> List[str]:
     """kubectl argv with the context pinned, so it cannot drift mid-run."""
     return ["kubectl", "--context", KUBE_CONTEXT, *args]
+
+
 TENANTS = get_env_int("TENANTS", 400)
 SEED_WORKERS = get_env_int("SEED_WORKERS", 16)
 QUERY_INTERVAL_S = get_env_float("QUERY_INTERVAL_S", 0.2)
