@@ -702,6 +702,20 @@ class TestUserErrorAccounting(unittest.TestCase):
         acc.observe({"w": requests_text(100.0, user_errors=3, server_errors=40)})
         self.assertEqual(acc.total(), 3)
 
+    def test_a_partial_scrape_is_not_read_as_a_restart(self):
+        """Reading one as a restart would add the pod's whole lifetime counter.
+        RestartWatcher already treats it this way."""
+        acc = UserErrorAccumulator({"w": requests_text(100.0, user_errors=5)})
+        acc.observe({"w": 'requests_total{status="user_error"} 6\n'})
+        self.assertEqual(acc.total(), 1)
+
+    def test_a_restart_after_a_partial_scrape_is_still_seen(self):
+        """The partial scrape must not erase the start time the next is compared against."""
+        acc = UserErrorAccumulator({"w": requests_text(100.0, user_errors=5)})
+        acc.observe({"w": 'requests_total{status="user_error"} 6\n'})
+        acc.observe({"w": requests_text(200.0, user_errors=2)})
+        self.assertEqual(acc.total(), 3)
+
     def test_the_label_order_is_not_relied_on(self):
         acc = UserErrorAccumulator({"w": "process_start_time_seconds 1\n"})
         acc.observe({"w": 'requests_total{status="user_error",api="rest"} 4\n'})

@@ -63,6 +63,39 @@ from gates import (
 
 CLASS = os.getenv("CLASS_NAME", "MtRolloutLatency")
 NAMESPACE = os.getenv("K8S_NAMESPACE", "weaviate")
+LOCAL_CONTEXT_PREFIXES = ("kind-", "minikube", "docker-desktop", "k3d-")
+
+
+def resolve_kube_context() -> str:
+    """The context every kubectl call is pinned to, refusing a cluster this must not restart."""
+    ctx = os.getenv("K8S_CONTEXT", "").strip()
+    if not ctx:
+        ctx = subprocess.run(
+            ["kubectl", "config", "current-context"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+    if not ctx:
+        raise SystemExit("No kubectl context: set K8S_CONTEXT to the local test cluster")
+    if os.getenv("ALLOW_NON_LOCAL_CLUSTER", "").lower() == "true":
+        logger.warning("Running against non-local context {ctx} by opt-in", ctx=ctx)
+        return ctx
+    if not ctx.startswith(LOCAL_CONTEXT_PREFIXES):
+        raise SystemExit(
+            f"Refusing to run against kubectl context {ctx!r}: this test restarts the "
+            f"weaviate StatefulSet. Expected a local cluster "
+            f"({', '.join(LOCAL_CONTEXT_PREFIXES)}...), or set ALLOW_NON_LOCAL_CLUSTER=true."
+        )
+    return ctx
+
+
+KUBE_CONTEXT = resolve_kube_context()
+
+
+def kubectl(*args: str) -> List[str]:
+    """kubectl argv with the context pinned, so it cannot drift mid-run."""
+    return ["kubectl", "--context", KUBE_CONTEXT, *args]
 TENANTS = get_env_int("TENANTS", 400)
 SEED_WORKERS = get_env_int("SEED_WORKERS", 16)
 QUERY_INTERVAL_S = get_env_float("QUERY_INTERVAL_S", 0.2)
@@ -176,15 +209,14 @@ def pod_names() -> List[str]:
     which lets the deadline gate stand down on a run where it measured nothing.
     """
     out = subprocess.run(
-        [
-            "kubectl",
+        kubectl(
             "get",
             "pods",
             "-n",
             NAMESPACE,
             "-o",
             'jsonpath={range .items[*]}{.metadata.name}{"\\n"}{end}',
-        ],
+        ),
         capture_output=True,
         text=True,
         check=False,
@@ -206,12 +238,11 @@ def scrape_pods() -> Dict[str, str]:
     texts = {}
     for pod in pod_names():
         out = subprocess.run(
-            [
-                "kubectl",
+            kubectl(
                 "get",
                 "--raw",
                 f"/api/v1/namespaces/{NAMESPACE}/pods/{pod}:2112/proxy/metrics",
-            ],
+            ),
             capture_output=True,
             text=True,
             check=False,
@@ -266,7 +297,7 @@ def rolling_restart(problems: List[str]) -> Tuple[float, float]:
         ["rollout", "status", "sts/weaviate", f"--timeout={ROLLOUT_TIMEOUT_S}s"],
     ):
         out = subprocess.run(
-            ["kubectl", *args, "-n", NAMESPACE], capture_output=True, text=True, check=False
+            kubectl(*args, "-n", NAMESPACE), capture_output=True, text=True, check=False
         )
         logger.info(
             "kubectl {a}: rc={rc} {o}",

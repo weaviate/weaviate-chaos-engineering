@@ -147,12 +147,23 @@ class _CounterAccumulator:
             now = self._read(text)
             self._exposed = self._exposed or now.exposed
             was = self._last.get(pod)
-            if was is None or was.start_time != now.start_time:
+            restarted = (
+                was is not None
+                and was.start_time is not None
+                and now.start_time is not None
+                and was.start_time != now.start_time
+            )
+            if was is None or restarted:
                 # new, or restarted since its last sample: its counters are the
                 # window, and nothing is subtracted from them
                 self._total += now.count
             else:
+                # A scrape without process_start_time_seconds is partial, not a restart:
+                # reading it as one would add the pod's whole lifetime counter.
                 self._total += max(0, now.count - was.count)
+            if now.start_time is None and was is not None:
+                # Keep the last one seen, or the next scrape has nothing to compare against.
+                now = now._replace(start_time=was.start_time)
             self._last[pod] = now
 
     def total(self) -> Optional[int]:
