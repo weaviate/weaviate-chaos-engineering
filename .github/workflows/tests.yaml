@@ -2921,7 +2921,6 @@ jobs:
 
   mt-tenant-activation-latency:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
-    # 1.36 is the floor for LAZY_LOAD_SHARD_COUNT_THRESHOLD, which this test needs set to 0.
     if: ${{ (needs.newer-or-equal-than-1_31.outputs.check == 'true') && (needs.newer-or-equal-than-1_36.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'mt-tenant-activation-latency' || github.event.inputs.test_to_run == 'qps' || github.event.inputs.test_to_run == '')}}
     name: MT tenant activation latency during rollout
     runs-on: ubicloud-standard-8
