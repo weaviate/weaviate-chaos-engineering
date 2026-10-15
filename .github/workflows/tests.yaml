@@ -2968,9 +2968,9 @@ jobs:
           PERSISTENCE_MAX_REUSE_WAL_SIZE: 0
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
-          # 0 turns lazy shard loading on outright; otherwise it depends on a shard count
-          # this test stays under, and there would be nothing to tell apart.
-          LAZY_LOAD_SHARD_COUNT_THRESHOLD: 0
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}
+      # Only include HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE and DISABLE_LAZY_LOAD_SHARDS if version is older than 1.36.0
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/free-disk-space
