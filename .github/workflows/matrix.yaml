@@ -57,11 +57,10 @@ jobs:
     # which needs `id-token: write`. A called workflow can only inherit or
     # narrow the caller's token permissions, so it must be granted here.
     # Declaring permissions replaces the default token scopes, so the other
-    # scopes tests.yaml relies on are listed too: `contents` for checkout and
-    # the GH_TOKEN clone helper, `actions` for workflow-telemetry-action.
+    # scope tests.yaml relies on is listed too: `contents` for checkout and
+    # the GH_TOKEN clone helper.
     permissions:
       contents: read
-      actions: read
       id-token: write
     strategy:
       fail-fast: false
