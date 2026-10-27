@@ -2835,9 +2835,6 @@ jobs:
       # one reconnect costs seconds even on a build that is fine.
       MAX_QUERY_P99_MS: 1000
       MAX_WRITE_P99_MS: 500
-      # 500-600ms passes with a warning: mmap measured 507ms where pread measured 236ms
-      # on the same build. The regression this gate catches was 7584ms.
-      WRITE_P99_TOLERANCE_MS: 100
       MAX_TENANT_CREATE_P90_MS: 1000
       MAX_TENANT_DELETE_P90_MS: 1500
       # How long the window stays open after the rollout reports complete. 15s closed

@@ -302,7 +302,6 @@ def evaluate(
     max_write_p99_ms: float,
     min_queries: int,
     min_writes: int = 0,
-    write_p99_tolerance_ms: float = 0.0,
     max_query_p99_ratio: float = 3.0,
     query_p99_floor_ms: float = 139.0,
     max_failure_ratio: float = 0.5,
@@ -375,26 +374,13 @@ def evaluate(
         )
         passed = False
 
-    # Writes get a tolerance band above their limit: the storage strategies differ by a
-    # few ms at the boundary (mmap 507ms against pread 236ms on one build), and the
-    # regression this gate exists for measured 7584ms, so a band this narrow costs no
-    # sensitivity. Inside it the run passes with a warning.
-    write_hard_limit = max_write_p99_ms + write_p99_tolerance_ms
-    write_why = f"{max_write_p99_ms:.0f}ms"
-    if write_p99_tolerance_ms:
-        write_why += f" (+{write_p99_tolerance_ms:.0f}ms tolerance, {write_hard_limit:.0f}ms)"
-    for label, s, soft, limit, why in (
-        ("write", w, max_write_p99_ms, write_hard_limit, write_why),
-        ("query", q, query_limit, query_limit, query_why),
+    for label, s, limit, why in (
+        ("write", w, max_write_p99_ms, f"{max_write_p99_ms:.0f}ms"),
+        ("query", q, query_limit, query_why),
     ):
         if s["p99"] is None:
             lines.append(f"FAILED: no {label} samples at all")
             passed = False
-        elif s["p99"] > soft and s["p99"] <= limit:
-            lines.append(
-                f"PASSED: {label} p99 {s['p99']:.0f}ms, over the {soft:.0f}ms target but"
-                f" within the tolerance up to {limit:.0f}ms. Watch for this trending up"
-            )
         elif s["p99"] > limit:
             lines.append(
                 f"FAILED: {label} p99 {s['p99']:.0f}ms over {why}."

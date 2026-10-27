@@ -195,48 +195,6 @@ class TestGate(unittest.TestCase):
         self.assertTrue(any("too thin a distribution" in l for l in lines))
 
 
-class TestWriteTolerance(unittest.TestCase):
-    """mmap measured a 507ms write p99 where pread measured 236ms on the same build."""
-
-    def writes_at(self, p99_ms):
-        return [100.0] * 190 + [p99_ms] * 10
-
-    def test_just_over_the_target_passes_with_a_warning(self):
-        passed, lines = evaluate(
-            QUIET, ROLLING_AFTER, self.writes_at(507.0), 0, write_p99_tolerance_ms=100, **LIMITS
-        )
-        self.assertTrue(passed, lines)
-        self.assertTrue(
-            any("over the 500ms target but within the tolerance up to 600ms" in l for l in lines)
-        )
-
-    def test_the_top_of_the_band_still_passes(self):
-        passed, lines = evaluate(
-            QUIET, ROLLING_AFTER, self.writes_at(600.0), 0, write_p99_tolerance_ms=100, **LIMITS
-        )
-        self.assertTrue(passed, lines)
-
-    def test_past_the_band_fails(self):
-        passed, lines = evaluate(
-            QUIET, ROLLING_AFTER, self.writes_at(601.0), 0, write_p99_tolerance_ms=100, **LIMITS
-        )
-        self.assertFalse(passed)
-        self.assertTrue(
-            any("FAILED: write p99 601ms over 500ms (+100ms tolerance, 600ms)" in l for l in lines)
-        )
-
-    def test_no_tolerance_keeps_the_hard_limit(self):
-        passed, lines = evaluate(QUIET, ROLLING_AFTER, self.writes_at(507.0), 0, **LIMITS)
-        self.assertFalse(passed)
-        self.assertTrue(any("FAILED: write p99 507ms over 500ms." in l for l in lines))
-
-    def test_the_regression_still_fails_inside_any_sane_tolerance(self):
-        passed, _ = evaluate(
-            QUIET, ROLLING_AFTER, WRITES_BEFORE, 0, write_p99_tolerance_ms=100, **LIMITS
-        )
-        self.assertFalse(passed)
-
-
 class TestDeadlineWaitsAcrossRestarts(unittest.TestCase):
     """
     These counters reset when a pod restarts, which is exactly what the window
