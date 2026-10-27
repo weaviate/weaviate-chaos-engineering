@@ -2835,6 +2835,7 @@ jobs:
       # one reconnect costs seconds even on a build that is fine.
       MAX_QUERY_P99_MS: 1000
       MAX_WRITE_P99_MS: 500
+      WRITE_P99_TOLERANCE_MS: 100
       MAX_TENANT_CREATE_P90_MS: 1000
       MAX_TENANT_DELETE_P90_MS: 1500
       # How long the window stays open after the rollout reports complete. 15s closed

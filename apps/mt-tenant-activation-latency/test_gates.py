@@ -195,6 +195,24 @@ class TestGate(unittest.TestCase):
         self.assertTrue(any("too thin a distribution" in l for l in lines))
 
 
+class TestWriteTolerance(unittest.TestCase):
+    def test_within_the_tolerance_passes_with_a_warning(self):
+        writes = [100.0] * 190 + [507.0] * 10
+        passed, lines = evaluate(
+            QUIET, ROLLING_AFTER, writes, 0, write_p99_tolerance_ms=100, **LIMITS
+        )
+        self.assertTrue(passed, lines)
+        self.assertTrue(any("warning: write p99 507ms over the 500ms target" in l for l in lines))
+
+    def test_past_the_tolerance_fails(self):
+        writes = [100.0] * 190 + [601.0] * 10
+        passed, lines = evaluate(
+            QUIET, ROLLING_AFTER, writes, 0, write_p99_tolerance_ms=100, **LIMITS
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any("FAILED: write p99 601ms over 600ms" in l for l in lines))
+
+
 class TestDeadlineWaitsAcrossRestarts(unittest.TestCase):
     """
     These counters reset when a pod restarts, which is exactly what the window

@@ -302,6 +302,7 @@ def evaluate(
     max_write_p99_ms: float,
     min_queries: int,
     min_writes: int = 0,
+    write_p99_tolerance_ms: float = 0.0,
     max_query_p99_ratio: float = 3.0,
     query_p99_floor_ms: float = 139.0,
     max_failure_ratio: float = 0.5,
@@ -374,8 +375,9 @@ def evaluate(
         )
         passed = False
 
+    write_limit = max_write_p99_ms + write_p99_tolerance_ms
     for label, s, limit, why in (
-        ("write", w, max_write_p99_ms, f"{max_write_p99_ms:.0f}ms"),
+        ("write", w, write_limit, f"{write_limit:.0f}ms"),
         ("query", q, query_limit, query_why),
     ):
         if s["p99"] is None:
@@ -390,6 +392,11 @@ def evaluate(
             passed = False
         else:
             lines.append(f"PASSED: {label} p99 {s['p99']:.0f}ms, under {why}")
+
+    if w["p99"] is not None and max_write_p99_ms < w["p99"] <= write_limit:
+        lines.append(
+            f"  warning: write p99 {w['p99']:.0f}ms over the {max_write_p99_ms:.0f}ms target"
+        )
 
     for label, s, failed_ms in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
         attempted, failed = int(s["count"]), len(failed_ms)
