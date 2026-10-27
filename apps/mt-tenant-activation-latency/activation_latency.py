@@ -101,8 +101,6 @@ SETTLE_S = get_env_float("SETTLE_S", 180)
 # reconnect costs seconds even on a build that is fine.
 MAX_QUERY_P99_MS = get_env_float("MAX_QUERY_P99_MS", 1000)
 MAX_WRITE_P99_MS = get_env_float("MAX_WRITE_P99_MS", 500)
-# Band above MAX_WRITE_P99_MS that passes with a warning, so a leg landing a few ms
-# over the target (mmap measured 507ms) is not a failure. Fails above the sum.
 WRITE_P99_TOLERANCE_MS = get_env_float("WRITE_P99_TOLERANCE_MS", 100)
 # A fixed ceiling allows a 7-20x degradation against the 43-139ms measured at rest,
 # more than the regression that escaped, so bound the rolling p99 to this multiple

@@ -375,26 +375,14 @@ def evaluate(
         )
         passed = False
 
-    # Writes get a tolerance band above their limit: the storage strategies differ by a
-    # few ms at the boundary (mmap 507ms against pread 236ms on one build), and the
-    # regression this gate exists for measured 7584ms, so a band this narrow costs no
-    # sensitivity. Inside it the run passes with a warning.
-    write_hard_limit = max_write_p99_ms + write_p99_tolerance_ms
-    write_why = f"{max_write_p99_ms:.0f}ms"
-    if write_p99_tolerance_ms:
-        write_why += f" (+{write_p99_tolerance_ms:.0f}ms tolerance, {write_hard_limit:.0f}ms)"
-    for label, s, soft, limit, why in (
-        ("write", w, max_write_p99_ms, write_hard_limit, write_why),
-        ("query", q, query_limit, query_limit, query_why),
+    write_limit = max_write_p99_ms + write_p99_tolerance_ms
+    for label, s, limit, why in (
+        ("write", w, write_limit, f"{write_limit:.0f}ms"),
+        ("query", q, query_limit, query_why),
     ):
         if s["p99"] is None:
             lines.append(f"FAILED: no {label} samples at all")
             passed = False
-        elif s["p99"] > soft and s["p99"] <= limit:
-            lines.append(
-                f"PASSED: {label} p99 {s['p99']:.0f}ms, over the {soft:.0f}ms target but"
-                f" within the tolerance up to {limit:.0f}ms. Watch for this trending up"
-            )
         elif s["p99"] > limit:
             lines.append(
                 f"FAILED: {label} p99 {s['p99']:.0f}ms over {why}."
@@ -404,6 +392,11 @@ def evaluate(
             passed = False
         else:
             lines.append(f"PASSED: {label} p99 {s['p99']:.0f}ms, under {why}")
+
+    if w["p99"] is not None and max_write_p99_ms < w["p99"] <= write_limit:
+        lines.append(
+            f"  warning: write p99 {w['p99']:.0f}ms over the {max_write_p99_ms:.0f}ms target"
+        )
 
     for label, s, failed_ms in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
         attempted, failed = int(s["count"]), len(failed_ms)
