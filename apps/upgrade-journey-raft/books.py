@@ -7,6 +7,7 @@ from weaviate.classes.data import DataReference
 from weaviate.util import generate_uuid5
 from weaviate.collections.classes.config import ConsistencyLevel
 from graphql_aggregate import graphql_grpc_aggregate
+from polling import near_text_until_count
 
 
 def create(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
@@ -187,8 +188,12 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
     )
     logger.info("aggregate where page_count gt 800: {}", aggregate.total_count)
     assert aggregate.total_count == 4
-    result = collection.query.near_text(
-        query=["Essos", "Westeros", "Throne"], target_vector="description", certainty=0.74
+    result = near_text_until_count(
+        collection,
+        expected_count=1,
+        query=["Essos", "Westeros", "Throne"],
+        target_vector="description",
+        certainty=0.74,
     )
     assert len(result.objects) == 1
     assert result.objects[0].properties["title"] == "A Game of Thrones"
@@ -207,7 +212,9 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
     result = collection.query.fetch_objects(filters=Filter.by_property("genre").equal("cyberpunk"))
     assert len(result.objects) == 5
     logger.info("where genre equals cyberpunk found {} objects", len(result.objects))
-    result = collection.query.near_text(
+    result = near_text_until_count(
+        collection,
+        expected_count=1,
         filters=Filter.by_property("genre").equal("cyberpunk"),
         query="hacker in America",
         target_vector="description",
