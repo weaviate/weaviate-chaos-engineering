@@ -222,8 +222,8 @@ run_chaos_testing() {
         log_info "Waiting ${RESTART_DELAY}s for Weaviate to restart"
         sleep $RESTART_DELAY
         
-        log_info "Killing Weaviate (PKILL)"
-        docker exec -it "$WEAVIATE_CONTAINER" pkill -9 -f /bin/weaviate || true
+        log_info "Killing Weaviate (SIGKILL)"
+        docker compose -f "$WEAVIATE_COMPOSE_FILE" kill weaviate
     done
     
     # Final restart
