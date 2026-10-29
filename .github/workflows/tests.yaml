@@ -2971,6 +2971,10 @@ jobs:
       # Retried with exponential backoff from 0.1s; a query still shed after the last
       # retry fails the run. See shed_retry.py.
       SHED_RETRIES: 5
+      # An aggregate attempt with no HTTP response is the port-forward relay's dial to
+      # a pod that was just terminated, not Weaviate's answer. Retried with backoff on
+      # a fresh connection; only the answered attempt is timed. See aggregates.py.
+      AGGREGATE_NO_RESPONSE_RETRIES: 3
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -3061,6 +3065,8 @@ jobs:
       MAX_SERVER_MEDIAN_MS: 2000
       # Shed (429) queries are retried with exponential backoff; see the job above.
       SHED_RETRIES: 5
+      # Aggregate attempts with no HTTP response are retried; see the job above.
+      AGGREGATE_NO_RESPONSE_RETRIES: 3
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:

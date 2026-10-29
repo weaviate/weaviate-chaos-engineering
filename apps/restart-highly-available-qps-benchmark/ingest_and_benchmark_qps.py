@@ -54,6 +54,18 @@ from validation import (
     get_env_int,
     validate_benchmark_csv,
 )
+from aggregates import (
+    NO_RESPONSE,
+    NO_RESPONSE_BASE_S,
+    NO_RESPONSE_MAX_S,
+    NO_RESPONSE_RETRIES,
+    AggregateStats,
+    aggregate_with_retry,
+    classify_exception,
+    classify_response,
+    read_relay_log,
+    relay_dial_failures,
+)
 from shed_retry import (
     DEFAULT_BASE_S,
     DEFAULT_MAX_S,
@@ -196,8 +208,8 @@ def snapshot_server_metrics(
 # Production's worst signal was p999 46s, and those were aggregates: CountObjects pulls
 # with a one-minute budget, so a replica that cannot serve is waited on rather than
 # skipped. Aggregates are not in queries_durations_ms either, so they are timed here.
-def aggregate_once(class_name: str, timeout_s: float, port: int = 8080) -> Tuple[float, bool]:
-    """Run one count aggregate; returns (elapsed_ms, ok)."""
+def aggregate_once(class_name: str, timeout_s: float, port: int = 8080) -> Tuple[float, str]:
+    """Run one count aggregate; returns (elapsed_ms, outcome), see aggregates.OUTCOMES."""
     graphql_class = class_name[:1].upper() + class_name[1:]
     started = time.time()
     try:
@@ -207,10 +219,13 @@ def aggregate_once(class_name: str, timeout_s: float, port: int = 8080) -> Tuple
             timeout=timeout_s,
         )
         elapsed = (time.time() - started) * 1000.0
-        ok = resp.status_code == 200 and "errors" not in (resp.json() or {})
-        return elapsed, ok
-    except Exception:
-        return (time.time() - started) * 1000.0, False
+        try:
+            body = resp.json()
+        except ValueError:
+            body = None
+        return elapsed, classify_response(resp.status_code, body)
+    except Exception as e:
+        return (time.time() - started) * 1000.0, classify_exception(e)
 
 
 LOCAL_CONTEXT_PREFIXES = ("kind-", "minikube", "docker-desktop", "k3d-")
@@ -627,7 +642,11 @@ def main() -> None:
     agg_slow_ms = get_env_float("AGGREGATE_SLOW_MS", 5000.0)
     agg_interval_s = get_env_float("AGGREGATE_INTERVAL_S", 1.0)
     agg_timeout_s = get_env_float("AGGREGATE_TIMEOUT_S", 90.0)
-    agg_stats = {"count": 0, "slow": 0, "failed": 0, "max_ms": 0.0}
+    # An attempt that got no HTTP response is the relay's dial, not Weaviate's answer,
+    # so it is retried with backoff and only the answered attempt is timed. See aggregates.
+    agg_retries = get_env_int("AGGREGATE_NO_RESPONSE_RETRIES", NO_RESPONSE_RETRIES)
+    agg_backoff_s = get_env_float("AGGREGATE_NO_RESPONSE_BACKOFF_S", NO_RESPONSE_BASE_S)
+    agg_stats = AggregateStats()
     agg_classes = [cfg["name"] for cfg in collections if not cfg["multitenant"]]
 
     def aggregate_driver() -> None:
@@ -643,15 +662,38 @@ def main() -> None:
         i = 0
         while not agg_stop.is_set():
             cls = agg_classes[i % len(agg_classes)]
-            elapsed, ok = aggregate_once(cls, agg_timeout_s)
-            agg_stats["count"] += 1
-            agg_stats["max_ms"] = max(agg_stats["max_ms"], elapsed)
-            if not ok:
-                agg_stats["failed"] += 1
-            if elapsed > agg_slow_ms:
-                agg_stats["slow"] += 1
+            elapsed, outcome, attempts = aggregate_with_retry(
+                lambda: aggregate_once(cls, agg_timeout_s),
+                agg_stats,
+                slow_ms=agg_slow_ms,
+                retries=agg_retries,
+                base_s=agg_backoff_s,
+                max_s=NO_RESPONSE_MAX_S,
+                sleep=lambda s: agg_stop.wait(timeout=s),
+            )
+            if outcome == NO_RESPONSE:
+                logger.error(
+                    "Aggregate on {cls} got no response on any of {n} attempt(s), the last "
+                    "after {ms:.0f}ms",
+                    cls=cls,
+                    n=attempts,
+                    ms=elapsed,
+                )
+            elif attempts > 1:
                 logger.warning(
-                    "Aggregate on {cls} took {ms:.0f}ms (ok={ok})", cls=cls, ms=elapsed, ok=ok
+                    "Aggregate on {cls}: {k} attempt(s) got no response (relay dial or pod "
+                    "gone), then {outcome} in {ms:.0f}ms",
+                    cls=cls,
+                    k=attempts - 1,
+                    outcome=outcome,
+                    ms=elapsed,
+                )
+            if outcome != NO_RESPONSE and elapsed > agg_slow_ms:
+                logger.warning(
+                    "Aggregate on {cls} took {ms:.0f}ms ({outcome})",
+                    cls=cls,
+                    ms=elapsed,
+                    outcome=outcome,
                 )
             i += 1
             agg_stop.wait(timeout=agg_interval_s)
@@ -1102,36 +1144,60 @@ def main() -> None:
 
     max_slow_aggregates = get_env_int("MAX_SLOW_AGGREGATES", 0)
     logger.info(
-        "Aggregates: {n} run, max {m:.0f}ms, {s} over {t:.0f}ms, {f} failed",
-        n=agg_stats["count"],
-        m=agg_stats["max_ms"],
-        s=agg_stats["slow"],
+        "Aggregates: {n} answered ({e} server errors), max {m:.0f}ms, {s} over {t:.0f}ms; "
+        "{nr} attempt(s) got no response, {rec} aggregate(s) recovered by retry, "
+        "{ex} exhausted {r} retries",
+        n=agg_stats.samples,
+        e=agg_stats.server_errors,
+        m=agg_stats.max_ms,
+        s=agg_stats.slow,
         t=agg_slow_ms,
-        f=agg_stats["failed"],
+        nr=agg_stats.no_response,
+        rec=agg_stats.recovered,
+        ex=agg_stats.exhausted,
+        r=agg_retries,
     )
-    if not agg_stats["count"]:
-        logger.error("No aggregates ran: the aggregate path was never exercised")
+    if not agg_stats.samples:
+        logger.error("No aggregate was answered: the aggregate path was never exercised")
         failure_state["failed"] = True
-    elif agg_stats["slow"] > max_slow_aggregates:
+    elif agg_stats.slow > max_slow_aggregates:
         logger.error(
             "Aggregate validation FAILED: {s} over {t:.0f}ms (max {m:.0f}ms), tolerance {a}",
-            s=agg_stats["slow"],
+            s=agg_stats.slow,
             t=agg_slow_ms,
-            m=agg_stats["max_ms"],
+            m=agg_stats.max_ms,
             a=max_slow_aggregates,
         )
         failure_state["failed"] = True
     else:
-        logger.info("Aggregate validation PASSED: max {m:.0f}ms", m=agg_stats["max_ms"])
+        logger.info("Aggregate validation PASSED: max {m:.0f}ms", m=agg_stats.max_ms)
 
-    if agg_stats["failed"]:
+    # An attempt with no HTTP response is the relay failing to reach a pod, which a retry
+    # on a fresh connection settles. Not reaching any pod in several tries is an outage.
+    if agg_stats.exhausted:
+        logger.error(
+            "Aggregate validation FAILED: {ex} aggregate(s) got no response after {r} retries",
+            ex=agg_stats.exhausted,
+            r=agg_retries,
+        )
+        failure_state["failed"] = True
+    if agg_stats.no_response:
+        relay_log = read_relay_log(os.getenv("RELAY_LOG", "/tmp/weaviate_frwd.log"))
+        if relay_log is not None:
+            logger.warning(
+                "note: the HTTP relay logged these upstream dial failures: {c}. An aggregate "
+                "that got no response at those times never reached Weaviate.",
+                c=relay_dial_failures(relay_log) or "none",
+            )
+
+    if agg_stats.server_errors:
         logger.warning(
-            "{f} of {n} aggregates were refused. Reported, not gated: a refusal during a "
-            "restart is availability, which the server error rate judges as a rate "
+            "{f} of {n} answered aggregates were refused. Reported, not gated: a refusal "
+            "during a restart is availability, which the server error rate judges as a rate "
             "(aggregates go over REST GraphQL, so they are in requests_total), "
             "whereas an aggregate that hangs is the regression this gate is for.",
-            f=agg_stats["failed"],
-            n=agg_stats["count"],
+            f=agg_stats.server_errors,
+            n=agg_stats.samples,
         )
 
     # A query past the per-request timeout records no latency, so no percentile sees it.
