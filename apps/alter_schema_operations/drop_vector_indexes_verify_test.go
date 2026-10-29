@@ -44,7 +44,9 @@ const coldTenantVectorCleanupTimeout = 5 * time.Minute
 // from the collection schema. When removal happens it completes within a few
 // seconds, so this is deliberately short: it keeps the final schema check quick
 // even when a vector is (incorrectly) never removed.
-const schemaCleanupTimeout = 45 * time.Second
+// 2*30+1 to allow for two 30s cleanup cycles plus a 1s buffer in case the first
+// cycle is missed due to infra pressure.
+const schemaCleanupTimeout = 61 * time.Second
 
 // fetchSampleObjects fetches up to vectorSampleSize objects (with their named
 // vectors) for the given class/tenant. tenant may be "" for single-tenant
