@@ -2967,6 +2967,10 @@ jobs:
       MAX_SERVER_MEDIAN_RATIO: 5.0
       SERVER_MEDIAN_FLOOR_MS: 500
       MAX_SERVER_MEDIAN_MS: 2000
+      # A node that sheds a query under admission control (429) is asking for a retry.
+      # Retried with exponential backoff from 0.1s; a query still shed after the last
+      # retry fails the run. See shed_retry.py.
+      SHED_RETRIES: 5
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
@@ -3055,6 +3059,8 @@ jobs:
       MAX_SERVER_MEDIAN_RATIO: 5.0
       SERVER_MEDIAN_FLOOR_MS: 500
       MAX_SERVER_MEDIAN_MS: 2000
+      # Shed (429) queries are retried with exponential backoff; see the job above.
+      SHED_RETRIES: 5
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:

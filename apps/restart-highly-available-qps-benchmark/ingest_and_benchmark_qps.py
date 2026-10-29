@@ -54,6 +54,45 @@ from validation import (
     get_env_int,
     validate_benchmark_csv,
 )
+from shed_retry import (
+    DEFAULT_BASE_S,
+    DEFAULT_MAX_S,
+    DEFAULT_RETRIES,
+    QUERY_METHODS,
+    ShedStats,
+    summarise,
+    wrap_with_shed_retry,
+)
+
+
+class ShedTolerantBenchmark(BenchmarkQPSManager):
+    """
+    weaviate-cli's benchmark counts any exception as a failed query, and this test fails
+    the run on the first one. A node that sheds a query under admission control is asking
+    for a retry, so the collection's query methods are wrapped to retry with backoff
+    before the manager sees anything. See shed_retry.
+    """
+
+    def __init__(
+        self, async_client: Any, stats: ShedStats, retries: int, base_s: float, max_s: float
+    ) -> None:
+        super().__init__(async_client)
+        self._shed = dict(stats=stats, retries=retries, base_s=base_s, max_s=max_s)
+        self._warned = False
+
+    async def _run_query_and_collect_latency(self, collection_obj: Any, *args: Any, **kw: Any):
+        try:
+            for name in QUERY_METHODS:
+                wrap_with_shed_retry(collection_obj.query, name, **self._shed)
+        except Exception as e:  # pragma: no cover - depends on the client's internals
+            if not self._warned:
+                self._warned = True
+                logger.warning(
+                    "Shed retry could not wrap the client's query methods, so a shed "
+                    "fails the run as it did before: {e}",
+                    e=e,
+                )
+        return await super()._run_query_and_collect_latency(collection_obj, *args, **kw)
 
 # weaviate-cli reports errors by printing them, and the counts below are recovered from
 # that text. redirect_stdout swaps the process-global sys.stdout, so with four threads
@@ -343,6 +382,12 @@ def main() -> None:
     collection_prefix = os.getenv("COLLECTION_PREFIX", "rrha_")
     ns = os.getenv("K8S_NAMESPACE", "weaviate")
     benchmark_qps = get_env_int("BENCHMARK_QPS", 20)
+    # A shed (429) is the node asking for a retry, not a failed query. Retried with
+    # exponential backoff inside the measured latency; the last shed still fails the run.
+    shed_retries = get_env_int("SHED_RETRIES", DEFAULT_RETRIES)
+    shed_base_s = get_env_float("SHED_BACKOFF_BASE_S", DEFAULT_BASE_S)
+    shed_max_s = get_env_float("SHED_BACKOFF_MAX_S", DEFAULT_MAX_S)
+    shed_stats: Dict[str, ShedStats] = {}
     sustained_writes = os.getenv("SUSTAINED_WRITES", "true").strip().lower() == "true"
     # ~10 writes/s per collection, so ~40/s across the four. 500 objects every 5s
     # was 400/s -- 13x what production was taking while it was rolled -- and it
@@ -616,7 +661,14 @@ def main() -> None:
     async def run_all_benchmarks() -> None:
         async def benchmark_one(collection_name: str) -> None:
             async_client = weaviate_use_async_with_local()
-            manager = BenchmarkQPSManager(async_client)
+            shed_stats[collection_name] = ShedStats()
+            manager = ShedTolerantBenchmark(
+                async_client,
+                shed_stats[collection_name],
+                retries=shed_retries,
+                base_s=shed_base_s,
+                max_s=shed_max_s,
+            )
             with capture_stdout() as buf:
                 await manager.run_benchmark(
                     collection=collection_name,
@@ -1115,6 +1167,26 @@ def main() -> None:
             t=PER_REQUEST_TIMEOUT_S,
             m=max_timeouts,
         )
+
+    # Shed (429) responses were retried with backoff, so only a query still shed after the
+    # last retry reached the benchmark's failure above. The counts say how close it came.
+    if shed_stats:
+        total_shed = sum(s.shed for s in shed_stats.values())
+        exhausted = sum(s.exhausted for s in shed_stats.values())
+        level = logger.error if exhausted else logger.warning if total_shed else logger.info
+        level(
+            "Shed (429) by collection, retried up to {r} times with backoff from {b}s: {c}",
+            r=shed_retries,
+            b=shed_base_s,
+            c=summarise(shed_stats),
+        )
+        if exhausted:
+            logger.error(
+                "Shed validation FAILED: {n} query(s) were still shed after {r} retries",
+                n=exhausted,
+                r=shed_retries,
+            )
+            failure_state["failed"] = True
 
     # Per-collection client numbers are recorded, not gated: each CSV row covers one second,
     # so its p99 is a maximum, and one collection crossing a threshold has repeatedly meant
