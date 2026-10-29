@@ -2831,24 +2831,44 @@ jobs:
       # few enough that seeding stays under a minute.
       TENANTS: 400
       SEED_WORKERS: 16
-      # Percentiles rather than extremes: the roll breaks the client's port-forward, and
-      # one reconnect costs seconds even on a build that is fine.
-      MAX_QUERY_P99_MS: 1000
-      MAX_WRITE_P99_MS: 500
-      WRITE_P99_TOLERANCE_MS: 100
-      MAX_TENANT_CREATE_P90_MS: 1000
-      MAX_TENANT_DELETE_P90_MS: 1500
+      # Latency gates on the sustained median, not a percentile: over every
+      # SUSTAINED_WINDOW_S stretch of the roll, the median wait of the calls that began
+      # in it, against a multiple of the leg's own quiet median. The p99 ran 458-663ms
+      # on one week's healthy legs against a limit of 600, and the query p99's limit
+      # was 3x a quiet p99 that itself swung 17-69ms: seven of twelve legs failed by
+      # ~10%. A median only moves when more than half of a window's calls were slow,
+      # which a backed-up apply loop does for minutes and a reconnect cannot do at all.
+      # The p99 and max are still printed beside every verdict. See gates.Limit.
+      #
+      # 60s, because a call held behind the apply loop waits up to the 10s consistency
+      # deadline, so a minute of them is six, above the five a window needs; and a 15s
+      # reconnect is one call, of which the roll cannot fit three in a minute.
+      SUSTAINED_WINDOW_S: 60
+      MIN_WINDOW_SAMPLES: 5
+      # Limits: ratio x the quiet median, floored, capped. Queries sit at a 4ms median
+      # and 43-139ms p99 at rest; the floor is the top of that p99 band, the ceiling the
+      # old fixed p99 limit. Writes ~110ms median; the floor is what the p99 was allowed.
+      MAX_QUERY_MEDIAN_RATIO: 5.0
+      QUERY_MEDIAN_FLOOR_MS: 139
+      MAX_QUERY_MEDIAN_MS: 1000
+      MAX_WRITE_MEDIAN_RATIO: 5.0
+      WRITE_MEDIAN_FLOOR_MS: 500
+      MAX_WRITE_MEDIAN_MS: 2000
+      # Tenant create (40ms median at rest) and delete (260ms) gate the same way, apart,
+      # since one limit would clear the slower and let the faster regress 37x. Ceilings
+      # at the measured regression (3.56s and 3.32s), which a quiet window must not excuse.
+      MAX_TENANT_CREATE_MEDIAN_RATIO: 5.0
+      TENANT_CREATE_MEDIAN_FLOOR_MS: 500
+      MAX_TENANT_CREATE_MEDIAN_MS: 3000
+      MAX_TENANT_DELETE_MEDIAN_RATIO: 5.0
+      TENANT_DELETE_MEDIAN_FLOOR_MS: 1000
+      MAX_TENANT_DELETE_MEDIAN_MS: 3000
+      # Every call the workers made, one row each, archived with the pod logs so a
+      # threshold can be re-derived from a run rather than from its summary lines.
+      SAMPLES_CSV: /tmp/weaviate-mt-activation-latency-samples.csv
       # How long the window stays open after the rollout reports complete. 15s closed
       # before the spike it exists to measure: the p99 peak landed ~4min after the roll.
       SETTLE_S: 180
-      # A 1,000ms ceiling against the 43-139ms these legs measure at rest permits a
-      # 7-20x degradation, more than the regression that escaped at 3.6-4.3x. Bound the
-      # rolling p99 at this multiple of the leg's own quiet p99 too, whichever is lower.
-      MAX_QUERY_P99_RATIO: 3.0
-      # Below this the ratio is noise: a healthy leg has gone 4ms quiet to 12.8ms
-      # rolling. 139ms is the top of the at-rest band, so a leg that stays inside what
-      # the suite measures at rest is never failed on the ratio.
-      QUERY_P99_FLOOR_MS: 139
       # Client-visible 4xx during the roll, which nothing gated before: 107 on the
       # candidate against 39 on the baseline. Healthy legs ran 1-9 each. A count, not a
       # rate -- revisit if SETTLE_S or WRITE_INTERVAL_S move the window.
@@ -2939,13 +2959,21 @@ jobs:
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
       # inflating latency on any build and leaving the baseline too low to judge.
       BENCHMARK_QPS: 15
+      # Server latency gates on each scrape interval's median against the run's own
+      # quiet median (the RESTART_DELAY_SECONDS before the window), floored and capped.
+      # The window-wide p99 is reported, not gated: over thousands of queries it is the
+      # few dozen slowest, which a restart supplies on any build. See
+      # server_metrics.sustained_breach.
+      MAX_SERVER_MEDIAN_RATIO: 5.0
+      SERVER_MEDIAN_FLOOR_MS: 500
+      MAX_SERVER_MEDIAN_MS: 2000
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
           ASYNC_INDEXING: true
           ASYNC_REPLICATION_FREQUENCY: "10s"
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
@@ -3022,17 +3050,22 @@ jobs:
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
       # inflating latency on any build and leaving the baseline too low to judge.
       BENCHMARK_QPS: 15
+      # Server latency gates on each scrape interval's median against the run's own
+      # quiet median; see the rolling-restart job above and server_metrics.sustained_breach.
+      MAX_SERVER_MEDIAN_RATIO: 5.0
+      SERVER_MEDIAN_FLOOR_MS: 500
+      MAX_SERVER_MEDIAN_MS: 2000
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
           ASYNC_INDEXING: true
           ASYNC_REPLICATION_FREQUENCY: "10s"
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
-          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}      
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/free-disk-space

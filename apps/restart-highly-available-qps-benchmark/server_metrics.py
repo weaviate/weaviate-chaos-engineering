@@ -26,12 +26,20 @@ its lifetime history to the window: before=3000 over three pods, two restart,
 after=50+50+1100=1200, and a single summed delta reads 1200 as window traffic
 when only 200 of it is. Per-pod deltas are summed only once each is reset-aware.
 
+What gates is the median of each scrape interval, against the run's own quiet
+median, not the p99 of the whole window. A p99 over thousands of queries is moved
+by a few dozen slow ones, which a restart supplies on any build, and a limit tuned
+to clear that sits inside the noise. A stall holds every query for as long as it
+lasts, so the interval it lands in has a median of seconds; nothing short of that
+moves a median over hundreds of queries. See interval_medians, sustained_limit and
+sustained_breach. The p99 is still reported.
+
 Free of the weaviate and k8s client libraries so it can be tested on recorded
 metrics text. See test_server_metrics.py.
 """
 
 import re
-from typing import Dict, List, NamedTuple, Optional, Tuple
+from typing import Dict, List, NamedTuple, Optional, Sequence, Tuple
 
 BUCKET_RE = re.compile(r"^queries_durations_ms_bucket\{(?P<labels>[^}]*)\}\s+(?P<value>[0-9.e+]+)$")
 REQUESTS_RE = re.compile(r"^requests_total\{(?P<labels>[^}]*)\}\s+(?P<value>[0-9.e+]+)$")
@@ -280,6 +288,10 @@ class WindowAccumulator:
     A pod missing from an observation is simply not advanced; it resumes on its
     next appearance, and the slice between its last sample and its restart is
     the bounded loss. Only the baseline has to be complete.
+
+    Each observation is also kept on its own, as the histogram of what completed
+    between it and the one before, so the window can be read interval by interval
+    -- see interval_medians.
     """
 
     def __init__(self, baseline: Dict[str, PodSnapshot]) -> None:
@@ -288,9 +300,11 @@ class WindowAccumulator:
         self.buckets: Dict[float, float] = {}
         self.requests: Dict[str, float] = {}
         self.restarts = 0
+        self.intervals: List[Dict[float, float]] = []
 
     def observe(self, snapshots: Dict[str, PodSnapshot]) -> None:
         """Fold one scrape of every reachable pod into the window."""
+        interval: Dict[float, float] = {}
         for pod, snap in snapshots.items():
             self._pods.add(pod)
             prev = self._last.get(pod)
@@ -310,9 +324,11 @@ class WindowAccumulator:
                 pod_requests = counter_delta(prev.requests, snap.requests)
             for bound, count in pod_buckets.items():
                 self.buckets[bound] = self.buckets.get(bound, 0.0) + count
+                interval[bound] = interval.get(bound, 0.0) + count
             for status, count in pod_requests.items():
                 self.requests[status] = self.requests.get(status, 0.0) + count
             self._last[pod] = snap
+        self.intervals.append(interval)
 
     def summary(self) -> Dict[str, Optional[float]]:
         return _summarise(
@@ -322,3 +338,76 @@ class WindowAccumulator:
             restarts=self.restarts,
             pods_missing=0,
         )
+
+    def interval_medians(self, min_queries: int) -> List[Optional[float]]:
+        """
+        The median latency of each scrape interval, or None where fewer than
+        min_queries completed in it.
+
+        A histogram observes a query when it completes, so an interval during which
+        the cluster held every query shows almost nothing, and the one in which they
+        were released shows all of them at once with the stall as their latency. The
+        starved interval is unknown, not fast, which is why it is None rather than
+        a number a gate could read as a pass.
+        """
+        out: List[Optional[float]] = []
+        for buckets in self.intervals:
+            total = max(buckets.values()) if buckets else 0.0
+            out.append(quantile_from_buckets(buckets, 0.5) if total >= min_queries else None)
+        return out
+
+
+def sustained_limit(
+    quiet_median_ms: Optional[float], ratio: float, floor_ms: float, ceiling_ms: float
+) -> Tuple[float, str]:
+    """
+    What an interval's median may reach: ratio x the run's own quiet median, floored
+    and capped. (limit in ms, how it was arrived at.)
+
+    Relative, because a fixed limit has to clear the noisiest runner and then leaves
+    an order of magnitude of headroom on the others. The floor keeps a ratio between
+    two small numbers from being a verdict, and the ceiling keeps a run whose quiet
+    window was itself terrible from buying headroom with it. With no quiet window the
+    ceiling is the limit: no reference is not a reason to stop gating.
+    """
+    if quiet_median_ms is None:
+        return ceiling_ms, f"the {ceiling_ms:.0f}ms ceiling (no quiet window measured)"
+    relative = max(quiet_median_ms * ratio, floor_ms)
+    if relative < ceiling_ms:
+        return relative, (
+            f"{relative:.0f}ms -- {ratio:.1f}x this run's own quiet median of"
+            f" {quiet_median_ms:.0f}ms, floored at {floor_ms:.0f}ms"
+        )
+    return ceiling_ms, (
+        f"the {ceiling_ms:.0f}ms ceiling -- {ratio:.1f}x the quiet median of"
+        f" {quiet_median_ms:.0f}ms would sit above it"
+    )
+
+
+def sustained_breach(
+    medians: Sequence[Optional[float]], limit_ms: float, run: int = 1
+) -> Optional[Tuple[int, List[float]]]:
+    """
+    The first run of `run` judged intervals in a row whose median is over the limit,
+    as (index of the first, their medians), or None.
+
+    Intervals that could not be judged (None) are stepped over rather than breaking
+    the run: a stall starves the intervals it spans of completions, so an unknown
+    between two slow intervals is the stall, not a recovery. The default run of one
+    is deliberate -- the queries a stall held complete together, so even a ten-second
+    stall lands in a single interval, with half of what completed in it that slow.
+    """
+    streak: List[float] = []
+    start = -1
+    for i, m in enumerate(medians):
+        if m is None:
+            continue
+        if m > limit_ms:
+            if not streak:
+                start = i
+            streak.append(m)
+            if len(streak) >= run:
+                return start, streak
+        else:
+            streak = []
+    return None

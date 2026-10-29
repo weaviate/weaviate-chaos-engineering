@@ -40,7 +40,14 @@ from weaviate_cli.managers.collection_manager import CollectionManager
 from weaviate_cli.managers.data_manager import DataManager
 from weaviate_cli.managers.benchmark_manager import PER_REQUEST_TIMEOUT_S, BenchmarkQPSManager
 
-from server_metrics import PodSnapshot, WindowAccumulator, snapshot_pods
+from server_metrics import (
+    PodSnapshot,
+    WindowAccumulator,
+    snapshot_pods,
+    summarise_window,
+    sustained_breach,
+    sustained_limit,
+)
 from validation import (
     annotate_csvs_with_restart,
     get_env_float,
@@ -671,6 +678,10 @@ def main() -> None:
     )
     bench_thread.start()
 
+    # The quiet window: everything the server serves between here and the restart
+    # window opening is the reference the window's medians are read against.
+    quiet_snapshot = snapshot_server_metrics(ns)
+
     restart_delay = get_env_int("RESTART_DELAY_SECONDS", 15)
     logger.info("Waiting {d}s before triggering disruption...", d=restart_delay)
     time.sleep(restart_delay)
@@ -866,8 +877,58 @@ def main() -> None:
                 n=server["pods_missing"],
             )
 
-        max_server_p99_ms = get_env_float("MAX_SERVER_P99_MS", 2000.0)
+        # The latency gate reads each scrape interval's median against the run's own
+        # quiet median. The p99 above is reported and not gated: over thousands of
+        # queries it is the few dozen slowest, which a restart supplies on any build,
+        # and a limit placed to clear that noise is crossed by it about one run in two.
+        # A median over the hundreds of queries an interval holds only moves when a
+        # stall held most of them, which is the regression this gate is for. See
+        # server_metrics.sustained_breach.
+        max_median_ratio = get_env_float("MAX_SERVER_MEDIAN_RATIO", 5.0)
+        # A healthy rollout sits under 500ms at the p99; a median there needs no argument.
+        median_floor_ms = get_env_float("SERVER_MEDIAN_FLOOR_MS", 500.0)
+        # What the p99 limit used to be, and a median held there for a scrape interval is
+        # broken whatever the quiet window did.
+        max_median_ms = get_env_float("MAX_SERVER_MEDIAN_MS", 2000.0)
+        # Fewer completions than this and the interval is unknown, not fast: the
+        # benchmark sends ~60 QPS, so an interval that completed a handful was starved.
+        min_interval_queries = get_env_int("SERVER_MIN_INTERVAL_QUERIES", 20)
+        # Consecutive breaching intervals needed. One, because the queries a stall held
+        # complete together and land in a single interval -- see interval_medians.
+        sustained_intervals = get_env_int("SERVER_SUSTAINED_INTERVALS", 1)
         max_error_rate = get_env_float("MAX_ERROR_RATE", 0.01)
+
+        quiet_median_ms: Optional[float] = None
+        if quiet_snapshot is not None:
+            quiet = summarise_window(quiet_snapshot, pre_snapshot)
+            quiet_median_ms = quiet["p50_ms"]
+            logger.info(
+                "Server before the restart window: {q:.0f} queries, p50={p50}, p99={p99}",
+                q=quiet["queries"] or 0,
+                p50=f"{quiet['p50_ms']:.0f}ms" if quiet["p50_ms"] else "n/a",
+                p99=f"{quiet['p99_ms']:.0f}ms" if quiet["p99_ms"] else "n/a",
+            )
+        else:
+            logger.warning(
+                "The quiet window could not be scraped on every pod, so the median gate "
+                "falls back to its ceiling"
+            )
+        limit_ms, why = sustained_limit(
+            quiet_median_ms, max_median_ratio, median_floor_ms, max_median_ms
+        )
+        medians = accumulator.interval_medians(min_interval_queries)
+        judged = [m for m in medians if m is not None]
+        logger.info(
+            "Server median per {s:.0f}s scrape interval: {j} of {n} judged (at least {q} "
+            "completions each), worst {w}, limit {why}",
+            s=scrape_interval_s,
+            j=len(judged),
+            n=len(medians),
+            q=min_interval_queries,
+            w=f"{max(judged):.0f}ms" if judged else "n/a",
+            why=why,
+        )
+        latency_passed = False
 
         if not server["queries"]:
             logger.error(
@@ -878,13 +939,31 @@ def main() -> None:
             )
             failure_state["failed"] = True
         else:
-            if server["p99_ms"] and server["p99_ms"] > max_server_p99_ms:
+            breach = sustained_breach(medians, limit_ms, sustained_intervals)
+            if not judged:
                 logger.error(
-                    "Server latency FAILED: p99 {p:.0f}ms over the restart window, above {m:.0f}ms",
-                    p=server["p99_ms"],
-                    m=max_server_p99_ms,
+                    "Server latency judged nothing: no scrape interval completed {q} queries, "
+                    "so no interval's median could be read. The window held {t:.0f} queries in "
+                    "all; a number that went missing must not read as a pass",
+                    q=min_interval_queries,
+                    t=server["queries"],
                 )
                 failure_state["failed"] = True
+            elif breach is not None:
+                index, streak = breach
+                logger.error(
+                    "Server latency FAILED: median {m:.0f}ms over {why} in scrape interval "
+                    "{i} of {n} ({k} in a row). Half of everything the cluster completed in "
+                    "those seconds waited that long, which no single slow query can produce",
+                    m=max(streak),
+                    why=why,
+                    i=index + 1,
+                    n=len(medians),
+                    k=len(streak),
+                )
+                failure_state["failed"] = True
+            else:
+                latency_passed = True
             if not server["requests"]:
                 # Nothing to divide by, so the rate cannot clear a threshold it was never measured
                 # against. None arriving means they never reached the handler, or monitoring is off.
@@ -903,16 +982,14 @@ def main() -> None:
                     m=max_error_rate,
                 )
                 failure_state["failed"] = True
-            if (
-                server["p99_ms"]
-                and server["p99_ms"] <= max_server_p99_ms
-                and server["requests"]
-                and server["error_rate"] <= max_error_rate
-            ):
+            if latency_passed and server["requests"] and server["error_rate"] <= max_error_rate:
                 logger.info(
-                    "Server latency and error rate PASSED: p99 {p:.0f}ms, errors {e:.2%}",
-                    p=server["p99_ms"],
+                    "Server latency and error rate PASSED: every interval's median under "
+                    "{l:.0f}ms (worst {w:.0f}ms), errors {e:.2%}; p99 {p} reported, not gated",
+                    l=limit_ms,
+                    w=max(judged),
                     e=server["error_rate"],
+                    p=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
                 )
 
     # Rounds, not objects: writes go in batches, so a quorum blip loses a whole batch. Over
