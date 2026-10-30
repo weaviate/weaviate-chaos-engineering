@@ -188,11 +188,22 @@ check_weaviate_logs() {
     echo "Checking for errors in logs:"
     docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -i "erro" || log_info "No errors found in logs"
     
-    # The wrappers copy check_panics.sh next to this script on the VM. It fails on a
-    # panic or fatal runtime error, which the ERR trap turns into the run's failure;
-    # before, a panic here was only printed.
+    # Fails on a panic or fatal runtime error, which the ERR trap turns into the run's
+    # failure; before, a panic here was only printed. This script runs on a VM with only
+    # what the wrappers copied, so it uses check_panics.sh when that was copied too and
+    # otherwise carries the same markers itself.
     echo "Checking for panics in logs:"
-    bash ./check_panics.sh
+    if [ -f ./check_panics.sh ]; then
+        bash ./check_panics.sh
+    else
+        local markers='panic:|fatal error:|runtime error:|SIGSEGV|SIGBUS|goroutine [0-9]+ \[running\]|Recovered from panic'
+        if docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -nE -A 40 "$markers" | head -400 | grep -q .; then
+            docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -nE -A 40 "$markers" | head -400
+            log_error "Found panic in weaviate logs"
+            return 1
+        fi
+        log_info "No panics found in logs"
+    fi
 }
 
 # Run analysis
