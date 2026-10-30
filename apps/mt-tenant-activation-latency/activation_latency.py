@@ -22,6 +22,7 @@ Requires lazy shard loading (LAZY_LOAD_SHARD_COUNT_THRESHOLD=0); with it off sha
 load eagerly on every build and there is nothing to tell apart.
 """
 
+import csv
 import itertools
 import os
 import random
@@ -39,16 +40,31 @@ from weaviate.classes.config import DataType, Property
 from weaviate.classes.tenants import Tenant
 
 from gates import (
+    CREATE_LIMIT,
+    DELETE_LIMIT,
+    MIN_WINDOW_SAMPLES,
+    QUERY_LIMIT,
+    QUERY_P95,
+    QUERY_P99,
+    SUSTAINED_WINDOW_S,
+    WRITE_LIMIT,
+    WRITE_P95,
+    WRITE_P99,
     DeadlineAccumulator,
+    Limit,
     Phase,
     RestartWatcher,
+    Sample,
+    TailLimit,
     UserErrorAccumulator,
     evaluate,
     evaluate_churn,
     evaluate_fresh_pod,
     evaluate_user_errors,
+    failed_ms,
     get_env_float,
     get_env_int,
+    within,
     within_any,
 )
 
@@ -97,18 +113,52 @@ BASELINE_S = get_env_float("BASELINE_S", 20)
 # How long the window stays open after the rollout reports complete. 15s closed before
 # the spike it exists to measure: the p99 peak landed ~4min after the roll finished.
 SETTLE_S = get_env_float("SETTLE_S", 180)
-# Percentiles, not extremes: the roll costs the client its port-forward, and one
-# reconnect costs seconds even on a build that is fine.
-MAX_QUERY_P99_MS = get_env_float("MAX_QUERY_P99_MS", 1000)
-MAX_WRITE_P99_MS = get_env_float("MAX_WRITE_P99_MS", 500)
-WRITE_P99_TOLERANCE_MS = get_env_float("WRITE_P99_TOLERANCE_MS", 100)
-# A fixed ceiling allows a 7-20x degradation against the 43-139ms measured at rest,
-# more than the regression that escaped, so bound the rolling p99 to this multiple
-# of the leg's own quiet p99 as well.
-MAX_QUERY_P99_RATIO = get_env_float("MAX_QUERY_P99_RATIO", 3.0)
-# Below this the ratio is noise. 139ms is the top of the at-rest band, so a leg that
-# stays inside what the suite measures at rest never fails on the ratio.
-QUERY_P99_FLOOR_MS = get_env_float("QUERY_P99_FLOOR_MS", 139)
+# Latency gates on the sustained median, not on a percentile: over every
+# SUSTAINED_WINDOW_S stretch of the roll, the median wait of the calls that began in
+# it, against a multiple of the leg's own quiet median. A p99 is the dozen slowest
+# calls of the run, which a port-forward reconnect or a GC pause supplies on any build,
+# and a limit tuned to clear that failed one healthy leg in two by ~10%. A median only
+# moves when more than half of a window's calls were slow, which is what a backed-up
+# apply loop does and nothing else here does. See gates.Limit and gates.evaluate_sustained.
+SUSTAINED_WINDOW_S = get_env_float("SUSTAINED_WINDOW_S", SUSTAINED_WINDOW_S)
+MIN_WINDOW_SAMPLES = get_env_int("MIN_WINDOW_SAMPLES", MIN_WINDOW_SAMPLES)
+
+
+def limit_from_env(prefix: str, default: Limit) -> Limit:
+    """MAX_<prefix>_MEDIAN_RATIO, <prefix>_MEDIAN_FLOOR_MS and MAX_<prefix>_MEDIAN_MS."""
+    return Limit(
+        ratio=get_env_float(f"MAX_{prefix}_MEDIAN_RATIO", default.ratio),
+        floor_ms=get_env_float(f"{prefix}_MEDIAN_FLOOR_MS", default.floor_ms),
+        ceiling_ms=get_env_float(f"MAX_{prefix}_MEDIAN_MS", default.ceiling_ms),
+    )
+
+
+QUERY_LIMIT = limit_from_env("QUERY", QUERY_LIMIT)
+WRITE_LIMIT = limit_from_env("WRITE", WRITE_LIMIT)
+
+
+def tail_from_env(prefix: str, name: str, default: TailLimit) -> TailLimit:
+    """MAX_<prefix>_<name>_RATIO, <prefix>_<name>_FLOOR_MS and MAX_<prefix>_<name>_MS."""
+    return TailLimit(
+        ratio=get_env_float(f"MAX_{prefix}_{name}_RATIO", default.ratio),
+        floor_ms=get_env_float(f"{prefix}_{name}_FLOOR_MS", default.floor_ms),
+        ceiling_ms=get_env_float(f"MAX_{prefix}_{name}_MS", default.ceiling_ms),
+        warn_ms=default.warn_ms,
+    )
+
+
+# The p95/p99 gates over served calls; see gates.evaluate_tails. Queries are relative to
+# the quiet window; writes keep their old fixed shape: MAX_WRITE_P99_MS is the target that
+# warns, WRITE_P99_TOLERANCE_MS the band above it before the gate fails.
+QUERY_P95 = tail_from_env("QUERY", "P95", QUERY_P95)
+QUERY_P99 = tail_from_env("QUERY", "P99", QUERY_P99)
+_write_p99_target = get_env_float("MAX_WRITE_P99_MS", WRITE_P99.warn_ms or WRITE_P99.ceiling_ms)
+_write_p99_limit = _write_p99_target + get_env_float(
+    "WRITE_P99_TOLERANCE_MS", WRITE_P99.ceiling_ms - (WRITE_P99.warn_ms or WRITE_P99.ceiling_ms)
+)
+WRITE_P99 = TailLimit(0.0, _write_p99_limit, _write_p99_limit, warn_ms=_write_p99_target)
+_write_p95_limit = get_env_float("MAX_WRITE_P95_MS", WRITE_P95.ceiling_ms)
+WRITE_P95 = TailLimit(0.0, _write_p95_limit, _write_p95_limit)
 # Client-visible 4xx during the roll, which nothing used to count: 107 on the candidate
 # against 39 on the baseline. A count, not a rate -- revisit if SETTLE_S or
 # WRITE_INTERVAL_S move the window it accrues over.
@@ -120,13 +170,12 @@ MIN_WRITES = get_env_int("MIN_WRITES", 30)
 # One create-write-read-delete round per interval. Unhurried on purpose: the point is
 # to have the lifecycle running when the roll lands, not to load-test it.
 CHURN_INTERVAL_S = get_env_float("CHURN_INTERVAL_S", 0.5)
-# Measured quiet at create p99 95ms and delete 490ms, against 3,560 and 3,320ms under a
-# rollout; these sit between. A p90 because a churn window holds tens of samples, where
-# the nearest-rank p99 is just the slowest one.
-MAX_TENANT_CREATE_P90_MS = get_env_float("MAX_TENANT_CREATE_P90_MS", 1000)
-MAX_TENANT_DELETE_P90_MS = get_env_float("MAX_TENANT_DELETE_P90_MS", 1500)
-# Enough samples that the slowest tenth being discarded still leaves a percentile
-# worth reading, and a floor that catches a churn worker which barely ran.
+# Same gate and window as the queries and writes, with limits of their own: create and
+# delete sit ~5x apart at rest. See gates.CREATE_LIMIT.
+TENANT_CREATE_LIMIT = limit_from_env("TENANT_CREATE", CREATE_LIMIT)
+TENANT_DELETE_LIMIT = limit_from_env("TENANT_DELETE", DELETE_LIMIT)
+# Enough samples that the p90 printed beside the gate is worth reading, and a floor
+# that catches a churn worker which barely ran.
 MIN_TENANT_CHURNS = get_env_int("MIN_TENANT_CHURNS", 20)
 # Separate from MAX_FAILURE_RATIO: a failed create or delete is the thing being
 # measured, not a port-forward casualty, and the 50% that allows would hide it.
@@ -156,11 +205,12 @@ MIN_FRESH_POD_QUERIES = get_env_int("MIN_FRESH_POD_QUERIES", 30)
 # Longer than the worst single request on a healthy build (a ~15s port-forward
 # reconnect), so a worker still blocked after this is a stall.
 WORKER_DRAIN_S = get_env_float("WORKER_DRAIN_S", 60)
+# Every call the workers made, one row each, written where the job archives its logs.
+# The gates read medians over windows; this is what lets a threshold be re-derived
+# from a run instead of from its summary lines. Empty disables it.
+SAMPLES_CSV = os.getenv("SAMPLES_CSV", "/tmp/weaviate-mt-activation-latency-samples.csv")
 
 VEC = [0.1] * 8
-# (monotonic seconds, milliseconds, whether the call was served) so a sample can
-# be attributed to a window and refusals kept out of the latency distribution
-Sample = Tuple[float, float, bool]
 
 
 def _no_vectorizer(kwargs: dict) -> dict:
@@ -286,16 +336,30 @@ def rolling_restart(problems: List[str]) -> Tuple[float, float]:
     return began, time.monotonic()
 
 
-def within(samples: List[Sample], lo: float, hi: float) -> Tuple[List[float], List[float]]:
-    """What the window's calls cost, split by whether the cluster served them.
+def dump_samples(
+    path: str,
+    origin: float,
+    workers: Dict[str, List[Sample]],
+    marks: Dict[str, float],
+) -> None:
+    """One row per call, with the run's window boundaries as seconds from `origin`.
 
-    The failures keep their durations rather than being counted: a refusal that
-    came back instantly and a request that waited out a 30s timeout are both
-    failures, and only the duration tells them apart. See gates.evaluate.
+    Best effort: a run whose numbers were collected must still be judged when the
+    disk it would have written them to is not there.
     """
-    served = [ms for at, ms, ok in samples if ok and lo <= at <= hi]
-    failed = [ms for at, ms, ok in samples if not ok and lo <= at <= hi]
-    return served, failed
+    if not path:
+        return
+    try:
+        with open(path, "w", newline="") as f:
+            out = csv.writer(f)
+            out.writerow(["# " + " ".join(f"{k}={v - origin:.3f}" for k, v in marks.items())])
+            out.writerow(["worker", "began_s", "wait_ms", "served"])
+            for worker, samples in workers.items():
+                for at, ms, ok in samples:
+                    out.writerow([worker, f"{at - origin:.3f}", f"{ms:.1f}", int(ok)])
+        logger.info("wrote every call to {p}", p=path)
+    except OSError as e:
+        logger.warning("could not write the samples to {p}: {e}", p=path, e=e)
 
 
 def main() -> int:
@@ -604,49 +668,64 @@ def main() -> int:
             except Exception as e:
                 logger.warning("could not sweep the leaked churn tenants: {e}", e=e)
 
-        create_quiet_ms, create_quiet_failed_ms = within(creates, 0, quiet_end)
-        create_roll_ms, create_roll_failed_ms = within(creates, roll_began, roll_window_end)
-        delete_quiet_ms, delete_quiet_failed_ms = within(deletes, 0, quiet_end)
-        delete_roll_ms, delete_roll_failed_ms = within(deletes, roll_began, roll_window_end)
-        churn_ms, churn_failed_ms = within(churns, roll_began, roll_window_end)
+        dump_samples(
+            SAMPLES_CSV,
+            seeded,
+            {
+                "query": queries,
+                "write": writes,
+                "tenant_create": creates,
+                "tenant_delete": deletes,
+                "churn": churns,
+            },
+            {
+                "quiet_end": quiet_end,
+                "roll_began": roll_began,
+                "roll_ended": roll_ended,
+                "roll_window_end": roll_window_end,
+            },
+        )
 
-        quiet_ms, quiet_failed_ms = within(queries, 0, quiet_end)
-        rolling_ms, rolling_failed_ms = within(queries, roll_began, roll_window_end)
-        write_ms, write_failed_ms = within(writes, 0, roll_window_end)
+        quiet = within(queries, 0, quiet_end)
+        rolling = within(queries, roll_began, roll_window_end)
+        churn_roll = within(churns, roll_began, roll_window_end)
         passed, lines = evaluate(
-            quiet_ms,
-            rolling_ms,
-            write_ms,
+            quiet,
+            rolling,
+            within(writes, 0, quiet_end),
+            within(writes, roll_began, roll_window_end),
             deadline_waits,
-            MAX_QUERY_P99_MS,
-            MAX_WRITE_P99_MS,
             MIN_QUERIES,
             min_writes=MIN_WRITES,
-            write_p99_tolerance_ms=WRITE_P99_TOLERANCE_MS,
-            max_query_p99_ratio=MAX_QUERY_P99_RATIO,
-            query_p99_floor_ms=QUERY_P99_FLOOR_MS,
+            query_limit=QUERY_LIMIT,
+            write_limit=WRITE_LIMIT,
+            window_s=SUSTAINED_WINDOW_S,
+            min_window_samples=MIN_WINDOW_SAMPLES,
             max_failure_ratio=MAX_FAILURE_RATIO,
             max_stalled_calls=MAX_STALLED_CALLS,
             stall_ms=STALL_MS,
-            query_failed_ms=rolling_failed_ms,
-            write_failed_ms=write_failed_ms,
             problems=problems,
+            query_p95=QUERY_P95,
+            query_p99=QUERY_P99,
+            write_p95=WRITE_P95,
+            write_p99=WRITE_P99,
         )
         churn_passed, churn_lines = evaluate_churn(
-            Phase(create_quiet_ms, create_roll_ms, create_roll_failed_ms),
-            Phase(delete_quiet_ms, delete_roll_ms, delete_roll_failed_ms),
-            MAX_TENANT_CREATE_P90_MS,
-            MAX_TENANT_DELETE_P90_MS,
+            Phase(within(creates, 0, quiet_end), within(creates, roll_began, roll_window_end)),
+            Phase(within(deletes, 0, quiet_end), within(deletes, roll_began, roll_window_end)),
             MIN_TENANT_CHURNS,
-            failures=len(churn_failed_ms),
-            attempts=len(churn_ms) + len(churn_failed_ms),
+            failures=len(failed_ms(churn_roll)),
+            attempts=len(churn_roll),
             max_failures=MAX_CHURN_FAILURES,
+            create_limit=TENANT_CREATE_LIMIT,
+            delete_limit=TENANT_DELETE_LIMIT,
+            window_s=SUSTAINED_WINDOW_S,
+            min_window_samples=MIN_WINDOW_SAMPLES,
         )
         # Carved out of the same query samples the rolling gate reads. Overlapping windows are
         # fine; within_any takes a sample once.
-        fresh_ms, fresh_failed_ms = within_any(queries, fresh_slices)
         fresh_passed, fresh_lines = evaluate_fresh_pod(
-            Phase(quiet_ms, fresh_ms, fresh_failed_ms),
+            Phase(quiet, within_any(queries, fresh_slices)),
             fresh_windows,
             FRESH_POD_WINDOW_S,
             MIN_FRESH_POD_QUERIES,
@@ -661,14 +740,14 @@ def main() -> int:
         logger.info(
             "rollout took {s:.0f}s; {n} queries refused in the quiet window",
             s=roll_ended - roll_began,
-            n=len(quiet_failed_ms),
+            n=len(failed_ms(quiet)),
         )
         # Not gated: it is the reference, not the measurement. Logged because a tenant create
         # failing on an idle cluster is worth a look.
         logger.info(
             "quiet window: {c} tenant creates and {d} deletes failed; {n} tenants leaked",
-            c=len(create_quiet_failed_ms),
-            d=len(delete_quiet_failed_ms),
+            c=len(failed_ms(within(creates, 0, quiet_end))),
+            d=len(failed_ms(within(deletes, 0, quiet_end))),
             n=len(leaked_names),
         )
         for line in lines:

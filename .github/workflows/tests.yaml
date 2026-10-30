@@ -1937,6 +1937,10 @@ jobs:
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
           values-inline: '--set podManagementPolicy=OrderedReady' 
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -1991,6 +1995,11 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -1999,6 +2008,9 @@ jobs:
           path: |
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
   upgrade-journey-raft-1_30:
     needs: [newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-1_30' || github.event.inputs.test_to_run == '')}}
@@ -2041,6 +2053,10 @@ jobs:
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
           values-inline: '--set podManagementPolicy=OrderedReady'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Weaviate v1.24.x - import data
         run: |
           cd apps/upgrade-journey-raft
@@ -2108,6 +2124,11 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           python3 additional_checks.py
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2116,6 +2137,9 @@ jobs:
           path: |
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
   upgrade-journey-raft-metadata-only-voters:
     needs: [newer-or-equal-than-1_25]
     if: ${{ (needs.newer-or-equal-than-1_25.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'upgrade-journey-raft-metadata-only-voters' || github.event.inputs.test_to_run == '') }}
@@ -2156,6 +2180,10 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_RAFT_VERSION_1}}
           modules: 'text2vec-contextionary'
           values-override: ${{env.VALUES_OVERRIDE}}
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Weaviate v1.25 with metadata only voters setting - import data and additional data
         run: |
           cd apps/upgrade-journey-raft
@@ -2178,12 +2206,22 @@ jobs:
         run: |
           cd apps/upgrade-journey-raft
           ./scripts/metadata_only_voters_check.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
         with:
           name: upgrade-journey-raft-metadata-only-voters-${{ inputs.lsm_access_strategy }}-logs
-          path: apps/upgrade-journey-raft/logs/
+          path: |
+            apps/upgrade-journey-raft/logs/
+            /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
   rbac-upgrade-journey:
     needs: [real-version-in-tag, newer-or-equal-than-1_30]
     if: ${{ (needs.newer-or-equal-than-1_30.outputs.check == 'true') && ( github.event.inputs.test_to_run == 'rbac-upgrade-journey' || github.event.inputs.test_to_run == '')}}
@@ -2260,6 +2298,10 @@ jobs:
           rbac: 'true'
           auth-config: ${{ env.RBAC_CONFIG }}
           values-override: ${{env.VALUES_OVERRIDE}}
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Weaviate ${{env.WEAVIATE_INITIAL_VERSION}} - create roles
         run: |
           cd apps/rbac-upgrade-journey
@@ -2387,6 +2429,11 @@ jobs:
         run: |
           cd apps/rbac-upgrade-journey
           python3 additional_check_roles.py --api-key ${{ env.WEAVIATE_API_KEY }}
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2395,6 +2442,9 @@ jobs:
           path: |
             apps/upgrade-journey-raft/logs/
             /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
   async-repair:
     # CONTEXT: https://github.com/weaviate/weaviate/issues/5229
     needs: [newer-or-equal-than-1_26]
@@ -2672,8 +2722,27 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: server-side-batching-with-rolling-restart-without-async-indexing-${{ inputs.lsm_access_strategy }}-logs
+          path: |
+            /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
 
   server-side-batching-with-rolling-restart-with-async-indexing:
     needs: [equal-to-1_36_rc]
@@ -2700,8 +2769,27 @@ jobs:
           replicas: '3'
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ASYNC_INDEXING=${{env.ASYNC_INDEXING}}'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Run chaos test
         run: ./server_side_batching_with_rolling_restart.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
+      - name: Archive logs
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: server-side-batching-with-rolling-restart-with-async-indexing-${{ inputs.lsm_access_strategy }}-logs
+          path: |
+            /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
 
   module-conflicting-vectorizer-settings:
     needs: [newer-or-equal-than-1_33]
@@ -2766,8 +2854,17 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-model2vec'
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}}'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Run alter schema drop property index tests
         run: apps/alter_schema_operations/alter_schema_drop_property_index.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2776,6 +2873,9 @@ jobs:
           path: |
             apps/alter_schema_operations/logs/
             /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
 
   alter-schema-drop-vector-index:
     needs: [newer-or-equal-than-1_39]
@@ -2806,8 +2906,17 @@ jobs:
           weaviate-version: ${{env.WEAVIATE_VERSION}}
           modules: 'text2vec-model2vec'
           values-inline: '--set env.PERSISTENCE_LSM_ACCESS_STRATEGY=${{env.PERSISTENCE_LSM_ACCESS_STRATEGY}} --set env.ENABLE_EXPERIMENTAL_ALTER_SCHEMA_DROP_VECTOR_INDEX_ENDPOINT=true --set env.DROP_VECTOR_INDEX_RECONCILE_INTERVAL_SECONDS=30'
+      - name: Start stern to capture logs
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: start
       - name: Run alter schema drop vector index tests
         run: apps/alter_schema_operations/alter_schema_drop_vector_index.sh
+      - name: Stop stern
+        if: always()
+        uses: weaviate/github-common-actions/.github/actions/capture-logs@main
+        with:
+          action: stop
       - name: Archive logs
         if: always()
         uses: actions/upload-artifact@v5
@@ -2816,6 +2925,9 @@ jobs:
           path: |
             apps/alter_schema_operations/logs/
             /tmp/weaviate*
+      - name: Check for panics in logs
+        if: always()
+        run: ./check_panics.sh /tmp/weaviate_pods.log
 
   mt-tenant-activation-latency:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
@@ -2831,24 +2943,61 @@ jobs:
       # few enough that seeding stays under a minute.
       TENANTS: 400
       SEED_WORKERS: 16
-      # Percentiles rather than extremes: the roll breaks the client's port-forward, and
-      # one reconnect costs seconds even on a build that is fine.
+      # Latency gates on the sustained median, not a percentile: over every
+      # SUSTAINED_WINDOW_S stretch of the roll, the median wait of the calls that began
+      # in it, against a multiple of the leg's own quiet median. The p99 ran 458-663ms
+      # on one week's healthy legs against a limit of 600, and the query p99's limit
+      # was 3x a quiet p99 that itself swung 17-69ms: seven of twelve legs failed by
+      # ~10%. A median only moves when more than half of a window's calls were slow,
+      # which a backed-up apply loop does for minutes and a reconnect cannot do at all.
+      # The p99 and max are still printed beside every verdict. See gates.Limit.
+      #
+      # 60s, because a call held behind the apply loop waits up to the 10s consistency
+      # deadline, so a minute of them is six, above the five a window needs; and a 15s
+      # reconnect is one call, of which the roll cannot fit three in a minute.
+      SUSTAINED_WINDOW_S: 60
+      MIN_WINDOW_SAMPLES: 5
+      # Limits: ratio x the quiet median, floored, capped. Queries sit at a 4ms median
+      # and 43-139ms p99 at rest; the floor is the top of that p99 band, the ceiling the
+      # old fixed p99 limit. Writes ~110ms median; the floor is what the p99 was allowed.
+      MAX_QUERY_MEDIAN_RATIO: 5.0
+      QUERY_MEDIAN_FLOOR_MS: 139
+      MAX_QUERY_MEDIAN_MS: 1000
+      MAX_WRITE_MEDIAN_RATIO: 5.0
+      WRITE_MEDIAN_FLOOR_MS: 500
+      MAX_WRITE_MEDIAN_MS: 2000
+      # The p95/p99 gates, beside the median one, over served calls only: a call that
+      # got no response (refused, reset, timed out) has no latency to rank and is gated
+      # by its share and by MAX_STALLED_CALLS instead. Query limits are the lower of
+      # ratio x the quiet window's same percentile (floored) and a ceiling; write limits
+      # are fixed, the p99's with a tolerance band that warns. Looser than the old p99
+      # gates: the median gate catches a stall, so these only catch a tail out of all
+      # proportion, and the healthy legs the old limits failed sit at under half of
+      # these. See gates.evaluate_tails.
+      MAX_QUERY_P99_RATIO: 5.0
+      QUERY_P99_FLOOR_MS: 500
       MAX_QUERY_P99_MS: 1000
-      MAX_WRITE_P99_MS: 500
-      WRITE_P99_TOLERANCE_MS: 100
-      MAX_TENANT_CREATE_P90_MS: 1000
-      MAX_TENANT_DELETE_P90_MS: 1500
+      MAX_QUERY_P95_RATIO: 5.0
+      QUERY_P95_FLOOR_MS: 250
+      MAX_QUERY_P95_MS: 500
+      MAX_WRITE_P99_MS: 1000
+      WRITE_P99_TOLERANCE_MS: 250
+      MAX_WRITE_P95_MS: 750
+      # Tenant create (40ms median at rest) and delete (260ms) gate the same way, apart,
+      # since one limit would clear the slower and let the faster regress 37x. Ceilings
+      # at the measured regression (3.56s and 3.32s), which a quiet window must not excuse.
+      MAX_TENANT_CREATE_MEDIAN_RATIO: 5.0
+      TENANT_CREATE_MEDIAN_FLOOR_MS: 500
+      MAX_TENANT_CREATE_MEDIAN_MS: 3000
+      MAX_TENANT_DELETE_MEDIAN_RATIO: 5.0
+      TENANT_DELETE_MEDIAN_FLOOR_MS: 1000
+      MAX_TENANT_DELETE_MEDIAN_MS: 3000
+      # Every call the workers made, one row each, archived with the pod logs so a
+      # threshold can be re-derived from a run rather than from its summary lines.
+      SAMPLES_CSV: /tmp/weaviate-mt-activation-latency-samples.csv
       # How long the window stays open after the rollout reports complete. 15s closed
       # before the spike it exists to measure: the p99 peak landed ~4min after the roll.
       SETTLE_S: 180
-      # A 1,000ms ceiling against the 43-139ms these legs measure at rest permits a
-      # 7-20x degradation, more than the regression that escaped at 3.6-4.3x. Bound the
-      # rolling p99 at this multiple of the leg's own quiet p99 too, whichever is lower.
-      MAX_QUERY_P99_RATIO: 3.0
-      # Below this the ratio is noise: a healthy leg has gone 4ms quiet to 12.8ms
-      # rolling. 139ms is the top of the at-rest band, so a leg that stays inside what
-      # the suite measures at rest is never failed on the ratio.
-      QUERY_P99_FLOOR_MS: 139
       # Client-visible 4xx during the roll, which nothing gated before: 107 on the
       # candidate against 39 on the baseline. Healthy legs ran 1-9 each. A count, not a
       # rate -- revisit if SETTLE_S or WRITE_INTERVAL_S move the window.
@@ -2915,12 +3064,7 @@ jobs:
             /tmp/weaviate*
       - name: Check for panics in logs
         if: always()
-        run: |
-          if grep -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log; then
-            echo "::error::Found panic in weaviate logs"
-            grep -A 20 -iE "panic:|runtime error:|goroutine.*\[running\]" /tmp/weaviate_pods.log
-            exit 1
-          fi
+        run: ./check_panics.sh /tmp/weaviate_pods.log
 
   rolling-restart-highly-available-qps-benchmark:
     needs: [newer-or-equal-than-1_31, newer-or-equal-than-1_36]
@@ -2939,13 +3083,35 @@ jobs:
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
       # inflating latency on any build and leaving the baseline too low to judge.
       BENCHMARK_QPS: 15
+      # Server latency gates on each scrape interval's median against the run's own
+      # quiet median (the RESTART_DELAY_SECONDS before the window), floored and capped.
+      # The window-wide p99 is reported, not gated: over thousands of queries it is the
+      # few dozen slowest, which a restart supplies on any build. See
+      # server_metrics.sustained_breach.
+      MAX_SERVER_MEDIAN_RATIO: 5.0
+      SERVER_MEDIAN_FLOOR_MS: 500
+      MAX_SERVER_MEDIAN_MS: 2000
+      # A node that sheds a query under admission control (429) is asking for a retry.
+      # Retried with exponential backoff from 0.1s; a query still shed after the last
+      # retry fails the run. See shed_retry.py.
+      SHED_RETRIES: 5
+      # An aggregate attempt with no HTTP response is the port-forward relay's dial to
+      # a pod that was just terminated, not Weaviate's answer. Retried with backoff on
+      # a fresh connection; only the answered attempt is timed. See aggregates.py.
+      AGGREGATE_NO_RESPONSE_RETRIES: 3
+      # The p95/p99 gates, beside the median one, read from the server's own histogram,
+      # so a request the relay never delivered is not in them. Looser than the old 2000ms
+      # p99 limit: the median gate catches a stall, so these only catch a tail out of
+      # all proportion (healthy rollouts sit at 300-400ms).
+      MAX_SERVER_P95_MS: 1500
+      MAX_SERVER_P99_MS: 3000
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
           ASYNC_INDEXING: true
           ASYNC_REPLICATION_FREQUENCY: "10s"
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
@@ -3022,17 +3188,29 @@ jobs:
       # The runner serves ~15 of 20 QPS, and asking for more only queues requests,
       # inflating latency on any build and leaving the baseline too low to judge.
       BENCHMARK_QPS: 15
+      # Server latency gates on each scrape interval's median against the run's own
+      # quiet median; see the rolling-restart job above and server_metrics.sustained_breach.
+      MAX_SERVER_MEDIAN_RATIO: 5.0
+      SERVER_MEDIAN_FLOOR_MS: 500
+      MAX_SERVER_MEDIAN_MS: 2000
+      # Shed (429) queries are retried with exponential backoff; see the job above.
+      SHED_RETRIES: 5
+      # Aggregate attempts with no HTTP response are retried; see the job above.
+      AGGREGATE_NO_RESPONSE_RETRIES: 3
+      # Server p95/p99 over the restart window, beside the median gate; see the job above.
+      MAX_SERVER_P95_MS: 1500
+      MAX_SERVER_P99_MS: 3000
       # disable WAL reuse, otherwise pipeline will fail because of an unknown commit type (CommitTypeRoaringSetList) that was added in 1.25
       VALUES_OVERRIDE: |
         env:
           ASYNC_INDEXING: true
           ASYNC_REPLICATION_FREQUENCY: "10s"
           PERSISTENCE_LSM_ACCESS_STRATEGY: ${{inputs.lsm_access_strategy}}
-          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0 
+          PERSISTENCE_MAX_REUSE_WAL_SIZE: 0
           RAFT_TIMEOUTS_MULTIPLIER: 5
           MEMBERLIST_FAST_FAILURE_DETECTION: true
           ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'DISABLE_LAZY_LOAD_SHARDS: true' || '' }}
-          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}      
+          ${{ needs.newer-or-equal-than-1_36.outputs.check != 'true' && 'HNSW_STARTUP_WAIT_FOR_VECTOR_CACHE: true' || '' }}
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/free-disk-space

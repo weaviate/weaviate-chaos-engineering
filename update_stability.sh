@@ -48,6 +48,9 @@ docker run --network host -t -v "$PWD/results:/app/results" -v "$PWD/datasets:/a
   -e "WEAVIATE_URL=localhost" \
   semitechnologies/weaviate-benchmarker:v2.2.3 /app/scripts/shell/update_stability.sh
 
+# Last chance to read Weaviate's log before the container is removed.
+./check_panics.sh
+
 echo "Stopping Weaviate..."
 docker compose -f $COMPOSE down
 

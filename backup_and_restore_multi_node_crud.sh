@@ -56,4 +56,7 @@ docker compose -f $COMPOSE up create-s3-bucket
 echo "Run multi-node backup and restore CRUD operations"
 docker run --network host -t backup_and_restore_crud python3 backup_and_restore_crud.py
 
+# The nodes are left running, so their logs are still here to read.
+./check_panics.sh
+
 echo "Passed!"

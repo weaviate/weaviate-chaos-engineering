@@ -14,23 +14,38 @@ What to gate on, learned the hard way: the client reaches the cluster through a
 port-forward, and a rolling restart breaks that connection. A single query can
 therefore sit for 15s on a perfectly healthy build. Gating on the slowest sample
 made the verdict a coin toss on reconnect timing -- it failed one post-fix leg at
-15,015ms and passed another at 3,014ms, both artifacts. Percentiles over hundreds
-of samples are not moved by one reconnect, and they separate the builds by orders
-of magnitude, so they gate and the extremes are reported.
+15,015ms and passed another at 3,014ms, both artifacts.
 
-The same reconnect is why the one measurement taken from the server rather than
-the client -- the 4xx in evaluate_user_errors -- can be gated far more tightly
-than anything here. A lost port-forward produces no HTTP answer at all, so it
-cannot move a counter that only advances when a handler answered.
+Percentiles came next and flaked the same way, one notch down. A p99 over ~1,200
+calls is the twelfth slowest, which is a dozen reconnects, GC pauses and scheduler
+hiccups, and a limit tuned to clear healthy runs sits inside that noise: the
+write p99 ran 458-663ms across one week's healthy legs against a limit moved from
+500 to 600ms, and the query p99's limit was 3x a quiet p99 that itself swung
+17-69ms from one run to the next. Seven of twelve legs failed, each by about 10%.
 
-And it is why the query p99 limit is relative. A fixed ceiling has to clear the
-noisiest leg, which in this environment leaves 7-20x of headroom over what the
-suite measures at rest -- more than the degradation that escaped it. Bounding the
-roll against the leg's own quiet window asks the question the product asks ("the
-customer should not see that a rollout happened") and asks it the same way in an
-environment that is ten times slower at rest. See evaluate.
+The regression this suite exists to catch does not look like that. A backed-up
+apply loop holds *every* request that needs a schema version, for as long as it
+is backed up -- seconds to minutes. So the gate asks for that shape and nothing
+else: over every window_s stretch of the roll, the median of what the calls in it
+waited. A median only moves when more than half of a window's calls were slow,
+which one reconnect, one slow answer or a scattered tail cannot do, while a stall
+does so in every window it covers. The median of the leg's own quiet window sets
+the limit (times a ratio, with a floor so a ratio between single-digit
+milliseconds is not a verdict, and a ceiling so a terrible quiet window cannot
+buy headroom), which asks the question the product asks -- the customer should
+not see that a rollout happened -- and asks it the same way on a runner that is
+ten times slower at rest. See Limit, sliding_windows and evaluate_sustained.
+
+The p99 and max are still printed beside every window so the shape of a run can
+be read from its log; they no longer decide it. What does, besides the windows:
+counts and shares that one artifact cannot produce -- calls that waited past
+stall_ms and were never served, the share of calls refused, the schema-version
+waits the server itself timed out, and the 4xx it answered. That last one can be
+gated tightly for the same reason the client-side gates cannot: a lost
+port-forward produces no HTTP answer, so it never moves a server-side counter.
 """
 
+import bisect
 import math
 import os
 import re
@@ -241,23 +256,38 @@ class RestartWatcher:
         return [(at, at + length_s) for at in sorted(self._came_back)]
 
 
-def within_any(
-    samples: Sequence[Tuple[float, float, bool]],
-    windows: Sequence[Tuple[float, float]],
-) -> Tuple[List[float], List[float]]:
-    """What the given windows' calls cost, split by whether they were served.
+# (monotonic seconds the call began, milliseconds it waited, whether the cluster served
+# it). The wait is kept whether or not the call was served: a refusal that came back
+# instantly and a request that waited out its timeout are both failures, and only the
+# duration tells them apart.
+Sample = Tuple[float, float, bool]
+
+
+def served_ms(samples: Sequence[Sample]) -> List[float]:
+    return [ms for _, ms, ok in samples if ok]
+
+
+def failed_ms(samples: Sequence[Sample]) -> List[float]:
+    return [ms for _, ms, ok in samples if not ok]
+
+
+def waits_ms(samples: Sequence[Sample]) -> List[float]:
+    """Every call's wait, served or not."""
+    return [ms for _, ms, _ in samples]
+
+
+def within(samples: Sequence[Sample], lo: float, hi: float) -> List[Sample]:
+    """The calls that began inside [lo, hi], in the order they began."""
+    return [s for s in samples if lo <= s[0] <= hi]
+
+
+def within_any(samples: Sequence[Sample], windows: Sequence[Tuple[float, float]]) -> List[Sample]:
+    """The calls that began inside any of the windows, each taken once.
 
     Pods restart closer together than a window is long, so the windows overlap; a
-    sample in several of them is taken once. Split the same way and for the same
-    reason as `within` in activation_latency: a refusal that came back instantly
-    and a request that waited out its timeout are both failures, and only the
-    duration tells them apart.
+    sample in several of them is taken once.
     """
-    served, failed = [], []
-    for at, ms, ok in samples:
-        if any(lo <= at <= hi for lo, hi in windows):
-            (served if ok else failed).append(ms)
-    return served, failed
+    return [s for s in samples if any(lo <= s[0] <= hi for lo, hi in windows)]
 
 
 def percentile(samples: Sequence[float], q: float) -> Optional[float]:
@@ -293,41 +323,344 @@ def _fmt(s: Dict[str, Optional[float]]) -> str:
     return f"n={int(s['count'])} p50={n(s['p50'])} p99={n(s['p99'])} max={n(s['max'])} (ms)"
 
 
+class SlowWindow(NamedTuple):
+    """One window_s stretch of the roll, as the median wait of every call that began in it."""
+
+    start: float
+    end: float
+    median_ms: float
+    calls: int
+
+
+def sliding_windows(
+    samples: Sequence[Sample], window_s: float, min_samples: int
+) -> List[SlowWindow]:
+    """
+    Every window_s stretch that begins on a call and holds at least min_samples calls.
+
+    Anchored on the calls rather than on a fixed grid, so a stall cannot be split
+    across two windows that each look fine. The median is over every call that began
+    in the window, served or not: a request that waited out its timeout measured the
+    stall, and an instant refusal during a reconnect only pulls the median down,
+    which errs towards passing and is what the failure-share gate is for.
+
+    The worker is serial, so a slow cluster produces *fewer* calls per window, not
+    more. min_samples is therefore the floor on what can be judged, and window_s has
+    to be long enough that a stall still fills it: a request held behind the apply
+    loop waits up to RAFT_CONSISTENCY_WAIT_TIMEOUT (10s by default) before it is
+    served or counted as a deadline, so 60s of such calls is six of them. The same
+    two numbers are what keep a reconnect out: a 15s hang is one call, the rollout
+    cannot restart pods fast enough to put three of them in one minute, and two are
+    never the majority of five. A window too thin to judge is not judged here, and
+    it is not skipped either: see thin_windows, which evaluate_sustained fails on.
+
+    Only windows that lie wholly inside the measured span are judged. One that runs
+    past the last call holds only the few calls at the end, and those are whatever
+    the end happened to be -- two hangs after a quiet minute read as a stall.
+    """
+    out: List[SlowWindow] = []
+    for at, waits in _windows(samples, window_s):
+        if len(waits) < min_samples:
+            continue
+        median = percentile(waits, 0.5)
+        assert median is not None
+        out.append(SlowWindow(at, at + window_s, median, len(waits)))
+    return out
+
+
+def thin_windows(
+    samples: Sequence[Sample], window_s: float, min_samples: int
+) -> List[SlowWindow]:
+    """
+    Every window_s stretch inside the measured span that held fewer than min_samples calls.
+
+    The worker is serial, so a window holding fewer than min_samples calls is one in
+    which the calls it did hold averaged more than window_s / min_samples each -- 12s
+    at the defaults. That is a stall seen from the other side, and the slower the
+    stall the thinner the windows get, so skipping them would pass the worst runs
+    first: six tenant-churn iterations of four 8s operations each put only two
+    creates in any minute, and 170s of that passed the median gate once the healthy
+    minutes either side had been judged. Reconnect artefacts do not get here: a 15s
+    hang, or two back to back, still leave the rest of the minute full of fast calls.
+    """
+    return [
+        SlowWindow(at, at + window_s, percentile(waits, 0.5) or 0.0, len(waits))
+        for at, waits in _windows(samples, window_s)
+        if len(waits) < min_samples
+    ]
+
+
+def _windows(samples: Sequence[Sample], window_s: float) -> List[Tuple[float, List[float]]]:
+    """Every window_s stretch anchored on a call and inside the span, as (start, waits)."""
+    ordered = sorted(samples, key=lambda s: s[0])
+    if not ordered:
+        return []
+    starts = [at for at, _, _ in ordered]
+    span_end = max(at + ms / 1000.0 for at, ms, _ in ordered)
+    out: List[Tuple[float, List[float]]] = []
+    for i, (at, _, _) in enumerate(ordered):
+        if at + window_s > span_end:
+            break
+        j = bisect.bisect_left(starts, at + window_s)
+        out.append((at, [ms for _, ms, _ in ordered[i:j]]))
+    return out
+
+
+def stretches(windows: Sequence[SlowWindow]) -> List[Tuple[float, float]]:
+    """Overlapping windows merged into (start, end) spans, in time order."""
+    spans: List[Tuple[float, float]] = []
+    for w in sorted(windows, key=lambda w: w.start):
+        if spans and w.start <= spans[-1][1]:
+            spans[-1] = (spans[-1][0], max(spans[-1][1], w.end))
+        else:
+            spans.append((w.start, w.end))
+    return spans
+
+
+class Limit(NamedTuple):
+    """
+    What a sustained median may reach: ratio x the leg's own quiet median, floored and capped.
+
+    Relative, because a fixed limit has to clear the noisiest runner and then leaves an
+    order of magnitude of headroom on the others. floor_ms keeps the ratio out of the
+    noise -- 5x of a 4ms quiet median is 20ms, which a restarting replica can cost a
+    healthy request -- and ceiling_ms keeps a leg whose quiet window was itself terrible
+    from buying headroom with it. With no quiet window at all the ceiling is the limit:
+    no reference is not a reason to stop gating.
+    """
+
+    ratio: float
+    floor_ms: float
+    ceiling_ms: float
+
+    def resolve(self, quiet: Sequence[Sample]) -> Tuple[float, str]:
+        """(limit in ms, how it was arrived at)."""
+        quiet_median = percentile(waits_ms(quiet), 0.5)
+        if quiet_median is None:
+            return self.ceiling_ms, f"the {self.ceiling_ms:.0f}ms ceiling (no quiet window)"
+        relative = max(quiet_median * self.ratio, self.floor_ms)
+        if relative < self.ceiling_ms:
+            return relative, (
+                f"{relative:.0f}ms -- {self.ratio:.1f}x this leg's own quiet median of"
+                f" {quiet_median:.0f}ms, floored at {self.floor_ms:.0f}ms"
+            )
+        return self.ceiling_ms, (
+            f"the {self.ceiling_ms:.0f}ms ceiling -- {self.ratio:.1f}x the quiet median of"
+            f" {quiet_median:.0f}ms would sit above it"
+        )
+
+
+# Queries: 4ms quiet median on these legs, 43-139ms at the p99. The floor is the top of
+# that at-rest p99 band -- a median there means half of a minute's calls waited longer
+# than the slowest 1% do at rest. The ceiling is the old fixed p99 limit: a median held
+# there for a minute is broken whatever the quiet window did.
+QUERY_LIMIT = Limit(ratio=5.0, floor_ms=139.0, ceiling_ms=1000.0)
+# Writes: ~110ms quiet median. The floor is what the p99 used to be allowed, so a median
+# past it needs no argument.
+WRITE_LIMIT = Limit(ratio=5.0, floor_ms=500.0, ceiling_ms=2000.0)
+# A window has to be long enough that a stall still fills it -- see sliding_windows.
+SUSTAINED_WINDOW_S = 60.0
+MIN_WINDOW_SAMPLES = 5
+
+
+class TailLimit(NamedTuple):
+    """
+    What a percentile of the served calls may reach: the same shape as Limit, against the
+    quiet window's same percentile. ratio 0 makes it the fixed ceiling, which is how the
+    write limits were set before the gates moved to medians. warn_ms is a target under
+    the limit that only warns, the write p99's old tolerance band.
+    """
+
+    ratio: float
+    floor_ms: float
+    ceiling_ms: float
+    warn_ms: Optional[float] = None
+
+    def resolve(self, quiet_value: Optional[float]) -> Tuple[float, str]:
+        """(limit in ms, how it was arrived at)."""
+        if quiet_value is None or self.ratio <= 0:
+            return self.ceiling_ms, f"{self.ceiling_ms:.0f}ms"
+        relative = max(quiet_value * self.ratio, self.floor_ms)
+        if relative < self.ceiling_ms:
+            return relative, (
+                f"{relative:.0f}ms -- the lower of {self.ratio:.1f}x this leg's own quiet"
+                f" value of {quiet_value:.0f}ms (floored at {self.floor_ms:.0f}ms) and the"
+                f" {self.ceiling_ms:.0f}ms ceiling"
+            )
+        return self.ceiling_ms, (
+            f"the {self.ceiling_ms:.0f}ms ceiling -- {self.ratio:.1f}x the quiet value of"
+            f" {quiet_value:.0f}ms would sit above it"
+        )
+
+
+# The percentile gates that preceded the median ones, restored beside them over served
+# calls only. What made them a coin toss was the calls that got no response: a roll
+# costs the client its port-forward, and a refusal, a connection reset or a timeout
+# arrived with a wait of up to 15s that ranked as the slowest 1%. Those calls have no
+# served latency, so they are left out here and gated by their share and by
+# max_stalled_calls instead. The limits are looser than the old ones were, because the
+# median gate now catches a stall and these only need to catch a tail that is out of
+# all proportion: the healthy legs that the old limits failed by 10% (query p99 193ms
+# against 174ms, write p99 663ms against 600ms) sit at under half of these. Query p99 at
+# the lower of 5x the quiet p99 floored at 500ms and 1s; query p95 at half of that;
+# write p99 at 1s with a 250ms band that warns before it fails; write p95 at 750ms.
+QUERY_P99 = TailLimit(ratio=5.0, floor_ms=500.0, ceiling_ms=1000.0)
+QUERY_P95 = TailLimit(ratio=5.0, floor_ms=250.0, ceiling_ms=500.0)
+WRITE_P99 = TailLimit(ratio=0.0, floor_ms=1250.0, ceiling_ms=1250.0, warn_ms=1000.0)
+WRITE_P95 = TailLimit(ratio=0.0, floor_ms=750.0, ceiling_ms=750.0)
+
+
+def evaluate_tails(
+    label: str,
+    quiet: Sequence[Sample],
+    rolling: Sequence[Sample],
+    p95: TailLimit = QUERY_P95,
+    p99: TailLimit = QUERY_P99,
+) -> Tuple[bool, List[str]]:
+    """
+    The p95 and p99 of the rolling window's served calls against the quiet window's.
+
+    Served only. A call that got no response -- refused, reset, timed out -- measured a
+    wait, not a latency, and those waits are what moved these percentiles on healthy
+    builds. evaluate gates them by share and by stall count; here they are excluded and
+    the exclusion is printed, so a tail that passed with many calls missing says so.
+    """
+    served, excluded = served_ms(rolling), failed_ms(rolling)
+    quiet_served = served_ms(quiet)
+    if not served:
+        return False, [f"FAILED: no served {label} calls to take a percentile of"]
+    note = f" (over {len(served)} served calls"
+    if excluded:
+        note += f"; {len(excluded)} failed call(s) excluded: no response, no latency"
+    note += ")"
+    lines: List[str] = []
+    passed = True
+    for name, q, limit in (("p95", 0.95, p95), ("p99", 0.99, p99)):
+        value = percentile(served, q)
+        limit_ms, why = limit.resolve(percentile(quiet_served, q))
+        if value is None:
+            continue
+        if value > limit_ms:
+            lines.append(
+                f"FAILED: {label} {name} {value:.0f}ms over {why}{note}. Requests queued"
+                " behind a backed-up apply loop is what this test exists to catch"
+            )
+            passed = False
+            continue
+        lines.append(f"PASSED: {label} {name} {value:.0f}ms, under {why}{note}")
+        if limit.warn_ms is not None and value > limit.warn_ms:
+            lines.append(
+                f"  warning: {label} {name} {value:.0f}ms over the {limit.warn_ms:.0f}ms target"
+            )
+    return passed, lines
+
+
+def evaluate_sustained(
+    label: str,
+    quiet: Sequence[Sample],
+    rolling: Sequence[Sample],
+    limit: Limit,
+    window_s: float = SUSTAINED_WINDOW_S,
+    min_samples: int = MIN_WINDOW_SAMPLES,
+) -> Tuple[bool, List[str]]:
+    """
+    Returns (passed, report lines): did any window_s stretch of the roll spend more than
+    half its calls waiting past the limit?
+
+    No window qualifying is a failure, not a pass. The caller's minimum-sample gate has
+    already established that calls were made, so a roll in which no 60s stretch held
+    five of them is one where each call took most of that long -- the stall, seen from
+    the other side.
+
+    A window too thin to judge is a failure of its own, not a skip. The worker is
+    serial, so a minute holding fewer than five calls is a minute in which each call
+    took most of twelve seconds, and the slower the stall the thinner the windows: a
+    stall judged nowhere must not pass on the healthy minutes either side of it. See
+    thin_windows.
+
+    What this cannot see: a stall shorter than window_s. The worker is serial, so the
+    fast calls either side of a short stall outnumber the slow ones inside it in any
+    window long enough to hold both. The window is sized so that the stall that
+    escaped (seconds per call, for minutes) fills it several times over, and a short
+    one is what the p99 printed beside the verdict is for.
+    """
+    threshold, why = limit.resolve(quiet)
+    judged = sliding_windows(rolling, window_s, min_samples)
+    if not judged:
+        return False, [
+            f"FAILED: no {window_s:.0f}s stretch of the roll held {min_samples} {label}"
+            f" calls, so no window could be judged against {why}. Calls that each take"
+            " most of a window are a stall in themselves"
+        ]
+    lines: List[str] = []
+    worst = max(judged, key=lambda w: w.median_ms)
+    breached = [w for w in judged if w.median_ms > threshold]
+    if breached:
+        spans = stretches(breached)
+        longest = max(end - start for start, end in spans)
+        lines.append(
+            f"FAILED: {label} median {worst.median_ms:.0f}ms over {why}, across a"
+            f" {window_s:.0f}s window of {worst.calls} calls; {len(spans)} such stretch(es),"
+            f" the longest {longest:.0f}s. Half of everything sent in that window waited"
+            " that long, which no reconnect or single slow answer can produce -- requests"
+            " queued behind a backed-up apply loop is what this test exists to catch"
+        )
+    thin = thin_windows(rolling, window_s, min_samples)
+    if thin:
+        spans = stretches(thin)
+        fewest = min(thin, key=lambda w: w.calls)
+        longest = max(end - start for start, end in spans)
+        lines.append(
+            f"FAILED: only {fewest.calls} {label} call(s) began in the {window_s:.0f}s from"
+            f" {fewest.start:.0f}s, fewer than the {min_samples} a window needs to be judged;"
+            f" {len(spans)} such stretch(es), the longest {longest:.0f}s. The worker is"
+            f" serial, so that few calls in that long means each took most of"
+            f" {window_s / min_samples:.0f}s or more: a stall too slow to fill a window,"
+            " which must not pass as unjudged"
+        )
+    if lines:
+        return False, lines
+    return True, [
+        f"PASSED: {label} median under {why} in every {window_s:.0f}s window"
+        f" ({len(judged)} judged, the worst {worst.median_ms:.0f}ms over {worst.calls} calls)"
+    ]
+
+
 def evaluate(
-    baseline_ms: Sequence[float],
-    rollout_ms: Sequence[float],
-    write_ms: Sequence[float],
+    quiet: Sequence[Sample],
+    rolling: Sequence[Sample],
+    writes_quiet: Sequence[Sample],
+    writes_rolling: Sequence[Sample],
     deadline_waits: Optional[int],
-    max_query_p99_ms: float,
-    max_write_p99_ms: float,
     min_queries: int,
     min_writes: int = 0,
-    write_p99_tolerance_ms: float = 0.0,
-    max_query_p99_ratio: float = 3.0,
-    query_p99_floor_ms: float = 139.0,
+    query_limit: Limit = QUERY_LIMIT,
+    write_limit: Limit = WRITE_LIMIT,
+    window_s: float = SUSTAINED_WINDOW_S,
+    min_window_samples: int = MIN_WINDOW_SAMPLES,
     max_failure_ratio: float = 0.5,
     max_stalled_calls: int = 2,
     stall_ms: float = 20_000.0,
-    query_failed_ms: Sequence[float] = (),
-    write_failed_ms: Sequence[float] = (),
     problems: Sequence[str] = (),
+    query_p95: TailLimit = QUERY_P95,
+    query_p99: TailLimit = QUERY_P99,
+    write_p95: TailLimit = WRITE_P95,
+    write_p99: TailLimit = WRITE_P99,
 ) -> Tuple[bool, List[str]]:
     """
     Returns (passed, report lines).
 
-    Writes gate first: hundreds of samples a reconnect does not move. Query p99 gates
-    against the lower of max_query_p99_ms and max_query_p99_ratio x this leg's own quiet
-    p99, because a fixed ceiling only says "under a second" and leaves 7-20x of headroom
-    against the 43-139ms measured at rest. The ceiling stays as well, or a leg whose
-    quiet window was itself terrible would pass; query_p99_floor_ms keeps the ratio out
-    of the noise. Extremes are reported, never gated.
+    Queries and writes each gate on the sustained median of their rolling window against
+    their own quiet window -- see evaluate_sustained and Limit -- and on the p95 and p99
+    of their served calls -- see evaluate_tails and TailLimit. The max is reported and
+    never gates: one slow answer moves it on a healthy build.
 
-    Calls that raised arrive as how long each waited, not as a count: an instant refusal
-    measured nothing and must not satisfy min_queries, while a request that waited 30s
-    and timed out is the stall being hunted and must not be dropped. So failures are not
-    served requests, but their waits join the distribution p99 gates, and they are gated
-    three ways -- min_queries/min_writes over served calls, max_failure_ratio over their
-    share of attempts (wide, since the roll breaks the port-forward), and
+    Calls that raised arrive with how long each waited, not as a count: an instant
+    refusal measured nothing and must not satisfy min_queries, while a request that
+    waited 30s and timed out is the stall being hunted and must not be dropped. So
+    failures are not served requests, but their waits join the windows, and they are
+    gated three ways -- min_queries/min_writes over served calls, max_failure_ratio
+    over their share of attempts (wide, since the roll breaks the port-forward), and
     max_stalled_calls over failures past stall_ms, which sits above the worst reconnect
     seen on a healthy build.
 
@@ -335,28 +668,22 @@ def evaluate(
     that never finished, an incomplete scrape. Each fails the run: a number that went
     missing must never read as a pass.
     """
-    q = summarise(list(rollout_ms) + list(query_failed_ms))
-    b = summarise(baseline_ms)
-    w = summarise(list(write_ms) + list(write_failed_ms))
+    rollout_ms, query_failed_ms = served_ms(rolling), failed_ms(rolling)
+    write_ms, write_failed_ms = served_ms(writes_rolling), failed_ms(writes_rolling)
+    q = summarise(waits_ms(rolling))
+    b = summarise(waits_ms(quiet))
+    w = summarise(waits_ms(writes_rolling))
+    wb = summarise(waits_ms(writes_quiet))
     lines = [
         f"queries, quiet:   {_fmt(b)}",
         f"queries, rolling: {_fmt(q)}",
-        f"writes,  overall: {_fmt(w)}",
+        f"writes,  quiet:   {_fmt(wb)}",
+        f"writes,  rolling: {_fmt(w)}",
+        "  these p99s are over every wait, failed calls included; the p95/p99 gates below"
+        " are over served calls only, and the max is reported, not gated",
     ]
 
     passed = True
-
-    query_limit, query_why = max_query_p99_ms, f"{max_query_p99_ms:.0f}ms"
-    quiet_p99 = b["p99"]
-    if quiet_p99 is not None:
-        relative = max(quiet_p99 * max_query_p99_ratio, query_p99_floor_ms)
-        if relative < query_limit:
-            query_limit = relative
-            query_why = (
-                f"{relative:.0f}ms -- the lower of {max_query_p99_ratio:.1f}x this"
-                f" leg's own quiet p99 of {quiet_p99:.0f}ms (floored at"
-                f" {query_p99_floor_ms:.0f}ms) and the {max_query_p99_ms:.0f}ms ceiling"
-            )
 
     if len(rollout_ms) < min_queries:
         lines.append(
@@ -365,58 +692,59 @@ def evaluate(
         )
         passed = False
 
-    # Writes carry the same risk as queries, from the other direction: a p99 over
-    # a handful of samples is whatever those samples were, and a worker that
-    # barely ran leaves a thin, fast distribution that clears any limit.
+    # Writes carry the same risk as queries, from the other direction: a median over
+    # a handful of samples is whatever those samples were, and a worker that barely
+    # ran leaves a thin, fast distribution that clears any limit.
     if len(write_ms) < min_writes:
         lines.append(
-            f"FAILED: only {len(write_ms)} writes were served over the whole run,"
-            f" fewer than {min_writes}; too thin a distribution to gate a p99 on"
+            f"FAILED: only {len(write_ms)} writes were served while the cluster rolled,"
+            f" fewer than {min_writes}; too thin a distribution to gate a median on"
         )
         passed = False
 
-    write_limit = max_write_p99_ms + write_p99_tolerance_ms
-    for label, s, limit, why in (
-        ("write", w, write_limit, f"{write_limit:.0f}ms"),
-        ("query", q, query_limit, query_why),
+    for label, before, during, limit in (
+        ("write", writes_quiet, writes_rolling, write_limit),
+        ("query", quiet, rolling, query_limit),
     ):
-        if s["p99"] is None:
+        if not during:
             lines.append(f"FAILED: no {label} samples at all")
             passed = False
-        elif s["p99"] > limit:
-            lines.append(
-                f"FAILED: {label} p99 {s['p99']:.0f}ms over {why}."
-                " Requests queued behind a backed-up apply loop is what this test"
-                " exists to catch"
-            )
-            passed = False
-        else:
-            lines.append(f"PASSED: {label} p99 {s['p99']:.0f}ms, under {why}")
-
-    if w["p99"] is not None and max_write_p99_ms < w["p99"] <= write_limit:
-        lines.append(
-            f"  warning: write p99 {w['p99']:.0f}ms over the {max_write_p99_ms:.0f}ms target"
-        )
-
-    for label, s, failed_ms in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
-        attempted, failed = int(s["count"]), len(failed_ms)
-        if not attempted or not failed:
             continue
-        share = failed / attempted
+        ok, sustained_lines = evaluate_sustained(
+            label, before, during, limit, window_s, min_window_samples
+        )
+        lines.extend(sustained_lines)
+        passed = passed and ok
+
+    for label, before, during, p95, p99 in (
+        ("write", writes_quiet, writes_rolling, write_p95, write_p99),
+        ("query", quiet, rolling, query_p95, query_p99),
+    ):
+        if not during:
+            continue  # already failed above
+        ok, tail_lines = evaluate_tails(label, before, during, p95, p99)
+        lines.extend(tail_lines)
+        passed = passed and ok
+
+    for label, s, failed in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
+        attempted, failures = int(s["count"]), len(failed)
+        if not attempted or not failures:
+            continue
+        share = failures / attempted
         if share > max_failure_ratio:
             lines.append(
-                f"FAILED: {failed} of {attempted} {label} calls failed ({share:.0%}),"
+                f"FAILED: {failures} of {attempted} {label} calls failed ({share:.0%}),"
                 f" over the {max_failure_ratio:.0%} a reconnect can account for."
                 " A workload that is mostly erroring has not measured serving latency"
             )
             passed = False
         else:
             lines.append(
-                f"  note: {failed} of {attempted} {label} calls failed ({share:.0%}),"
+                f"  note: {failures} of {attempted} {label} calls failed ({share:.0%}),"
                 " within what losing the port-forward mid-roll accounts for"
             )
 
-        stalled = [ms for ms in failed_ms if ms >= stall_ms]
+        stalled = [ms for ms in failed if ms >= stall_ms]
         if len(stalled) > max_stalled_calls:
             lines.append(
                 f"FAILED: {len(stalled)} {label} calls waited longer than"
@@ -424,7 +752,7 @@ def evaluate(
                 f" {max_stalled_calls} a reconnect can account for; the slowest"
                 f" waited {max(stalled):.0f}ms. A request that waits that long and"
                 " gets nothing is the stall this test exists to catch, whether or"
-                " not enough of them moved the p99"
+                " not enough of them filled a window"
             )
             passed = False
         elif stalled:
@@ -437,7 +765,7 @@ def evaluate(
     # slow failure is the stall gate's business, and saying "not gated" about a
     # call that gate just failed on would read as a contradiction.
     served_max = max(rollout_ms) if rollout_ms else None
-    if served_max is not None and served_max > max_query_p99_ms:
+    if served_max is not None and served_max > query_limit.ceiling_ms:
         lines.append(
             f"  note: slowest single query was {served_max:.0f}ms. Not gated -- a"
             " rolling restart breaks the client's port-forward, and the reconnect"
@@ -522,21 +850,37 @@ def evaluate_user_errors(
 # That regression passed every leg here, and not because a threshold was loose: the
 # suite's only lifecycle call was the seed, which ran before the roll, so no create or
 # delete stall existed to gate. evaluate_churn gates the operation that was missing.
+#
+# The p90 is what gets printed beside the gate: an iteration is four round trips, so a
+# rolling window holds tens of them, and at n<100 the nearest-rank p99 is the slowest
+# sample, which one port-forward reconnect can make 15s on a healthy build.
 CHURN_QUANTILE = 0.90
+# Separate limits because create and delete sit ~5x apart at rest (40ms against 260ms
+# median), so one limit would have to clear the slower and would let the faster regress
+# 37x -- the regression that got through. Floors below the old p90 limits, so a median
+# past them needs no argument; the ceiling at the measured regression, which a quiet
+# window must not be allowed to excuse.
+#
+# The window is the shared one. An iteration is four round trips, so the churn worker
+# lands about one create a minute per second of iteration: sixty when healthy, eight
+# at the measured regression's 7-8s iterations, which is still above the minimum. Only
+# an iteration held to the consistency deadline on every trip gets under it, and that
+# is what the deadline gate counts.
+CREATE_LIMIT = Limit(ratio=5.0, floor_ms=500.0, ceiling_ms=3000.0)
+DELETE_LIMIT = Limit(ratio=5.0, floor_ms=1000.0, ceiling_ms=3000.0)
 
 
 class Phase(NamedTuple):
-    """One lifecycle operation's windows: what it cost quiet, and while rolling.
+    """One operation's windows: the calls made while quiet, and the calls made while rolling.
 
-    rolling_failed_ms are the calls that raised, kept as *how long each waited*
-    for the same reason as in evaluate: a create that hung for 30s and then timed
-    out measured the stall, so its wait joins the distribution the gate reads,
-    while it stays out of the served count a minimum is checked against.
+    Failed calls stay in `rolling` with how long they waited, for the same reason as
+    in evaluate: a create that hung for 30s and then timed out measured the stall, so
+    its wait joins the windows the gate reads, while it stays out of the served count
+    a minimum is checked against.
     """
 
-    quiet_ms: Sequence[float] = ()
-    rolling_ms: Sequence[float] = ()
-    rolling_failed_ms: Sequence[float] = ()
+    quiet: Sequence[Sample] = ()
+    rolling: Sequence[Sample] = ()
 
 
 def _fmt_quantile(samples: Sequence[float], quantile: float) -> str:
@@ -555,27 +899,25 @@ def _fmt_quantile(samples: Sequence[float], quantile: float) -> str:
 def evaluate_churn(
     create: Phase,
     delete: Phase,
-    max_create_ms: float,
-    max_delete_ms: float,
     min_churns: int,
     failures: int = 0,
     attempts: int = 0,
     max_failures: int = 3,
+    create_limit: Limit = CREATE_LIMIT,
+    delete_limit: Limit = DELETE_LIMIT,
+    window_s: float = SUSTAINED_WINDOW_S,
+    min_window_samples: int = MIN_WINDOW_SAMPLES,
     quantile: float = CHURN_QUANTILE,
 ) -> Tuple[bool, List[str]]:
     """
     Returns (passed, report lines) for the tenant-churn worker.
 
-    Create and delete gate separately, on absolute limits. Separately because they sit ~5x
-    apart at baseline (95ms against 490ms), so one combined limit would have to clear the
-    slower and would let the faster regress 37x -- the regression that got through.
-    Absolute because the quiet window is 20s of small samples.
-
-    A p90 rather than a p99: an iteration is four round trips, so a rolling window holds
-    tens of them, and at n<100 the nearest-rank p99 is the maximum -- gating it would gate
-    the slowest sample, which one port-forward reconnect can make 15s on a healthy build.
-    A p90 over n>=20 discards the slowest tenth, while the measured regression stalled a
-    third of its window. The p99 and max are reported beside it.
+    Create and delete gate separately on the sustained median of their rolling window
+    against their own quiet one -- see evaluate_sustained and the limits above. The
+    regression this exists for stalled a third of a five-minute window; a stall is
+    contiguous, since every create and delete goes through the same serial apply, so
+    the windows inside it see a median of seconds while the windows outside see none
+    of it. The p90, p99 and max are printed and never gate.
 
     Failures are gated here rather than by evaluate's max_failure_ratio, which allows 50%.
     """
@@ -583,37 +925,35 @@ def evaluate_churn(
     lines: List[str] = []
 
     for label, phase, limit in (
-        ("create", create, max_create_ms),
-        ("delete", delete, max_delete_ms),
+        ("create", create, create_limit),
+        ("delete", delete, delete_limit),
     ):
-        gated = list(phase.rolling_ms) + list(phase.rolling_failed_ms)
-        lines.append(f"tenant {label}, quiet:   {_fmt_quantile(list(phase.quiet_ms), quantile)}")
-        lines.append(f"tenant {label}, rolling: {_fmt_quantile(gated, quantile)}")
+        served = served_ms(phase.rolling)
+        lines.append(
+            f"tenant {label}, quiet:   {_fmt_quantile(waits_ms(phase.quiet), quantile)}"
+        )
+        lines.append(
+            f"tenant {label}, rolling: {_fmt_quantile(waits_ms(phase.rolling), quantile)}"
+        )
 
-        if len(phase.rolling_ms) < min_churns:
+        if len(served) < min_churns:
             lines.append(
-                f"FAILED: only {len(phase.rolling_ms)} tenant {label}s were served"
+                f"FAILED: only {len(served)} tenant {label}s were served"
                 f" while the cluster rolled, fewer than {min_churns}; too thin a"
-                " distribution to gate a percentile on, and a tenant lifecycle that"
+                " distribution to gate a median on, and a tenant lifecycle that"
                 " is never exercised during the roll is what this worker exists to fix"
             )
             passed = False
 
-        at = percentile(gated, quantile)
-        pct = int(round(quantile * 100))
-        if at is None:
+        if not phase.rolling:
             lines.append(f"FAILED: no tenant {label} samples at all")
             passed = False
-        elif at > limit:
-            lines.append(
-                f"FAILED: tenant {label} p{pct} {at:.0f}ms over {limit:.0f}ms."
-                " Creating or deleting a tenant goes through the serial apply, so a"
-                " rollout that backs that apply up stalls it -- measured at 3.56s"
-                " (create) and 3.32s (delete) on a build this suite otherwise passed"
-            )
-            passed = False
-        else:
-            lines.append(f"PASSED: tenant {label} p{pct} {at:.0f}ms, under {limit:.0f}ms")
+            continue
+        ok, sustained_lines = evaluate_sustained(
+            f"tenant {label}", phase.quiet, phase.rolling, limit, window_s, min_window_samples
+        )
+        lines.extend(sustained_lines)
+        passed = passed and ok
 
     if failures > max_failures:
         lines.append(
@@ -632,7 +972,7 @@ def evaluate_churn(
     return passed, lines
 
 
-# A p90 for the same reason evaluate_churn uses one: the roll breaks the client's
+# A p90 for the same reason evaluate_churn prints one: the roll breaks the client's
 # port-forward and one reconnect cost 15,015ms on a build known to be fine, and a
 # percentile only shrugs that off with enough samples under it. The p50, p99 and
 # max are printed beside it so a reader sees the whole shape of the window.
@@ -653,12 +993,12 @@ def evaluate_fresh_pod(
     pays a shard load -- which the suite otherwise averages into a window minutes long.
 
     The latency in it is reported, not gated, because a gate that cannot fail is worse
-    than none: these windows are about a fifth of the rolling one, so anything an absolute
-    limit would catch evaluate's query p99 catches already; the client reaches the cluster
-    through one port-forward and cannot say which pod answered, so every percentile here is
-    diluted by an unknown factor; and the window's start trails readiness by up to one
-    scrape interval. What is gated is that the window exists and holds samples, since a
-    number that went missing must never read as a pass.
+    than none: these windows are about a fifth of the rolling one, so anything a limit
+    would catch evaluate's sustained query gate catches already; the client reaches the
+    cluster through one port-forward and cannot say which pod answered, so every
+    percentile here is diluted by an unknown factor; and the window's start trails
+    readiness by up to one scrape interval. What is gated is that the window exists and
+    holds samples, since a number that went missing must never read as a pass.
     """
     pct = int(round(quantile * 100))
     if windows is None:
@@ -667,9 +1007,10 @@ def evaluate_fresh_pod(
             " restart could be timed"
         ]
 
-    gated = list(queries.rolling_ms) + list(queries.rolling_failed_ms)
+    served = served_ms(queries.rolling)
+    gated = waits_ms(queries.rolling)
     lines = [
-        f"fresh pod, at rest:          {_fmt_quantile(list(queries.quiet_ms), quantile)}",
+        f"fresh pod, at rest:          {_fmt_quantile(waits_ms(queries.quiet), quantile)}",
         f"fresh pod, {window_s:.0f}s after ready: {_fmt_quantile(gated, quantile)}"
         f"  [{windows} pod(s) came back]",
     ]
@@ -683,9 +1024,9 @@ def evaluate_fresh_pod(
             " of them means the scrape was broken, not that the cluster was still"
         )
         passed = False
-    elif len(queries.rolling_ms) < min_samples:
+    elif len(served) < min_samples:
         lines.append(
-            f"FAILED: only {len(queries.rolling_ms)} queries were served in the"
+            f"FAILED: only {len(served)} queries were served in the"
             f" {windows} window(s) just after a pod reported ready, fewer than"
             f" {min_samples}; the window a fresh pod is in is exactly where this"
             " workload stalls, and it went unmeasured"
@@ -693,7 +1034,7 @@ def evaluate_fresh_pod(
         passed = False
     else:
         lines.append(
-            f"PASSED: {len(queries.rolling_ms)} queries measured in the"
+            f"PASSED: {len(served)} queries measured in the"
             f" {windows} window(s) just after a pod reported ready, p{pct}"
             f" {percentile(gated, quantile):.0f}ms. Reported, not gated on"
             " latency -- see evaluate_fresh_pod"
