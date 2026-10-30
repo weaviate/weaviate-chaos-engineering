@@ -292,23 +292,40 @@ class WindowAccumulator:
 
     Each observation is also kept on its own, as the histogram of what completed
     between it and the one before, so the window can be read interval by interval
-    -- see interval_medians.
+    -- see interval_medians. That is only true of a pod sampled at the previous
+    observation too. One that missed scrapes returns with a delta that spans every
+    interval it was away, and folding that into the current interval would mix its
+    older traffic with the other pods' current traffic: a thousand fast completions
+    a returning pod caught up on would outvote two hundred slow ones in the median of
+    an interval that was in fact stalled. So each pod's coverage is tracked, and a
+    catch-up delta goes into the whole-window totals but not into any interval. The
+    same holds for a pod seen for the first time after the window opened, whose
+    counters cover an unknown stretch of it.
     """
 
     def __init__(self, baseline: Dict[str, PodSnapshot]) -> None:
         self._last: Dict[str, PodSnapshot] = dict(baseline)
         self._pods: set = set(baseline)
+        # observation index each pod was last sampled at; the baseline is 0
+        self._seen: Dict[str, int] = {pod: 0 for pod in baseline}
         self.buckets: Dict[float, float] = {}
         self.requests: Dict[str, float] = {}
         self.restarts = 0
         self.intervals: List[Dict[float, float]] = []
+        # per interval: pod -> how many intervals its delta spanned, for deltas that
+        # spanned more than one and so were kept out of that interval
+        self.catch_ups: List[Dict[str, int]] = []
 
     def observe(self, snapshots: Dict[str, PodSnapshot]) -> None:
         """Fold one scrape of every reachable pod into the window."""
+        index = len(self.intervals) + 1
         interval: Dict[float, float] = {}
+        catch_up: Dict[str, int] = {}
         for pod, snap in snapshots.items():
             self._pods.add(pod)
             prev = self._last.get(pod)
+            seen = self._seen.get(pod)
+            spanned = index - seen if seen is not None else index
             if prev is None:
                 # Came up during the window, so all of it belongs to the window.
                 self.restarts += 1
@@ -325,11 +342,16 @@ class WindowAccumulator:
                 pod_requests = counter_delta(prev.requests, snap.requests)
             for bound, count in pod_buckets.items():
                 self.buckets[bound] = self.buckets.get(bound, 0.0) + count
-                interval[bound] = interval.get(bound, 0.0) + count
+                if spanned == 1:
+                    interval[bound] = interval.get(bound, 0.0) + count
+            if spanned > 1:
+                catch_up[pod] = spanned
             for status, count in pod_requests.items():
                 self.requests[status] = self.requests.get(status, 0.0) + count
             self._last[pod] = snap
+            self._seen[pod] = index
         self.intervals.append(interval)
+        self.catch_ups.append(catch_up)
 
     def summary(self) -> Dict[str, Optional[float]]:
         return _summarise(

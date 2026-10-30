@@ -351,29 +351,58 @@ def sliding_windows(
     served or counted as a deadline, so 60s of such calls is six of them. The same
     two numbers are what keep a reconnect out: a 15s hang is one call, the rollout
     cannot restart pods fast enough to put three of them in one minute, and two are
-    never the majority of five. A window too thin to judge is skipped, never passed
-    -- see evaluate_sustained for what happens when no window qualifies at all.
+    never the majority of five. A window too thin to judge is not judged here, and
+    it is not skipped either: see thin_windows, which evaluate_sustained fails on.
 
     Only windows that lie wholly inside the measured span are judged. One that runs
     past the last call holds only the few calls at the end, and those are whatever
     the end happened to be -- two hangs after a quiet minute read as a stall.
     """
-    ordered = sorted(samples, key=lambda s: s[0])
-    if not ordered:
-        return []
-    starts = [at for at, _, _ in ordered]
-    span_end = max(at + ms / 1000.0 for at, ms, _ in ordered)
     out: List[SlowWindow] = []
-    for i, (at, _, _) in enumerate(ordered):
-        if at + window_s > span_end:
-            break
-        j = bisect.bisect_left(starts, at + window_s)
-        waits = [ms for _, ms, _ in ordered[i:j]]
+    for at, waits in _windows(samples, window_s):
         if len(waits) < min_samples:
             continue
         median = percentile(waits, 0.5)
         assert median is not None
         out.append(SlowWindow(at, at + window_s, median, len(waits)))
+    return out
+
+
+def thin_windows(
+    samples: Sequence[Sample], window_s: float, min_samples: int
+) -> List[SlowWindow]:
+    """
+    Every window_s stretch inside the measured span that held fewer than min_samples calls.
+
+    The worker is serial, so a window holding fewer than min_samples calls is one in
+    which the calls it did hold averaged more than window_s / min_samples each -- 12s
+    at the defaults. That is a stall seen from the other side, and the slower the
+    stall the thinner the windows get, so skipping them would pass the worst runs
+    first: six tenant-churn iterations of four 8s operations each put only two
+    creates in any minute, and 170s of that passed the median gate once the healthy
+    minutes either side had been judged. Reconnect artefacts do not get here: a 15s
+    hang, or two back to back, still leave the rest of the minute full of fast calls.
+    """
+    return [
+        SlowWindow(at, at + window_s, percentile(waits, 0.5) or 0.0, len(waits))
+        for at, waits in _windows(samples, window_s)
+        if len(waits) < min_samples
+    ]
+
+
+def _windows(samples: Sequence[Sample], window_s: float) -> List[Tuple[float, List[float]]]:
+    """Every window_s stretch anchored on a call and inside the span, as (start, waits)."""
+    ordered = sorted(samples, key=lambda s: s[0])
+    if not ordered:
+        return []
+    starts = [at for at, _, _ in ordered]
+    span_end = max(at + ms / 1000.0 for at, ms, _ in ordered)
+    out: List[Tuple[float, List[float]]] = []
+    for i, (at, _, _) in enumerate(ordered):
+        if at + window_s > span_end:
+            break
+        j = bisect.bisect_left(starts, at + window_s)
+        out.append((at, [ms for _, ms, _ in ordered[i:j]]))
     return out
 
 
@@ -543,6 +572,12 @@ def evaluate_sustained(
     five of them is one where each call took most of that long -- the stall, seen from
     the other side.
 
+    A window too thin to judge is a failure of its own, not a skip. The worker is
+    serial, so a minute holding fewer than five calls is a minute in which each call
+    took most of twelve seconds, and the slower the stall the thinner the windows: a
+    stall judged nowhere must not pass on the healthy minutes either side of it. See
+    thin_windows.
+
     What this cannot see: a stall shorter than window_s. The worker is serial, so the
     fast calls either side of a short stall outnumber the slow ones inside it in any
     window long enough to hold both. The window is sized so that the stall that
@@ -557,18 +592,34 @@ def evaluate_sustained(
             f" calls, so no window could be judged against {why}. Calls that each take"
             " most of a window are a stall in themselves"
         ]
+    lines: List[str] = []
     worst = max(judged, key=lambda w: w.median_ms)
     breached = [w for w in judged if w.median_ms > threshold]
     if breached:
         spans = stretches(breached)
         longest = max(end - start for start, end in spans)
-        return False, [
+        lines.append(
             f"FAILED: {label} median {worst.median_ms:.0f}ms over {why}, across a"
             f" {window_s:.0f}s window of {worst.calls} calls; {len(spans)} such stretch(es),"
             f" the longest {longest:.0f}s. Half of everything sent in that window waited"
             " that long, which no reconnect or single slow answer can produce -- requests"
             " queued behind a backed-up apply loop is what this test exists to catch"
-        ]
+        )
+    thin = thin_windows(rolling, window_s, min_samples)
+    if thin:
+        spans = stretches(thin)
+        fewest = min(thin, key=lambda w: w.calls)
+        longest = max(end - start for start, end in spans)
+        lines.append(
+            f"FAILED: only {fewest.calls} {label} call(s) began in the {window_s:.0f}s from"
+            f" {fewest.start:.0f}s, fewer than the {min_samples} a window needs to be judged;"
+            f" {len(spans)} such stretch(es), the longest {longest:.0f}s. The worker is"
+            f" serial, so that few calls in that long means each took most of"
+            f" {window_s / min_samples:.0f}s or more: a stall too slow to fill a window,"
+            " which must not pass as unjudged"
+        )
+    if lines:
+        return False, lines
     return True, [
         f"PASSED: {label} median under {why} in every {window_s:.0f}s window"
         f" ({len(judged)} judged, the worst {worst.median_ms:.0f}ms over {worst.calls} calls)"

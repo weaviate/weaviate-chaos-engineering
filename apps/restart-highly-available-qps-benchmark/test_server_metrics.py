@@ -385,10 +385,7 @@ class TestIntervalMedians(unittest.TestCase):
 
     def cumulative(self, fast: int, slow: int) -> str:
         # `fast` queries under 100ms and `slow` over 5s, cumulative over the process
-        return metrics(
-            [fast, fast, fast, fast, fast, fast, fast + slow, fast + slow, fast + slow, fast + slow],
-            start_time=1.0,
-        )
+        return metrics([fast] * 6 + [fast + slow] * 4, start_time=1.0)
 
     def test_each_scrape_is_its_own_interval(self):
         acc = WindowAccumulator(snapshot_pods({self.POD: self.cumulative(1000, 0)}))
@@ -431,6 +428,90 @@ class TestIntervalMedians(unittest.TestCase):
         self.assertEqual(stalled.summary()["p99_ms"], spread.summary()["p99_ms"])
         self.assertIsNotNone(sustained_breach(stalled.interval_medians(20), 500.0))
         self.assertIsNone(sustained_breach(spread.interval_medians(20), 500.0))
+
+
+class TestIntervalCoverage(unittest.TestCase):
+    """
+    The reviewer's case on PR 464: a pod that missed scrapes without restarting keeps
+    its last sample as `prev`, so its next delta spans several intervals. Folded into
+    the current interval, a thousand fast completions it caught up on outvote two
+    hundred slow ones from the pods that were there, and a stalled interval's median
+    reads as fast. A catch-up delta belongs to the window, not to any interval.
+    """
+
+    def cumulative(self, fast: int, slow: int, start: float = 1.0) -> str:
+        # `fast` queries under 100ms and `slow` over 5s, cumulative over the process
+        return metrics([fast] * 6 + [fast + slow] * 4, start_time=start)
+
+    def test_a_returning_pods_catch_up_cannot_swamp_a_stalled_interval(self):
+        acc = WindowAccumulator(
+            snapshot_pods({"w-0": self.cumulative(1000, 0), "w-1": self.cumulative(1000, 0)})
+        )
+        # interval 1: w-1 is unreachable; w-0 serves 300 fast
+        acc.observe(snapshot_pods({"w-0": self.cumulative(1300, 0)}))
+        # interval 2: w-0 completes 200 queries the stall held; w-1 is back, 1000 fast
+        # since its last sample, most of them from interval 1
+        acc.observe(
+            snapshot_pods({"w-0": self.cumulative(1300, 200), "w-1": self.cumulative(2000, 0)})
+        )
+        medians = acc.interval_medians(min_queries=20)
+        self.assertLess(medians[0], 100)
+        self.assertGreater(medians[1], 5000, "the stall, not w-1's thousand fast ones")
+        self.assertEqual(acc.catch_ups, [{}, {"w-1": 2}])
+        # the whole window still holds everything, including the catch-up
+        self.assertEqual(acc.summary()["queries"], 1500)
+
+    def test_the_same_traffic_sampled_every_scrape_lands_in_its_intervals(self):
+        """Without the gap, w-1's thousand are split across both intervals as they
+        completed, and the stalled interval's median is what the pods served then."""
+        acc = WindowAccumulator(
+            snapshot_pods({"w-0": self.cumulative(1000, 0), "w-1": self.cumulative(1000, 0)})
+        )
+        acc.observe(
+            snapshot_pods({"w-0": self.cumulative(1300, 0), "w-1": self.cumulative(1900, 0)})
+        )
+        acc.observe(
+            snapshot_pods({"w-0": self.cumulative(1300, 200), "w-1": self.cumulative(2000, 0)})
+        )
+        medians = acc.interval_medians(min_queries=20)
+        self.assertLess(medians[0], 100)
+        self.assertGreater(medians[1], 5000)
+        self.assertEqual(acc.catch_ups, [{}, {}])
+
+    def test_a_pod_back_on_the_very_next_scrape_is_current(self):
+        acc = WindowAccumulator(snapshot_pods({"w-0": self.cumulative(1000, 0)}))
+        acc.observe(snapshot_pods({"w-0": self.cumulative(1300, 0)}))
+        acc.observe(snapshot_pods({"w-0": self.cumulative(1600, 0)}))
+        self.assertEqual(acc.catch_ups, [{}, {}])
+        self.assertEqual([max(b.values()) for b in acc.intervals], [300, 300])
+
+    def test_a_restart_after_missed_scrapes_is_a_catch_up_too(self):
+        """Counters since a new process started cover an unknown stretch when the pod
+        was also unreachable, so they are the window's but no interval's."""
+        acc = WindowAccumulator(snapshot_pods({"w-0": self.cumulative(1000, 0)}))
+        acc.observe({})
+        acc.observe(snapshot_pods({"w-0": self.cumulative(400, 0, start=2.0)}))
+        self.assertEqual(acc.catch_ups, [{}, {"w-0": 2}])
+        self.assertEqual(acc.intervals, [{}, {}])
+        self.assertEqual(acc.summary()["queries"], 400)
+        self.assertEqual(acc.summary()["pods_restarted"], 1)
+
+    def test_a_restart_seen_on_consecutive_scrapes_stays_in_its_interval(self):
+        """The common case: the pod came up within this interval, so all of it is current."""
+        acc = WindowAccumulator(snapshot_pods({"w-0": self.cumulative(1000, 0)}))
+        acc.observe(snapshot_pods({"w-0": self.cumulative(0, 40, start=2.0)}))
+        self.assertEqual(acc.catch_ups, [{}])
+        self.assertGreater(acc.interval_medians(min_queries=20)[0], 5000)
+
+    def test_a_pod_first_seen_mid_window_is_a_catch_up(self):
+        acc = WindowAccumulator(snapshot_pods({"w-0": self.cumulative(1000, 0)}))
+        acc.observe(snapshot_pods({"w-0": self.cumulative(1300, 0)}))
+        acc.observe(
+            snapshot_pods({"w-0": self.cumulative(1600, 0), "w-9": self.cumulative(500, 0)})
+        )
+        self.assertEqual(acc.catch_ups, [{}, {"w-9": 2}])
+        self.assertEqual(max(acc.intervals[1].values()), 300)
+        self.assertEqual(acc.summary()["queries"], 1100)
 
 
 class TestSustainedBreach(unittest.TestCase):

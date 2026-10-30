@@ -1030,6 +1030,17 @@ def main() -> None:
             w=f"{max(judged):.0f}ms" if judged else "n/a",
             why=why,
         )
+        caught_up = [(i + 1, c) for i, c in enumerate(accumulator.catch_ups) if c]
+        if caught_up:
+            # A pod that missed scrapes returns with a delta spanning every interval it
+            # was away; see WindowAccumulator. Those completions are in the window
+            # totals above but in no interval's median.
+            logger.info(
+                "Server median: {n} catch-up delta(s) from pods that missed scrapes were "
+                "kept out of the interval medians (interval: pod -> intervals spanned): {c}",
+                n=sum(len(c) for _, c in caught_up),
+                c=caught_up,
+            )
         latency_passed = False
 
         if not server["queries"]:

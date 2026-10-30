@@ -13,7 +13,7 @@ cluster stretches the timeline rather than packing more samples into it.
 """
 
 import unittest
-from typing import List, Sequence
+from typing import List, Sequence, Tuple
 
 from gates import (
     CREATE_LIMIT,
@@ -39,6 +39,7 @@ from gates import (
     sliding_windows,
     stretches,
     summarise,
+    thin_windows,
     within,
     within_any,
 )
@@ -586,6 +587,122 @@ class TestDeadlinesBeforeARestart(unittest.TestCase):
         acc = DeadlineAccumulator({"w": "go_goroutines 42\n"})
         acc.observe({"w": "go_goroutines 43\n"})
         self.assertIsNone(acc.total())
+
+
+def iterations(
+    ops_ms: Sequence[Sequence[float]], interval_s: float = 0.5, start: float = 0.0
+) -> Tuple[List[Sample], List[Sample]]:
+    """
+    Tenant churn as the worker runs it: each iteration is create, write, read, delete
+    in series, then the interval. Returns the (creates, deletes) the gate samples, so a
+    slow iteration spaces its creates by the sum of all four operations, not by one.
+    """
+    creates: List[Sample] = []
+    deletes: List[Sample] = []
+    at = start
+    for create, write, read, delete in ops_ms:
+        creates.append((at, create, True))
+        at += (create + write + read) / 1000.0
+        deletes.append((at, delete, True))
+        at += delete / 1000.0 + interval_s
+    return creates, deletes
+
+
+HEALTHY_ITERATION = (40.0, 110.0, 4.0, 260.0)
+
+
+class TestThinStretches(unittest.TestCase):
+    """
+    The reviewer's case on PR 464: skipping windows too thin to judge lets a stall pass
+    whenever healthy windows elsewhere qualify, and the slower the stall the thinner the
+    windows. Six churn iterations of four 8s operations put a create in any minute at
+    most twice, under the five needed, so 170s of that was judged nowhere and passed on
+    the 150 healthy iterations either side.
+    """
+
+    def test_the_reviewers_stall_now_fails_the_churn_gate(self):
+        ops = [HEALTHY_ITERATION] * 75 + [(8_000.0,) * 4] * 6 + [HEALTHY_ITERATION] * 75
+        creates, deletes = iterations(ops)
+        passed, lines = churn(
+            create=Phase(CREATE_QUIET, creates), delete=Phase(DELETE_QUIET, deletes)
+        )
+        self.assertFalse(passed)
+        thin = [l for l in lines if "fewer than the 5 a window needs" in l]
+        self.assertEqual(len(thin), 2, lines)
+        self.assertTrue(any("tenant create call(s) began" in l for l in thin), thin)
+        self.assertTrue(any("tenant delete call(s) began" in l for l in thin), thin)
+        self.assertFalse(any(l.startswith("FAILED: tenant create median") for l in lines))
+
+    def test_it_is_the_thin_windows_not_the_judged_ones(self):
+        ops = [HEALTHY_ITERATION] * 75 + [(8_000.0,) * 4] * 6 + [HEALTHY_ITERATION] * 75
+        creates, _ = iterations(ops)
+        judged = sliding_windows(creates, 60.0, 5)
+        self.assertTrue(judged)
+        self.assertLess(max(w.median_ms for w in judged), 100.0, "every judged window is fine")
+        thin = thin_windows(creates, 60.0, 5)
+        self.assertTrue(thin)
+        self.assertLessEqual(max(w.calls for w in thin), 4)
+        self.assertGreater(stretches(thin)[0][1] - stretches(thin)[0][0], 60.0)
+
+    def test_the_regression_that_was_caught_still_fails_on_its_median(self):
+        """3.56s creates keep iterations near 8s, so the windows stay judgeable and the
+        median gate is the one that fires, as before."""
+        ops = [HEALTHY_ITERATION] * 60 + [(3_560.0, 110.0, 4.0, 3_320.0)] * 30
+        creates, deletes = iterations(ops)
+        passed, lines = churn(
+            create=Phase(CREATE_QUIET, creates), delete=Phase(DELETE_QUIET, deletes)
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any(l.startswith("FAILED: tenant create median 3560ms") for l in lines))
+
+    def test_a_healthy_churn_run_has_no_thin_window(self):
+        creates, deletes = iterations([HEALTHY_ITERATION] * 300)
+        self.assertEqual(thin_windows(creates, 60.0, 5), [])
+        passed, lines = churn(
+            create=Phase(CREATE_QUIET, creates), delete=Phase(DELETE_QUIET, deletes)
+        )
+        self.assertTrue(passed, lines)
+
+    def test_two_reconnect_hangs_back_to_back_do_not_thin_a_window(self):
+        """Two 15s hangs in a row are 30s of one minute; the other 30s hold the fast
+        calls, so no window drops under five."""
+        ops = [HEALTHY_ITERATION] * 100 + [(15_015.0, 110.0, 4.0, 260.0)] * 2
+        ops += [HEALTHY_ITERATION] * 100
+        creates, deletes = iterations(ops)
+        self.assertEqual(thin_windows(creates, 60.0, 5), [])
+        passed, lines = churn(
+            create=Phase(CREATE_QUIET, creates), delete=Phase(DELETE_QUIET, deletes)
+        )
+        self.assertTrue(passed, lines)
+
+    def test_the_query_and_write_gates_fail_the_same_shape(self):
+        """Served calls at 15s each for three minutes: four to a minute, so under the
+        floor, and the consistency wait does not bound a stall of this kind."""
+        rolling = chain(serial([4.0] * 100), serial([15_000.0] * 12), serial([4.0] * 100))
+        passed, lines = gate(rolling)
+        self.assertFalse(passed)
+        self.assertTrue(any("query call(s) began in the 60s" in l for l in lines), lines)
+        writes = chain(
+            serial([6.4] * 600, interval_s=0.1),
+            serial([15_000.0] * 12, interval_s=0.1),
+            serial([6.4] * 600, interval_s=0.1),
+        )
+        passed, lines = gate(writes=writes)
+        self.assertFalse(passed)
+        self.assertTrue(any("write call(s) began in the 60s" in l for l in lines), lines)
+
+    def test_a_short_thin_stretch_at_the_end_is_still_not_judged(self):
+        """The end-effect that produced a false positive before: two hangs after a quiet
+        minute, with nothing after them. Windows must lie inside the span."""
+        passed, lines = gate(chain(ROLLING_AFTER, serial([15_015.0] * 2, ok=False)))
+        self.assertTrue(passed, lines)
+
+    def test_the_verdict_names_the_stretch(self):
+        rolling = chain(serial([4.0] * 100), serial([15_000.0] * 12), serial([4.0] * 100))
+        _, lines = gate(rolling)
+        thin = [l for l in lines if "query call(s) began" in l][0]
+        self.assertIn("1 such stretch(es)", thin)
+        self.assertIn("each took most of 12s or more", thin)
 
 
 class TestTailGates(unittest.TestCase):
