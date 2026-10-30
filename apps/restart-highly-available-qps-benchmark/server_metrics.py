@@ -258,6 +258,7 @@ def _summarise(
     return {
         "queries": max(buckets.values()) if buckets else 0.0,
         "p50_ms": quantile_from_buckets(buckets, 0.50),
+        "p95_ms": quantile_from_buckets(buckets, 0.95),
         "p99_ms": quantile_from_buckets(buckets, 0.99),
         "server_errors": server_errors,
         "user_errors": user_errors,

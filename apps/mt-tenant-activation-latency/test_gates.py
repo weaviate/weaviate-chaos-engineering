@@ -18,11 +18,16 @@ from typing import List, Sequence
 from gates import (
     CREATE_LIMIT,
     QUERY_LIMIT,
+    QUERY_P95,
+    QUERY_P99,
+    WRITE_P95,
+    WRITE_P99,
     DeadlineAccumulator,
     Limit,
     Phase,
     RestartWatcher,
     Sample,
+    TailLimit,
     UserErrorAccumulator,
     count_deadline_waits,
     evaluate,
@@ -345,6 +350,10 @@ class TestSustainedMedianNotPercentile(unittest.TestCase):
     tuned to clear the healthy runs before it. The same week's healthy legs ran 458-663ms
     on the write p99. A limit placed anywhere in that band is crossed by noise about one
     run in two, and placing it above the band would let the regression through.
+
+    The percentile gates were then restored beside the median one, over served calls
+    only and looser (TestTailGates): with the median catching a stall, they only have to
+    catch a tail out of all proportion, and these legs sit at under half their limits.
     """
 
     def test_the_marginal_leg_passes(self):
@@ -352,6 +361,20 @@ class TestSustainedMedianNotPercentile(unittest.TestCase):
         self.assertTrue(passed, lines)
         self.assertTrue(any("queries, rolling" in l and "p99=200" in l for l in lines))
         self.assertTrue(any("writes,  rolling" in l and "p99=700" in l for l in lines))
+        self.assertTrue(any(l.startswith("PASSED: query p99 200ms, under 500ms") for l in lines))
+        self.assertTrue(any(l.startswith("PASSED: write p99 700ms, under 1250ms") for l in lines))
+
+    def test_the_marginal_leg_fails_at_the_old_limits(self):
+        """What the old limits did to it, kept as the reason the defaults are looser."""
+        passed, lines = gate(
+            ROLLING_MARGINAL,
+            WRITES_MARGINAL,
+            query_p99=TailLimit(3.0, 139.0, 1000.0),
+            write_p99=TailLimit(0.0, 600.0, 600.0, warn_ms=500.0),
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any(l.startswith("FAILED: query p99 200ms over 139ms") for l in lines))
+        self.assertTrue(any(l.startswith("FAILED: write p99 700ms over 600ms") for l in lines))
 
     def test_a_stall_fails(self):
         """Forty seconds in which every call waits 2s: half of every window in it."""
@@ -362,16 +385,19 @@ class TestSustainedMedianNotPercentile(unittest.TestCase):
         self.assertIn("2000ms", failed[0])
         self.assertIn("1 such stretch(es)", failed[0])
 
-    def test_the_same_tail_scattered_passes(self):
+    def test_the_same_tail_scattered_passes_the_median_gate(self):
         """The distribution ROLLING_STALLED fails on, rearranged: identical p99, no
         window in which half the calls were slow. A percentile cannot tell these
-        apart; this gate is built to."""
+        apart; the median gate is built to. The restored p99 gate fails both, which
+        is the percentile's verdict: 7% of calls at 2s is a tail over any limit."""
         self.assertEqual(
             percentile([ms for _, ms, _ in ROLLING_STALLED], 0.99),
             percentile([ms for _, ms, _ in ROLLING_SCATTERED], 0.99),
         )
         passed, lines = gate(ROLLING_SCATTERED)
-        self.assertTrue(passed, lines)
+        self.assertFalse(any(l.startswith("FAILED: query median") for l in lines), lines)
+        self.assertTrue(any(l.startswith("FAILED: query p99 2000ms") for l in lines), lines)
+        self.assertFalse(passed)
 
     def test_a_stall_of_timeouts_is_the_stall_gates_business(self):
         """Calls that each wait out a 30s timeout leave one call per window, which no
@@ -392,16 +418,17 @@ class TestSustainedMedianNotPercentile(unittest.TestCase):
 
     def test_the_p99_is_reported_beside_the_verdict(self):
         _, lines = gate()
-        self.assertTrue(any("p99 and max are reported, not gated" in l for l in lines))
+        self.assertTrue(any("the max is reported, not gated" in l for l in lines))
         self.assertTrue(any("queries, rolling: n=405 p50=4 p99=13 max=15015" in l for l in lines))
 
     def test_the_window_and_minimum_are_tunable(self):
         passed, _ = gate(ROLLING_STALLED, window_s=10.0, min_window_samples=2)
         self.assertFalse(passed)
-        # a window longer than the stall dilutes it below half
+        # a window longer than the stall dilutes it below half (the restored p99 gate
+        # still fails this run on its tail, which is its own verdict)
         long_writes = serial([6.4] * 1000, interval_s=0.1)
-        passed, lines = gate(ROLLING_STALLED, writes=long_writes, window_s=100.0)
-        self.assertTrue(passed, lines)
+        _, lines = gate(ROLLING_STALLED, writes=long_writes, window_s=100.0)
+        self.assertFalse(any(l.startswith("FAILED: query median") for l in lines), lines)
 
     def test_evaluate_sustained_alone(self):
         passed, lines = evaluate_sustained("query", QUIET, ROLLING_STALLED, QUERY_LIMIT)
@@ -476,10 +503,14 @@ class TestQueryMedianAgainstItsOwnQuietWindow(unittest.TestCase):
     def test_the_knobs_are_tunable(self):
         passed, _ = gate(query_limit=Limit(ratio=0.5, floor_ms=1.0, ceiling_ms=1000.0))
         self.assertFalse(passed, "half of a 4ms quiet median fails a 4ms roll")
-        passed, _ = gate(
-            ROLLING_6X, quiet=AT_REST_WORST, query_limit=Limit(100.0, 139.0, 10_000.0)
+        passed, lines = gate(
+            ROLLING_6X,
+            quiet=AT_REST_WORST,
+            query_limit=Limit(100.0, 139.0, 10_000.0),
+            # 300 of 500 calls at 250ms is a p95 of 250ms; keep that gate out of a median test
+            query_p95=TailLimit(0.0, 500.0, 500.0),
         )
-        self.assertTrue(passed)
+        self.assertTrue(passed, lines)
 
 
 class TestDeadlineWaitsAcrossRestarts(unittest.TestCase):
@@ -555,6 +586,99 @@ class TestDeadlinesBeforeARestart(unittest.TestCase):
         acc = DeadlineAccumulator({"w": "go_goroutines 42\n"})
         acc.observe({"w": "go_goroutines 43\n"})
         self.assertIsNone(acc.total())
+
+
+class TestTailGates(unittest.TestCase):
+    """
+    The p95/p99 gates, restored beside the median one over served calls only. What made
+    them flake was the calls that got no response: the roll costs the client its
+    port-forward, and a refusal, a reset or a timeout arrived with a wait of up to 15s
+    that ranked as the slowest 1%. Those are excluded here and gated elsewhere.
+    """
+
+    def test_a_healthy_roll_passes_both_tails(self):
+        passed, lines = gate()
+        self.assertTrue(passed, lines)
+        self.assertTrue(any(l.startswith("PASSED: query p95 4ms") for l in lines), lines)
+        self.assertTrue(any(l.startswith("PASSED: query p99 13ms") for l in lines), lines)
+        self.assertTrue(any(l.startswith("PASSED: write p95 6ms") for l in lines), lines)
+        self.assertTrue(any(l.startswith("PASSED: write p99 159ms") for l in lines), lines)
+
+    def test_the_pervasive_stall_fails_the_p99(self):
+        passed, lines = gate(ROLLING_BEFORE, WRITES_BEFORE)
+        self.assertFalse(passed)
+        self.assertTrue(any(l.startswith("FAILED: query p99 12452ms") for l in lines), lines)
+        self.assertTrue(any(l.startswith("FAILED: write p99 7584ms") for l in lines), lines)
+
+    def test_no_response_failures_do_not_count_towards_the_tail(self):
+        """Calls that waited 25s and raised: four of them would be the slowest 1% of
+        this window, and they are left out of the tail. The stall gate still sees them
+        (25s is past STALL_MS, and four is more than MAX_STALLED_CALLS)."""
+        resets = serial([25_000.0] * 4, ok=False)
+        passed, lines = gate(chain(ROLLING_AFTER, resets))
+        self.assertTrue(any(l.startswith("PASSED: query p99 13ms") for l in lines), lines)
+        self.assertTrue(any("4 failed call(s) excluded" in l for l in lines), lines)
+        self.assertFalse(passed, "the stall gate, not the tail, fails four 25s failures")
+        self.assertTrue(any("never served" in l for l in lines))
+
+    def test_reconnect_failures_under_the_stall_line_leave_a_passing_run_passing(self):
+        """The 15s port-forward reconnects that moved the old p99: failed, so out of
+        the tail; under STALL_MS, so only a note. The run passes."""
+        resets = serial([15_015.0] * 3, ok=False)
+        passed, lines = gate(chain(ROLLING_AFTER, resets))
+        self.assertTrue(passed, lines)
+        self.assertTrue(any("3 failed call(s) excluded" in l for l in lines), lines)
+
+    def test_instant_refusals_do_not_fill_the_tail_either(self):
+        """A refusal at 2ms is not a fast query: it must not pull the p99 down."""
+        slow = serial([4.0] * 300 + [900.0] * 6)  # p99 = 900ms over served calls
+        refusals = serial([2.0] * 3000, ok=False)
+        _, lines = gate(chain(slow, refusals))
+        self.assertTrue(any(l.startswith("FAILED: query p99 900ms") for l in lines), lines)
+
+    def test_the_quiet_window_is_served_calls_too(self):
+        """A quiet window padded with 15s failures must not buy a 75s limit."""
+        quiet = chain(QUIET, serial([15_000.0] * 2, ok=False))
+        _, lines = gate(ROLLING_SCATTERED, quiet=quiet)
+        self.assertTrue(any(l.startswith("FAILED: query p99 2000ms over 500ms") for l in lines))
+
+    def test_the_query_limit_is_relative_to_the_quiet_p99_floored_and_capped(self):
+        """A 139ms quiet p99 allows 695ms; a 900ms one is capped at the 1s ceiling."""
+        _, lines = gate(ROLLING_INSIDE_AT_REST, quiet=AT_REST_WORST)
+        self.assertTrue(any("query p99 100ms, under 695ms" in l for l in lines), lines)
+        _, lines = gate(SIM_ROLLING, quiet=SIM_QUIET)
+        self.assertTrue(any("query p99 3540ms over the 1000ms ceiling" in l for l in lines))
+
+    def test_the_write_p99_warns_in_its_tolerance_band(self):
+        writes = serial([110.0] * 500 + [1_100.0] * 10, interval_s=0.1)
+        passed, lines = gate(writes=writes)
+        self.assertTrue(passed, lines)
+        self.assertTrue(any("warning: write p99 1100ms over the 1000ms target" in l for l in lines))
+
+    def test_the_write_p95_can_fail_on_its_own(self):
+        """Six percent of writes at 800ms: p95 over its 750ms limit, p99 inside 1250ms."""
+        writes = serial([110.0] * 470 + [800.0] * 30, interval_s=0.1)
+        passed, lines = gate(writes=writes)
+        self.assertFalse(passed)
+        self.assertTrue(any(l.startswith("FAILED: write p95 800ms over 750ms") for l in lines))
+        self.assertTrue(any(l.startswith("PASSED: write p99 800ms") for l in lines), lines)
+
+    def test_the_limits_are_tunable(self):
+        passed, _ = gate(query_p99=TailLimit(0.0, 10.0, 10.0))
+        self.assertFalse(passed, "a 10ms query p99 limit fails the healthy run")
+        _, lines = gate(ROLLING_BEFORE, query_p99=TailLimit(0.0, 20_000.0, 20_000.0))
+        self.assertTrue(any(l.startswith("PASSED: query p99 12452ms") for l in lines), lines)
+        self.assertEqual(
+            (QUERY_P99.ratio, QUERY_P99.floor_ms, QUERY_P99.ceiling_ms), (5, 500, 1000)
+        )
+        self.assertEqual((WRITE_P99.ceiling_ms, WRITE_P99.warn_ms), (1250, 1000))
+        self.assertEqual(
+            (QUERY_P95.floor_ms, QUERY_P95.ceiling_ms, WRITE_P95.ceiling_ms), (250, 500, 750)
+        )
+
+    def test_no_quiet_window_gates_on_the_ceiling(self):
+        _, lines = gate(quiet=[])
+        self.assertTrue(any("query p99 13ms, under 1000ms" in l for l in lines), lines)
 
 
 class TestFailedCallsDoNotPassAsLatency(unittest.TestCase):

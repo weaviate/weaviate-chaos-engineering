@@ -51,4 +51,7 @@ docker compose -f $COMPOSE up create-s3-bucket
 echo "Run multi-node backup and restore which affects schema"
 docker run --network host -t backup_and_restore_out_of_sync python3 backup_and_restore_out_of_sync.py
 
+# The nodes are left running, so their logs are still here to read.
+./check_panics.sh
+
 echo "Passed!"

@@ -44,13 +44,18 @@ from gates import (
     DELETE_LIMIT,
     MIN_WINDOW_SAMPLES,
     QUERY_LIMIT,
+    QUERY_P95,
+    QUERY_P99,
     SUSTAINED_WINDOW_S,
     WRITE_LIMIT,
+    WRITE_P95,
+    WRITE_P99,
     DeadlineAccumulator,
     Limit,
     Phase,
     RestartWatcher,
     Sample,
+    TailLimit,
     UserErrorAccumulator,
     evaluate,
     evaluate_churn,
@@ -130,6 +135,30 @@ def limit_from_env(prefix: str, default: Limit) -> Limit:
 
 QUERY_LIMIT = limit_from_env("QUERY", QUERY_LIMIT)
 WRITE_LIMIT = limit_from_env("WRITE", WRITE_LIMIT)
+
+
+def tail_from_env(prefix: str, name: str, default: TailLimit) -> TailLimit:
+    """MAX_<prefix>_<name>_RATIO, <prefix>_<name>_FLOOR_MS and MAX_<prefix>_<name>_MS."""
+    return TailLimit(
+        ratio=get_env_float(f"MAX_{prefix}_{name}_RATIO", default.ratio),
+        floor_ms=get_env_float(f"{prefix}_{name}_FLOOR_MS", default.floor_ms),
+        ceiling_ms=get_env_float(f"MAX_{prefix}_{name}_MS", default.ceiling_ms),
+        warn_ms=default.warn_ms,
+    )
+
+
+# The p95/p99 gates over served calls; see gates.evaluate_tails. Queries are relative to
+# the quiet window; writes keep their old fixed shape: MAX_WRITE_P99_MS is the target that
+# warns, WRITE_P99_TOLERANCE_MS the band above it before the gate fails.
+QUERY_P95 = tail_from_env("QUERY", "P95", QUERY_P95)
+QUERY_P99 = tail_from_env("QUERY", "P99", QUERY_P99)
+_write_p99_target = get_env_float("MAX_WRITE_P99_MS", WRITE_P99.warn_ms or WRITE_P99.ceiling_ms)
+_write_p99_limit = _write_p99_target + get_env_float(
+    "WRITE_P99_TOLERANCE_MS", WRITE_P99.ceiling_ms - (WRITE_P99.warn_ms or WRITE_P99.ceiling_ms)
+)
+WRITE_P99 = TailLimit(0.0, _write_p99_limit, _write_p99_limit, warn_ms=_write_p99_target)
+_write_p95_limit = get_env_float("MAX_WRITE_P95_MS", WRITE_P95.ceiling_ms)
+WRITE_P95 = TailLimit(0.0, _write_p95_limit, _write_p95_limit)
 # Client-visible 4xx during the roll, which nothing used to count: 107 on the candidate
 # against 39 on the baseline. A count, not a rate -- revisit if SETTLE_S or
 # WRITE_INTERVAL_S move the window it accrues over.
@@ -676,6 +705,10 @@ def main() -> int:
             max_stalled_calls=MAX_STALLED_CALLS,
             stall_ms=STALL_MS,
             problems=problems,
+            query_p95=QUERY_P95,
+            query_p99=QUERY_P99,
+            write_p95=WRITE_P95,
+            write_p99=WRITE_P99,
         )
         churn_passed, churn_lines = evaluate_churn(
             Phase(within(creates, 0, quiet_end), within(creates, roll_began, roll_window_end)),

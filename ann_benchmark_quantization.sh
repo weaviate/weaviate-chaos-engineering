@@ -89,4 +89,6 @@ docker run --network host -t -v "$PWD/datasets:/datasets" \
   -e "REQUIRED_RECALL=$REQUIRED_RECALL" \
   ann_benchmarks python3 analyze.py
 
+./check_panics.sh
+
 echo "Passed!"

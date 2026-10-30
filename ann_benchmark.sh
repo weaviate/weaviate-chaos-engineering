@@ -188,10 +188,11 @@ check_weaviate_logs() {
     echo "Checking for errors in logs:"
     docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -i "erro" || log_info "No errors found in logs"
     
-    if [ "${1:-}" = "after_chaos" ]; then
-        echo "Checking for panics in logs:"
-        docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -i "panic" || log_info "No panics found in logs"
-    fi
+    # The wrappers copy check_panics.sh next to this script on the VM. It fails on a
+    # panic or fatal runtime error, which the ERR trap turns into the run's failure;
+    # before, a panic here was only printed.
+    echo "Checking for panics in logs:"
+    bash ./check_panics.sh
 }
 
 # Run analysis

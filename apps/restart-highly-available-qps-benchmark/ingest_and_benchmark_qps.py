@@ -991,6 +991,14 @@ def main() -> None:
         # complete together and land in a single interval -- see interval_medians.
         sustained_intervals = get_env_int("SERVER_SUSTAINED_INTERVALS", 1)
         max_error_rate = get_env_float("MAX_ERROR_RATE", 0.01)
+        # The percentile gates that preceded the median one, restored beside it. They read
+        # the server's own histogram, so a request the port-forward relay never delivered
+        # (a dial to a pod that was just terminated, which the aggregate loop retries) is
+        # not in them: only requests Weaviate completed are ranked. Looser than the old
+        # 2000ms p99 limit: the median gate catches a stall, so these only catch a tail
+        # out of all proportion (healthy rollouts sit at 300-400ms at the p99).
+        max_server_p99_ms = get_env_float("MAX_SERVER_P99_MS", 3000.0)
+        max_server_p95_ms = get_env_float("MAX_SERVER_P95_MS", 1500.0)
 
         quiet_median_ms: Optional[float] = None
         if quiet_snapshot is not None:
@@ -1058,6 +1066,19 @@ def main() -> None:
                 failure_state["failed"] = True
             else:
                 latency_passed = True
+            for name, limit_tail in (("p95", max_server_p95_ms), ("p99", max_server_p99_ms)):
+                value = server.get(f"{name}_ms")
+                if value is not None and value > limit_tail:
+                    logger.error(
+                        "Server latency FAILED: {n} {v:.0f}ms over the restart window, above "
+                        "{m:.0f}ms, over {q:.0f} queries the server completed",
+                        n=name,
+                        v=value,
+                        m=limit_tail,
+                        q=server["queries"],
+                    )
+                    failure_state["failed"] = True
+                    latency_passed = False
             if not server["requests"]:
                 # Nothing to divide by, so the rate cannot clear a threshold it was never measured
                 # against. None arriving means they never reached the handler, or monitoring is off.
@@ -1079,11 +1100,15 @@ def main() -> None:
             if latency_passed and server["requests"] and server["error_rate"] <= max_error_rate:
                 logger.info(
                     "Server latency and error rate PASSED: every interval's median under "
-                    "{l:.0f}ms (worst {w:.0f}ms), errors {e:.2%}; p99 {p} reported, not gated",
+                    "{l:.0f}ms (worst {w:.0f}ms), p95 {p95} under {m95:.0f}ms, p99 {p99} "
+                    "under {m99:.0f}ms, errors {e:.2%}",
                     l=limit_ms,
                     w=max(judged),
+                    p95=f"{server['p95_ms']:.0f}ms" if server.get("p95_ms") else "n/a",
+                    m95=max_server_p95_ms,
+                    p99=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
+                    m99=max_server_p99_ms,
                     e=server["error_rate"],
-                    p=f"{server['p99_ms']:.0f}ms" if server["p99_ms"] else "n/a",
                 )
 
     # Rounds, not objects: writes go in batches, so a quorum blip loses a whole batch. Over

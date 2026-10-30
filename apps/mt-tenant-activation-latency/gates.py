@@ -434,6 +434,98 @@ SUSTAINED_WINDOW_S = 60.0
 MIN_WINDOW_SAMPLES = 5
 
 
+class TailLimit(NamedTuple):
+    """
+    What a percentile of the served calls may reach: the same shape as Limit, against the
+    quiet window's same percentile. ratio 0 makes it the fixed ceiling, which is how the
+    write limits were set before the gates moved to medians. warn_ms is a target under
+    the limit that only warns, the write p99's old tolerance band.
+    """
+
+    ratio: float
+    floor_ms: float
+    ceiling_ms: float
+    warn_ms: Optional[float] = None
+
+    def resolve(self, quiet_value: Optional[float]) -> Tuple[float, str]:
+        """(limit in ms, how it was arrived at)."""
+        if quiet_value is None or self.ratio <= 0:
+            return self.ceiling_ms, f"{self.ceiling_ms:.0f}ms"
+        relative = max(quiet_value * self.ratio, self.floor_ms)
+        if relative < self.ceiling_ms:
+            return relative, (
+                f"{relative:.0f}ms -- the lower of {self.ratio:.1f}x this leg's own quiet"
+                f" value of {quiet_value:.0f}ms (floored at {self.floor_ms:.0f}ms) and the"
+                f" {self.ceiling_ms:.0f}ms ceiling"
+            )
+        return self.ceiling_ms, (
+            f"the {self.ceiling_ms:.0f}ms ceiling -- {self.ratio:.1f}x the quiet value of"
+            f" {quiet_value:.0f}ms would sit above it"
+        )
+
+
+# The percentile gates that preceded the median ones, restored beside them over served
+# calls only. What made them a coin toss was the calls that got no response: a roll
+# costs the client its port-forward, and a refusal, a connection reset or a timeout
+# arrived with a wait of up to 15s that ranked as the slowest 1%. Those calls have no
+# served latency, so they are left out here and gated by their share and by
+# max_stalled_calls instead. The limits are looser than the old ones were, because the
+# median gate now catches a stall and these only need to catch a tail that is out of
+# all proportion: the healthy legs that the old limits failed by 10% (query p99 193ms
+# against 174ms, write p99 663ms against 600ms) sit at under half of these. Query p99 at
+# the lower of 5x the quiet p99 floored at 500ms and 1s; query p95 at half of that;
+# write p99 at 1s with a 250ms band that warns before it fails; write p95 at 750ms.
+QUERY_P99 = TailLimit(ratio=5.0, floor_ms=500.0, ceiling_ms=1000.0)
+QUERY_P95 = TailLimit(ratio=5.0, floor_ms=250.0, ceiling_ms=500.0)
+WRITE_P99 = TailLimit(ratio=0.0, floor_ms=1250.0, ceiling_ms=1250.0, warn_ms=1000.0)
+WRITE_P95 = TailLimit(ratio=0.0, floor_ms=750.0, ceiling_ms=750.0)
+
+
+def evaluate_tails(
+    label: str,
+    quiet: Sequence[Sample],
+    rolling: Sequence[Sample],
+    p95: TailLimit = QUERY_P95,
+    p99: TailLimit = QUERY_P99,
+) -> Tuple[bool, List[str]]:
+    """
+    The p95 and p99 of the rolling window's served calls against the quiet window's.
+
+    Served only. A call that got no response -- refused, reset, timed out -- measured a
+    wait, not a latency, and those waits are what moved these percentiles on healthy
+    builds. evaluate gates them by share and by stall count; here they are excluded and
+    the exclusion is printed, so a tail that passed with many calls missing says so.
+    """
+    served, excluded = served_ms(rolling), failed_ms(rolling)
+    quiet_served = served_ms(quiet)
+    if not served:
+        return False, [f"FAILED: no served {label} calls to take a percentile of"]
+    note = f" (over {len(served)} served calls"
+    if excluded:
+        note += f"; {len(excluded)} failed call(s) excluded: no response, no latency"
+    note += ")"
+    lines: List[str] = []
+    passed = True
+    for name, q, limit in (("p95", 0.95, p95), ("p99", 0.99, p99)):
+        value = percentile(served, q)
+        limit_ms, why = limit.resolve(percentile(quiet_served, q))
+        if value is None:
+            continue
+        if value > limit_ms:
+            lines.append(
+                f"FAILED: {label} {name} {value:.0f}ms over {why}{note}. Requests queued"
+                " behind a backed-up apply loop is what this test exists to catch"
+            )
+            passed = False
+            continue
+        lines.append(f"PASSED: {label} {name} {value:.0f}ms, under {why}{note}")
+        if limit.warn_ms is not None and value > limit.warn_ms:
+            lines.append(
+                f"  warning: {label} {name} {value:.0f}ms over the {limit.warn_ms:.0f}ms target"
+            )
+    return passed, lines
+
+
 def evaluate_sustained(
     label: str,
     quiet: Sequence[Sample],
@@ -499,15 +591,18 @@ def evaluate(
     max_stalled_calls: int = 2,
     stall_ms: float = 20_000.0,
     problems: Sequence[str] = (),
+    query_p95: TailLimit = QUERY_P95,
+    query_p99: TailLimit = QUERY_P99,
+    write_p95: TailLimit = WRITE_P95,
+    write_p99: TailLimit = WRITE_P99,
 ) -> Tuple[bool, List[str]]:
     """
     Returns (passed, report lines).
 
     Queries and writes each gate on the sustained median of their rolling window against
-    their own quiet window -- see evaluate_sustained and Limit. Their p99 and max are
-    reported beside it and never gate: one reconnect or one slow answer moves both on a
-    healthy build, and a limit tuned to clear that noise is crossed by it about one run
-    in two (see the module docstring).
+    their own quiet window -- see evaluate_sustained and Limit -- and on the p95 and p99
+    of their served calls -- see evaluate_tails and TailLimit. The max is reported and
+    never gates: one slow answer moves it on a healthy build.
 
     Calls that raised arrive with how long each waited, not as a count: an instant
     refusal measured nothing and must not satisfy min_queries, while a request that
@@ -533,7 +628,8 @@ def evaluate(
         f"queries, rolling: {_fmt(q)}",
         f"writes,  quiet:   {_fmt(wb)}",
         f"writes,  rolling: {_fmt(w)}",
-        "  p99 and max are reported, not gated: one reconnect moves both on a healthy build",
+        "  these p99s are over every wait, failed calls included; the p95/p99 gates below"
+        " are over served calls only, and the max is reported, not gated",
     ]
 
     passed = True
@@ -567,6 +663,16 @@ def evaluate(
             label, before, during, limit, window_s, min_window_samples
         )
         lines.extend(sustained_lines)
+        passed = passed and ok
+
+    for label, before, during, p95, p99 in (
+        ("write", writes_quiet, writes_rolling, write_p95, write_p99),
+        ("query", quiet, rolling, query_p95, query_p99),
+    ):
+        if not during:
+            continue  # already failed above
+        ok, tail_lines = evaluate_tails(label, before, during, p95, p99)
+        lines.extend(tail_lines)
         passed = passed and ok
 
     for label, s, failed in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):

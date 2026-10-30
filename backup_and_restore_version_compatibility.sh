@@ -80,6 +80,9 @@ for pair in "${!filtered_version_pairs[@]}"; do
   echo "Removing S3 bucket..."
   docker compose -f $COMPOSE up remove-s3-bucket
 
+  # Last chance to read the nodes' logs before they are removed for the next pair.
+  ./check_panics.sh
+
   echo "Cleaning up containers for next test..."
   docker compose -f $COMPOSE down --remove-orphans
 done
