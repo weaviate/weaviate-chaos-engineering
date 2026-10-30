@@ -49,8 +49,12 @@ if [ "$#" -gt 0 ]; then
     scan "$file" "$file"
   done
 else
-  tmp=$(mktemp)
+  tmp=$(mktemp) || exit 2
   trap 'rm -f "$tmp"' EXIT
+  if ! containers=$(docker ps -a --format '{{.ID}}\t{{.Names}}\t{{.Image}}'); then
+    echo "::error::check_panics: could not enumerate containers"
+    exit 2
+  fi
   # ID, name and image per container, including exited ones: a crashed node is exited.
   while IFS=$'\t' read -r id name image; do
     [ -n "$id" ] || continue
@@ -58,9 +62,13 @@ else
       *weaviate*) ;;
       *) continue ;;
     esac
-    docker logs "$id" > "$tmp" 2>&1 || true
+    if ! docker logs "$id" > "$tmp" 2>&1; then
+      echo "::error::check_panics: could not read logs for container $name ($id)"
+      cat "$tmp"
+      exit 2
+    fi
     scan "container $name ($image)" "$tmp"
-  done < <(docker ps -a --format '{{.ID}}\t{{.Names}}\t{{.Image}}' 2>/dev/null)
+  done <<< "$containers"
   if [ "$scanned" -eq 0 ]; then
     echo "check_panics: no weaviate containers to scan"
     exit 0
