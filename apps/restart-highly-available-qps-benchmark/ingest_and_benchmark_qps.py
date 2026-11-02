@@ -106,6 +106,7 @@ class ShedTolerantBenchmark(BenchmarkQPSManager):
                 )
         return await super()._run_query_and_collect_latency(collection_obj, *args, **kw)
 
+
 # weaviate-cli reports errors by printing them, and the counts below are recovered from
 # that text. redirect_stdout swaps the process-global sys.stdout, so with four threads
 # and four gathered coroutines one collection's errors land in another's buffer. A

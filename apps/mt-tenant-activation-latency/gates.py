@@ -368,9 +368,7 @@ def sliding_windows(
     return out
 
 
-def thin_windows(
-    samples: Sequence[Sample], window_s: float, min_samples: int
-) -> List[SlowWindow]:
+def thin_windows(samples: Sequence[Sample], window_s: float, min_samples: int) -> List[SlowWindow]:
     """
     Every window_s stretch inside the measured span that held fewer than min_samples calls.
 
@@ -500,11 +498,17 @@ class TailLimit(NamedTuple):
 # served latency, so they are left out here and gated by their share and by
 # max_stalled_calls instead. The limits are looser than the old ones were, because the
 # median gate now catches a stall and these only need to catch a tail that is out of
-# all proportion: the healthy legs that the old limits failed by 10% (query p99 193ms
-# against 174ms, write p99 663ms against 600ms) sit at under half of these. Query p99 at
-# the lower of 5x the quiet p99 floored at 500ms and 1s; query p95 at half of that;
-# write p99 at 1s with a 250ms band that warns before it fails; write p95 at 750ms.
-QUERY_P99 = TailLimit(ratio=5.0, floor_ms=500.0, ceiling_ms=1000.0)
+# all proportion -- but only as loose as the healthy legs require. The legs the old
+# query limit failed sat at 153-228ms (each ~10% over a limit of 3x a quiet p99 that
+# swung 17-69ms, floored at 139ms), so the floor is 300ms: a third over the worst of
+# them. The ratio is 4x, under the 3.6-4.3x rise the regression that escaped showed at
+# the p99, so on a leg whose quiet p99 is in the upper half of the 43-139ms at-rest band
+# that rise is over the floor and fails here; on a faster leg it is under the floor, and
+# the sustained-median and churn gates are what catch it. Query p95 at the lower of 5x
+# the quiet p95 floored at 250ms and 500ms; write p99 at 1s with a 250ms band that warns
+# before it fails (663ms, the worst healthy write p99 seen, has a third of headroom);
+# write p95 at 750ms.
+QUERY_P99 = TailLimit(ratio=4.0, floor_ms=300.0, ceiling_ms=1000.0)
 QUERY_P95 = TailLimit(ratio=5.0, floor_ms=250.0, ceiling_ms=500.0)
 WRITE_P99 = TailLimit(ratio=0.0, floor_ms=1250.0, ceiling_ms=1250.0, warn_ms=1000.0)
 WRITE_P95 = TailLimit(ratio=0.0, floor_ms=750.0, ceiling_ms=750.0)
@@ -516,9 +520,11 @@ def evaluate_tails(
     rolling: Sequence[Sample],
     p95: TailLimit = QUERY_P95,
     p99: TailLimit = QUERY_P99,
+    quantiles: Optional[Sequence[Tuple[str, float, TailLimit]]] = None,
 ) -> Tuple[bool, List[str]]:
     """
-    The p95 and p99 of the rolling window's served calls against the quiet window's.
+    The p95 and p99 of the rolling window's served calls against the quiet window's,
+    or whichever (name, quantile, limit) triples `quantiles` names instead.
 
     Served only. A call that got no response -- refused, reset, timed out -- measured a
     wait, not a latency, and those waits are what moved these percentiles on healthy
@@ -535,7 +541,9 @@ def evaluate_tails(
     note += ")"
     lines: List[str] = []
     passed = True
-    for name, q, limit in (("p95", 0.95, p95), ("p99", 0.99, p99)):
+    if quantiles is None:
+        quantiles = (("p95", 0.95, p95), ("p99", 0.99, p99))
+    for name, q, limit in quantiles:
         value = percentile(served, q)
         limit_ms, why = limit.resolve(percentile(quiet_served, q))
         if value is None:
@@ -868,6 +876,16 @@ CHURN_QUANTILE = 0.90
 # is what the deadline gate counts.
 CREATE_LIMIT = Limit(ratio=5.0, floor_ms=500.0, ceiling_ms=3000.0)
 DELETE_LIMIT = Limit(ratio=5.0, floor_ms=1000.0, ceiling_ms=3000.0)
+# The p90 gates the median one replaced, kept beside it over served calls, at the fixed
+# limits they had: between the quiet p90s (64ms create, 98ms delete) and the regression
+# (3.56s and 3.32s). The median sees a stall, which is contiguous and fills a window;
+# it does not see a slow tenth of creates spread across the roll -- every create that
+# lands on one pod taking a second, say -- and the p90 does. The failed iterations
+# that would have been the p90's reconnect artefacts are out of it, gated by
+# max_failures. Fixed rather than relative: the churn quiet window is 20s of a few
+# dozen calls, too few to set a limit from.
+CREATE_P90 = TailLimit(ratio=0.0, floor_ms=1000.0, ceiling_ms=1000.0)
+DELETE_P90 = TailLimit(ratio=0.0, floor_ms=1500.0, ceiling_ms=1500.0)
 
 
 class Phase(NamedTuple):
@@ -908,6 +926,8 @@ def evaluate_churn(
     window_s: float = SUSTAINED_WINDOW_S,
     min_window_samples: int = MIN_WINDOW_SAMPLES,
     quantile: float = CHURN_QUANTILE,
+    create_tail: TailLimit = CREATE_P90,
+    delete_tail: TailLimit = DELETE_P90,
 ) -> Tuple[bool, List[str]]:
     """
     Returns (passed, report lines) for the tenant-churn worker.
@@ -917,24 +937,23 @@ def evaluate_churn(
     regression this exists for stalled a third of a five-minute window; a stall is
     contiguous, since every create and delete goes through the same serial apply, so
     the windows inside it see a median of seconds while the windows outside see none
-    of it. The p90, p99 and max are printed and never gate.
+    of it. The same third spread across the roll is a tail, which no window's median
+    sees, so the p90 of the served calls gates as well, at a fixed limit -- see
+    CREATE_P90. The p99 and max are printed and never gate.
 
     Failures are gated here rather than by evaluate's max_failure_ratio, which allows 50%.
     """
     passed = True
     lines: List[str] = []
+    pct = int(round(quantile * 100))
 
-    for label, phase, limit in (
-        ("create", create, create_limit),
-        ("delete", delete, delete_limit),
+    for label, phase, limit, tail in (
+        ("create", create, create_limit, create_tail),
+        ("delete", delete, delete_limit, delete_tail),
     ):
         served = served_ms(phase.rolling)
-        lines.append(
-            f"tenant {label}, quiet:   {_fmt_quantile(waits_ms(phase.quiet), quantile)}"
-        )
-        lines.append(
-            f"tenant {label}, rolling: {_fmt_quantile(waits_ms(phase.rolling), quantile)}"
-        )
+        lines.append(f"tenant {label}, quiet:   {_fmt_quantile(waits_ms(phase.quiet), quantile)}")
+        lines.append(f"tenant {label}, rolling: {_fmt_quantile(waits_ms(phase.rolling), quantile)}")
 
         if len(served) < min_churns:
             lines.append(
@@ -953,6 +972,14 @@ def evaluate_churn(
             f"tenant {label}", phase.quiet, phase.rolling, limit, window_s, min_window_samples
         )
         lines.extend(sustained_lines)
+        passed = passed and ok
+        ok, tail_lines = evaluate_tails(
+            f"tenant {label}",
+            phase.quiet,
+            phase.rolling,
+            quantiles=((f"p{pct}", quantile, tail),),
+        )
+        lines.extend(tail_lines)
         passed = passed and ok
 
     if failures > max_failures:

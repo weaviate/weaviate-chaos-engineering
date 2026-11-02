@@ -79,7 +79,7 @@ class TestIsShed(unittest.TestCase):
     def test_other_errors_are_not(self):
         for text in (
             "Connection refused",
-            "shard Oy6iIBxWsGWN: resolve node name \"weaviate-0\" to host",
+            'shard Oy6iIBxWsGWN: resolve node name "weaviate-0" to host',
             "status code: 422 body: local index not found",
             "deadline exceeded",
         ):

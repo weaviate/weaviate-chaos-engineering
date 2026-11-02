@@ -2971,11 +2971,13 @@ jobs:
       # by its share and by MAX_STALLED_CALLS instead. Query limits are the lower of
       # ratio x the quiet window's same percentile (floored) and a ceiling; write limits
       # are fixed, the p99's with a tolerance band that warns. Looser than the old p99
-      # gates: the median gate catches a stall, so these only catch a tail out of all
-      # proportion, and the healthy legs the old limits failed sit at under half of
-      # these. See gates.evaluate_tails.
-      MAX_QUERY_P99_RATIO: 5.0
-      QUERY_P99_FLOOR_MS: 500
+      # gates, since the median gate catches a stall, but only as loose as the healthy
+      # legs need: the ones the old query limit failed sat at 153-228ms, so the floor
+      # is 300ms, and the 4x ratio is under the 3.6-4.3x p99 rise of the regression
+      # that escaped, so on a leg whose quiet p99 is in the upper half of the at-rest
+      # band that rise still fails here. See gates.evaluate_tails.
+      MAX_QUERY_P99_RATIO: 4.0
+      QUERY_P99_FLOOR_MS: 300
       MAX_QUERY_P99_MS: 1000
       MAX_QUERY_P95_RATIO: 5.0
       QUERY_P95_FLOOR_MS: 250
@@ -2992,6 +2994,11 @@ jobs:
       MAX_TENANT_DELETE_MEDIAN_RATIO: 5.0
       TENANT_DELETE_MEDIAN_FLOOR_MS: 1000
       MAX_TENANT_DELETE_MEDIAN_MS: 3000
+      # The p90 beside the median, over served calls, at the fixed limits it had before:
+      # a slow tenth of creates spread across the roll is a tail no 60s median sees.
+      # Between the quiet p90s (64ms, 98ms) and the regression (3.56s, 3.32s).
+      MAX_TENANT_CREATE_P90_MS: 1000
+      MAX_TENANT_DELETE_P90_MS: 1500
       # Every call the workers made, one row each, archived with the pod logs so a
       # threshold can be re-derived from a run rather than from its summary lines.
       SAMPLES_CSV: /tmp/weaviate-mt-activation-latency-samples.csv

@@ -17,6 +17,8 @@ from typing import List, Sequence, Tuple
 
 from gates import (
     CREATE_LIMIT,
+    CREATE_P90,
+    DELETE_P90,
     QUERY_LIMIT,
     QUERY_P95,
     QUERY_P99,
@@ -362,7 +364,7 @@ class TestSustainedMedianNotPercentile(unittest.TestCase):
         self.assertTrue(passed, lines)
         self.assertTrue(any("queries, rolling" in l and "p99=200" in l for l in lines))
         self.assertTrue(any("writes,  rolling" in l and "p99=700" in l for l in lines))
-        self.assertTrue(any(l.startswith("PASSED: query p99 200ms, under 500ms") for l in lines))
+        self.assertTrue(any(l.startswith("PASSED: query p99 200ms, under 300ms") for l in lines))
         self.assertTrue(any(l.startswith("PASSED: write p99 700ms, under 1250ms") for l in lines))
 
     def test_the_marginal_leg_fails_at_the_old_limits(self):
@@ -757,12 +759,12 @@ class TestTailGates(unittest.TestCase):
         """A quiet window padded with 15s failures must not buy a 75s limit."""
         quiet = chain(QUIET, serial([15_000.0] * 2, ok=False))
         _, lines = gate(ROLLING_SCATTERED, quiet=quiet)
-        self.assertTrue(any(l.startswith("FAILED: query p99 2000ms over 500ms") for l in lines))
+        self.assertTrue(any(l.startswith("FAILED: query p99 2000ms over 300ms") for l in lines))
 
     def test_the_query_limit_is_relative_to_the_quiet_p99_floored_and_capped(self):
-        """A 139ms quiet p99 allows 695ms; a 900ms one is capped at the 1s ceiling."""
+        """A 139ms quiet p99 allows 556ms; a 900ms one is capped at the 1s ceiling."""
         _, lines = gate(ROLLING_INSIDE_AT_REST, quiet=AT_REST_WORST)
-        self.assertTrue(any("query p99 100ms, under 695ms" in l for l in lines), lines)
+        self.assertTrue(any("query p99 100ms, under 556ms" in l for l in lines), lines)
         _, lines = gate(SIM_ROLLING, quiet=SIM_QUIET)
         self.assertTrue(any("query p99 3540ms over the 1000ms ceiling" in l for l in lines))
 
@@ -786,7 +788,7 @@ class TestTailGates(unittest.TestCase):
         _, lines = gate(ROLLING_BEFORE, query_p99=TailLimit(0.0, 20_000.0, 20_000.0))
         self.assertTrue(any(l.startswith("PASSED: query p99 12452ms") for l in lines), lines)
         self.assertEqual(
-            (QUERY_P99.ratio, QUERY_P99.floor_ms, QUERY_P99.ceiling_ms), (5, 500, 1000)
+            (QUERY_P99.ratio, QUERY_P99.floor_ms, QUERY_P99.ceiling_ms), (4, 300, 1000)
         )
         self.assertEqual((WRITE_P99.ceiling_ms, WRITE_P99.warn_ms), (1250, 1000))
         self.assertEqual(
@@ -996,15 +998,50 @@ class TestTenantChurnGate(unittest.TestCase):
         self.assertEqual(percentile([ms for _, ms, _ in rolling], 0.99), 15_015.0)
         self.assertTrue(any("max=15015" in l for l in lines))
 
-    def test_the_regressions_own_window_is_a_stall_not_a_tail(self):
+    def test_the_regressions_own_window_is_a_stall_and_scattered_it_is_a_tail(self):
         """The regression stalled a third of its five-minute window. In a window
         sized for the churn worker that third is contiguous and fills every window
-        inside it; the same third scattered across the run would be a tail, which
-        the p90 printed beside the gate still shows and the gate does not fail on."""
+        inside it, which the median gate fails on; the same third scattered across
+        the run is a tail no window's median sees, and the p90 gate fails on that."""
         scattered = serial(spread(40.0, 40, 3_560.0, 20), interval_s=1.0)
         passed, lines = churn(create=Phase(CREATE_QUIET, scattered))
+        self.assertFalse(passed)
+        self.assertFalse(any(l.startswith("FAILED: tenant create median") for l in lines), lines)
+        self.assertTrue(
+            any(l.startswith("FAILED: tenant create p90 3560ms over 1000ms") for l in lines),
+            lines,
+        )
+
+    def test_a_slow_sixth_of_creates_spread_across_the_roll_fails_the_tail(self):
+        """Every create that lands on one pod taking 1.4s: 17% of them, never a
+        majority of any minute. The median passes it and the p90 does not."""
+        spread_out = serial(spread(40.0, 60, 1_400.0, 12), interval_s=1.0)
+        passed, lines = churn(create=Phase(CREATE_QUIET, spread_out))
+        self.assertFalse(passed)
+        self.assertTrue(any(l.startswith("PASSED: tenant create median") for l in lines), lines)
+        self.assertTrue(
+            any(l.startswith("FAILED: tenant create p90 1400ms over 1000ms") for l in lines),
+            lines,
+        )
+
+    def test_the_delete_tail_has_its_own_limit(self):
+        """1.4s deletes are inside the 1500ms delete p90 limit, where 1.4s creates are not."""
+        spread_out = serial(spread(260.0, 60, 1_400.0, 12), interval_s=1.0)
+        passed, lines = churn(delete=Phase(DELETE_QUIET, spread_out))
         self.assertTrue(passed, lines)
-        self.assertTrue(any("tenant create, rolling" in l and "p90=3560" in l for l in lines))
+        self.assertTrue(any(l.startswith("PASSED: tenant delete p90 1400ms") for l in lines))
+
+    def test_failed_iterations_stay_out_of_the_tail(self):
+        """Three iterations that raised after 15s are the port-forward's, counted by
+        max_failures; they must not be the p90's slowest tenth."""
+        rolling = chain(
+            serial([40.0] * 20, interval_s=1.0),
+            serial([15_015.0] * 3, ok=False, interval_s=1.0),
+            serial([40.0] * 20, interval_s=1.0),
+        )
+        passed, lines = churn(create=Phase(CREATE_QUIET, rolling), failures=3, attempts=43)
+        self.assertTrue(passed, lines)
+        self.assertTrue(any("3 failed call(s) excluded" in l for l in lines), lines)
 
     def test_the_limits_are_tunable(self):
         passed, _ = churn(create_limit=Limit(ratio=0.5, floor_ms=1.0, ceiling_ms=10_000.0))
@@ -1012,9 +1049,13 @@ class TestTenantChurnGate(unittest.TestCase):
         passed, _ = churn(
             create=Phase(CREATE_QUIET, CREATE_ROLLING_BAD),
             create_limit=Limit(ratio=100.0, floor_ms=5_000.0, ceiling_ms=10_000.0),
+            create_tail=TailLimit(0.0, 5_000.0, 5_000.0),
         )
         self.assertTrue(passed)
+        passed, _ = churn(create_tail=TailLimit(0.0, 10.0, 10.0))
+        self.assertFalse(passed, "a 10ms create p90 limit fails the healthy run")
         self.assertEqual(CREATE_LIMIT.floor_ms, 500.0)
+        self.assertEqual((CREATE_P90.ceiling_ms, DELETE_P90.ceiling_ms), (1000.0, 1500.0))
 
 
 class TestUserErrorsAreGated(unittest.TestCase):

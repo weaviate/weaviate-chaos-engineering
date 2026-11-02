@@ -41,7 +41,9 @@ from weaviate.classes.tenants import Tenant
 
 from gates import (
     CREATE_LIMIT,
+    CREATE_P90,
     DELETE_LIMIT,
+    DELETE_P90,
     MIN_WINDOW_SAMPLES,
     QUERY_LIMIT,
     QUERY_P95,
@@ -174,6 +176,13 @@ CHURN_INTERVAL_S = get_env_float("CHURN_INTERVAL_S", 0.5)
 # delete sit ~5x apart at rest. See gates.CREATE_LIMIT.
 TENANT_CREATE_LIMIT = limit_from_env("TENANT_CREATE", CREATE_LIMIT)
 TENANT_DELETE_LIMIT = limit_from_env("TENANT_DELETE", DELETE_LIMIT)
+# The p90 beside the median, over served calls, at the fixed limits it had before the
+# gates moved to medians: a slow tenth of creates spread across the roll is a tail no
+# 60s median sees. See gates.CREATE_P90.
+_create_p90_ms = get_env_float("MAX_TENANT_CREATE_P90_MS", CREATE_P90.ceiling_ms)
+TENANT_CREATE_P90 = TailLimit(0.0, _create_p90_ms, _create_p90_ms)
+_delete_p90_ms = get_env_float("MAX_TENANT_DELETE_P90_MS", DELETE_P90.ceiling_ms)
+TENANT_DELETE_P90 = TailLimit(0.0, _delete_p90_ms, _delete_p90_ms)
 # Enough samples that the p90 printed beside the gate is worth reading, and a floor
 # that catches a churn worker which barely ran.
 MIN_TENANT_CHURNS = get_env_int("MIN_TENANT_CHURNS", 20)
@@ -721,6 +730,8 @@ def main() -> int:
             delete_limit=TENANT_DELETE_LIMIT,
             window_s=SUSTAINED_WINDOW_S,
             min_window_samples=MIN_WINDOW_SAMPLES,
+            create_tail=TENANT_CREATE_P90,
+            delete_tail=TENANT_DELETE_P90,
         )
         # Carved out of the same query samples the rolling gate reads. Overlapping windows are
         # fine; within_any takes a sample once.

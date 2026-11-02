@@ -213,9 +213,7 @@ RELAY_LOG = """\
 class TestRelayLog(unittest.TestCase):
     def test_dial_failures_are_counted_by_error(self):
         """The lines the failing run's artifact held."""
-        self.assertEqual(
-            relay_dial_failures(RELAY_LOG), {"Unknown error": 2, "Connect timeout": 1}
-        )
+        self.assertEqual(relay_dial_failures(RELAY_LOG), {"Unknown error": 2, "Connect timeout": 1})
 
     def test_a_quiet_log_has_none(self):
         self.assertEqual(relay_dial_failures("2026/10/29 20:11:16 INFO Handling tcp\n"), {})
