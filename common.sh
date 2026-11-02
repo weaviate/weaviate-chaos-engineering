@@ -2,6 +2,9 @@
 
 set -e
 
+# Absolute, so shutdown() finds check_panics.sh after a script has cd'ed elsewhere.
+_COMMON_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # telemetry: local sink from v1.36, off below that (apps/telemetry-sink)
 eval "$("$(dirname "${BASH_SOURCE[0]}")/apps/telemetry-sink/telemetry-config.sh" "${WEAVIATE_VERSION:-}")"
 
@@ -131,7 +134,21 @@ function wait_weaviate() {
   exit 1
 }
 
+# Set by check_panics when a Weaviate log held a panic; the EXIT trap turns it into a
+# failure for a script that would otherwise have passed.
+_PANIC_FOUND=0
+
+function check_panics() {
+  # The containers and their logs go away in shutdown() right after this, so it is the
+  # last chance to read them. Every Weaviate container is scanned, whichever compose
+  # file is current, because shutdown() removes every container too.
+  if ! "$_COMMON_DIR/check_panics.sh"; then
+    _PANIC_FOUND=1
+  fi
+}
+
 function shutdown() {
+  check_panics
   echo "Cleaning up resources..."
   container_count=$(docker container ls -aq | wc -l)
   if [ "$container_count" -gt 0 ]; then
@@ -159,7 +176,7 @@ function run_failure_diagnostics() {
 }
 
 trap 'run_failure_diagnostics; shutdown; exit 1' SIGINT ERR
-trap 'exit_code=$?; if [[ $exit_code -ne 0 ]]; then run_failure_diagnostics; fi; shutdown' EXIT
+trap 'exit_code=$?; if [[ $exit_code -ne 0 ]]; then run_failure_diagnostics; fi; shutdown; if [[ $exit_code -eq 0 && $_PANIC_FOUND -eq 1 ]]; then echo "The test passed but Weaviate panicked: failing the run"; exit 1; fi' EXIT
 
 
 function wait_for_indexing() {

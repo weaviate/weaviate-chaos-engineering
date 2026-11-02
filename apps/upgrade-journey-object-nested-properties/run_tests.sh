@@ -38,6 +38,12 @@ function wait_weaviates() {
   wait_weaviate 8080 "$1"
 }
 
+# A version change makes the next `up` recreate the containers, taking their logs with
+# them, so each phase's log is read before that phase's stop.
+function check_panics() {
+  "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/check_panics.sh"
+}
+
 function prepare_env() {
   echo_green "Preparing environment"
   echo "Download go deps"
@@ -55,6 +61,7 @@ function upgrade_journey_test() {
   echo "Create a class with nested properties using Weaviate v1.25"
   go test -count 1 -v -run TestCreateClass_v1_25 ./
 
+  check_panics
   DOCKER_COMPOSE_VERSION=1.25.24 docker compose -f docker-compose-$compose_type.yml stop
 
   echo "Start Weaviate with fixed image"
@@ -64,6 +71,7 @@ function upgrade_journey_test() {
 
   go test -count 1 -v -run TestRangeFiltersExists ./
 
+  check_panics
   DOCKER_COMPOSE_VERSION=$weaviate_version docker compose -f docker-compose-$compose_type.yml stop
 }
 
@@ -78,6 +86,7 @@ function upgrade_journey_with_fixed_image_test() {
   echo "Create a class with nested properties using Weaviate v1.25"
   go test -count 1 -v -run TestCreateClass_v1_25 ./
 
+  check_panics
   DOCKER_COMPOSE_VERSION=1.25.24 docker compose -f docker-compose-$compose_type.yml stop
 
   echo "Start Weaviate v1.26.7 without a fix"
@@ -88,6 +97,7 @@ function upgrade_journey_with_fixed_image_test() {
   echo "Create a class with nested properties using Weaviate v1.25"
   go test -count 1 -v -run TestRangeFiltersDoesntExist ./
 
+  check_panics
   DOCKER_COMPOSE_VERSION=1.26.7 docker compose -f docker-compose-$compose_type.yml stop
 
   echo "Start Weaviate with fixed image"
@@ -97,6 +107,7 @@ function upgrade_journey_with_fixed_image_test() {
 
   go test -count 1 -v -run TestRangeFiltersExists ./
 
+  check_panics
   DOCKER_COMPOSE_VERSION=$weaviate_version docker compose -f docker-compose-$compose_type.yml stop
 }
 

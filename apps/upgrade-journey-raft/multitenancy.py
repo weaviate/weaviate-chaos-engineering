@@ -5,6 +5,7 @@ from weaviate.classes.config import Property, DataType, Configure
 from weaviate.classes.query import Filter
 from weaviate.classes.tenants import Tenant
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.batch import Shard
 from weaviate.classes.query import MetadataQuery
 from graphql_aggregate import graphql_grpc_aggregate
 
@@ -116,9 +117,11 @@ def _import_books(
         logger.debug("waiting for {} vector indexing to finish", class_name)
         # See note in books.py: shards-readiness requires read_tenants under RBAC; use admin
         # creds for the readiness wait while the workload itself stays on the test user.
-        admin_client.collections.get(class_name).with_tenant(
-            tenant
-        ).batch.wait_for_vector_indexing()
+        # The tenant's shard must be named, or the admin wrapper, having imported nothing,
+        # has no shards to poll and returns at once.
+        admin_client.collections.get(class_name).with_tenant(tenant).batch.wait_for_vector_indexing(
+            shards=[Shard(collection=class_name, tenant=tenant)]
+        )
         logger.debug("{} vector indexing finished", class_name)
 
 
