@@ -143,6 +143,40 @@ def create_backup(client: weaviate.Client, name):
             fatal(f"Backup failed with res: {res_json}")
 
 
+def wait_for_backup_finished(client: weaviate.Client, name, timeout_s=300):
+    """Blocks until `client`'s node sees the backup as finished.
+
+    The node that ran the backup reports SUCCESS from memory before it has written the
+    final descriptor to the bucket. A node that did not run it, such as the restore node,
+    has nothing in memory and reads the bucket, where the descriptor can still say
+    STARTED for a moment. Restoring then is refused with a 422. Polling the restore
+    node's own status until it reports SUCCESS waits for the descriptor the restore
+    will read, not for the one the backup node remembers.
+    """
+    deadline = time.monotonic() + timeout_s
+    status = None
+    while True:
+        res = requests.get(backup_url_create_status(client, name))
+        if res.status_code == 200:
+            status = res.json().get("status")
+            if status == "SUCCESS":
+                success(f"Backup {name} is finished as seen from {hostname(client)}")
+                return
+            if status == "FAILED":
+                fatal(f"Backup {name} failed as seen from {hostname(client)}: {res.json()}")
+        elif res.status_code != 404:
+            fatal(
+                f"Backup status from {hostname(client)} returned status code {res.status_code} "
+                f"with body: {res.text}"
+            )
+        if time.monotonic() > deadline:
+            fatal(
+                f"Backup {name} still not finished as seen from {hostname(client)} after "
+                f"{timeout_s}s (last status: {status}, last response code: {res.status_code})"
+            )
+        time.sleep(1)
+
+
 def restore_backup(client: weaviate.Client, name):
     restore_body = {"id": name}
     res = requests.post(backup_url_restore(client, name), json=restore_body)
@@ -173,6 +207,8 @@ backup_name = f"backup_{int(datetime.datetime.now().timestamp())}"
 create_backup(node1_client, backup_name)
 
 node2_client = weaviate.Client("http://localhost:8081")
+logger.info("Waiting for the backup to be finished as seen from the restore node...")
+wait_for_backup_finished(node2_client, backup_name)
 logger.info("Restoring backup...")
 restore_backup(node2_client, backup_name)
 
