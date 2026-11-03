@@ -6,7 +6,9 @@ from weaviate.classes.query import Filter, QueryReference
 from weaviate.classes.data import DataReference
 from weaviate.util import generate_uuid5
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.batch import Shard
 from graphql_aggregate import graphql_grpc_aggregate
+from polling import near_text_until_count
 
 
 def create(client: weaviate.WeaviateClient, admin_client: weaviate.WeaviateClient):
@@ -106,7 +108,12 @@ def _import_books(client: weaviate.WeaviateClient, admin_client: weaviate.Weavia
         # wait_for_vector_indexing() calls GET /schema/{class}/shards, which Weaviate
         # authorizes via read_tenants. Under RBAC, the workload user lacks that on Books*,
         # so the runner passes a separate admin client for the readiness wait.
-        admin_client.collections.get("Books").batch.wait_for_vector_indexing()
+        # The shards must be named: without them the client polls only the shards its own
+        # batch wrapper imported into, and the admin wrapper imported nothing, so the wait
+        # returned at once and the sanity checks raced async indexing.
+        admin_client.collections.get("Books").batch.wait_for_vector_indexing(
+            shards=[Shard(collection="Books")]
+        )
         logger.info("Books vector indexing finished")
 
 
@@ -148,8 +155,11 @@ def _import_authors(client: weaviate.WeaviateClient, admin_client: weaviate.Weav
             len(authors.batch.failed_objects) == 0
         ), f"expected no failures during authors batch insert but got {len(authors.batch.failed_objects)}"
         logger.info("waiting for Authors vector indexing to finish")
-        # See note in _import_books: shards-readiness requires read_tenants under RBAC.
-        admin_client.collections.get("Authors").batch.wait_for_vector_indexing()
+        # See note in _import_books: shards-readiness requires read_tenants under RBAC,
+        # and the shards must be named for the wait to poll anything.
+        admin_client.collections.get("Authors").batch.wait_for_vector_indexing(
+            shards=[Shard(collection="Authors")]
+        )
         logger.info("Authors vector indexing finished")
 
         refs_list = []
@@ -187,8 +197,12 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
     )
     logger.info("aggregate where page_count gt 800: {}", aggregate.total_count)
     assert aggregate.total_count == 4
-    result = collection.query.near_text(
-        query=["Essos", "Westeros", "Throne"], target_vector="description", certainty=0.74
+    result = near_text_until_count(
+        collection,
+        expected_count=1,
+        query=["Essos", "Westeros", "Throne"],
+        target_vector="description",
+        certainty=0.74,
     )
     assert len(result.objects) == 1
     assert result.objects[0].properties["title"] == "A Game of Thrones"
@@ -207,7 +221,9 @@ def _books_sanity_checks(client: weaviate.WeaviateClient):
     result = collection.query.fetch_objects(filters=Filter.by_property("genre").equal("cyberpunk"))
     assert len(result.objects) == 5
     logger.info("where genre equals cyberpunk found {} objects", len(result.objects))
-    result = collection.query.near_text(
+    result = near_text_until_count(
+        collection,
+        expected_count=1,
         filters=Filter.by_property("genre").equal("cyberpunk"),
         query="hacker in America",
         target_vector="description",

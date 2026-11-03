@@ -5,8 +5,10 @@ from weaviate.classes.config import Property, DataType, Configure
 from weaviate.classes.query import Filter
 from weaviate.classes.tenants import Tenant
 from weaviate.collections.classes.config import ConsistencyLevel
+from weaviate.collections.classes.batch import Shard
 from weaviate.classes.query import MetadataQuery
 from graphql_aggregate import graphql_grpc_aggregate
+from polling import near_text_until_count
 
 number_of_tenants = 300
 additional_number_of_tenants = 100
@@ -116,9 +118,11 @@ def _import_books(
         logger.debug("waiting for {} vector indexing to finish", class_name)
         # See note in books.py: shards-readiness requires read_tenants under RBAC; use admin
         # creds for the readiness wait while the workload itself stays on the test user.
-        admin_client.collections.get(class_name).with_tenant(
-            tenant
-        ).batch.wait_for_vector_indexing()
+        # The tenant's shard must be named, or the admin wrapper, having imported nothing,
+        # has no shards to poll and returns at once.
+        admin_client.collections.get(class_name).with_tenant(tenant).batch.wait_for_vector_indexing(
+            shards=[Shard(collection=class_name, tenant=tenant)]
+        )
         logger.debug("{} vector indexing finished", class_name)
 
 
@@ -164,7 +168,9 @@ def _books_sanity_checks(client: weaviate.WeaviateClient, i: int, suffix: str = 
         .with_tenant(tenant)
         .with_consistency_level(consistency_level=ConsistencyLevel.ONE)
     )
-    result = collection.query.near_text(
+    result = near_text_until_count(
+        collection,
+        expected_count=1,
         query=["Essos", "Westeros", "Throne"],
         target_vector="description",
         certainty=0.74,
@@ -187,7 +193,9 @@ def _books_sanity_checks(client: weaviate.WeaviateClient, i: int, suffix: str = 
     result = collection.query.fetch_objects(filters=Filter.by_property("genre").equal("cyberpunk"))
     assert len(result.objects) == 5
     logger.debug("where genre equals cyberpunk found {} objects", len(result.objects))
-    result = collection.query.near_text(
+    result = near_text_until_count(
+        collection,
+        expected_count=1,
         filters=Filter.by_property("genre").equal("cyberpunk"),
         query="hacker in America",
         target_vector="description",
