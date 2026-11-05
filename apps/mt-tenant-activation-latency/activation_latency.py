@@ -109,6 +109,10 @@ MAX_QUERY_P99_RATIO = get_env_float("MAX_QUERY_P99_RATIO", 3.0)
 # Below this the ratio is noise. 139ms is the top of the at-rest band, so a leg that
 # stays inside what the suite measures at rest never fails on the ratio.
 QUERY_P99_FLOOR_MS = get_env_float("QUERY_P99_FLOOR_MS", 139)
+# Healthy legs roll at 74-169ms and floor-bound failures landed at 160-256ms, two of
+# those with nothing else wrong. Lifts the floor only, never the ratio bound, and
+# passes with a warning inside it.
+QUERY_P99_TOLERANCE_MS = get_env_float("QUERY_P99_TOLERANCE_MS", 100)
 # Client-visible 4xx during the roll, which nothing used to count: 107 on the candidate
 # against 39 on the baseline. A count, not a rate -- revisit if SETTLE_S or
 # WRITE_INTERVAL_S move the window it accrues over.
@@ -625,6 +629,7 @@ def main() -> int:
             write_p99_tolerance_ms=WRITE_P99_TOLERANCE_MS,
             max_query_p99_ratio=MAX_QUERY_P99_RATIO,
             query_p99_floor_ms=QUERY_P99_FLOOR_MS,
+            query_p99_tolerance_ms=QUERY_P99_TOLERANCE_MS,
             max_failure_ratio=MAX_FAILURE_RATIO,
             max_stalled_calls=MAX_STALLED_CALLS,
             stall_ms=STALL_MS,

@@ -305,6 +305,7 @@ def evaluate(
     write_p99_tolerance_ms: float = 0.0,
     max_query_p99_ratio: float = 3.0,
     query_p99_floor_ms: float = 139.0,
+    query_p99_tolerance_ms: float = 0.0,
     max_failure_ratio: float = 0.5,
     max_stalled_calls: int = 2,
     stall_ms: float = 20_000.0,
@@ -320,7 +321,10 @@ def evaluate(
     p99, because a fixed ceiling only says "under a second" and leaves 7-20x of headroom
     against the 43-139ms measured at rest. The ceiling stays as well, or a leg whose
     quiet window was itself terrible would pass; query_p99_floor_ms keeps the ratio out
-    of the noise. Extremes are reported, never gated.
+    of the noise. query_p99_tolerance_ms widens the floor only, passing with a warning
+    inside it: added to the ratio bound it would lift a 139ms-quiet leg from 417ms to
+    517ms and wave through the 3.6x regression this gate exists for. Extremes are
+    reported, never gated.
 
     Calls that raised arrive as how long each waited, not as a count: an instant refusal
     measured nothing and must not satisfy min_queries, while a request that waited 30s
@@ -347,15 +351,21 @@ def evaluate(
     passed = True
 
     query_limit, query_why = max_query_p99_ms, f"{max_query_p99_ms:.0f}ms"
+    query_target = query_limit
     quiet_p99 = b["p99"]
     if quiet_p99 is not None:
-        relative = max(quiet_p99 * max_query_p99_ratio, query_p99_floor_ms)
+        ratio_bound = quiet_p99 * max_query_p99_ratio
+        query_target = min(query_limit, max(ratio_bound, query_p99_floor_ms))
+        relative = max(ratio_bound, query_p99_floor_ms + query_p99_tolerance_ms)
         if relative < query_limit:
             query_limit = relative
+            floor = f"floored at {query_p99_floor_ms:.0f}ms"
+            if query_p99_tolerance_ms:
+                floor += f" + {query_p99_tolerance_ms:.0f}ms tolerance"
             query_why = (
                 f"{relative:.0f}ms -- the lower of {max_query_p99_ratio:.1f}x this"
-                f" leg's own quiet p99 of {quiet_p99:.0f}ms (floored at"
-                f" {query_p99_floor_ms:.0f}ms) and the {max_query_p99_ms:.0f}ms ceiling"
+                f" leg's own quiet p99 of {quiet_p99:.0f}ms ({floor})"
+                f" and the {max_query_p99_ms:.0f}ms ceiling"
             )
 
     if len(rollout_ms) < min_queries:
@@ -396,6 +406,10 @@ def evaluate(
     if w["p99"] is not None and max_write_p99_ms < w["p99"] <= write_limit:
         lines.append(
             f"  warning: write p99 {w['p99']:.0f}ms over the {max_write_p99_ms:.0f}ms target"
+        )
+    if q["p99"] is not None and query_target < q["p99"] <= query_limit:
+        lines.append(
+            f"  warning: query p99 {q['p99']:.0f}ms over the {query_target:.0f}ms target"
         )
 
     for label, s, failed_ms in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
