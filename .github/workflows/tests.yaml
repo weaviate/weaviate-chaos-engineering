@@ -2849,6 +2849,11 @@ jobs:
       # rolling. 139ms is the top of the at-rest band, so a leg that stays inside what
       # the suite measures at rest is never failed on the ratio.
       QUERY_P99_FLOOR_MS: 139
+      # Healthy legs roll at 74-169ms and floor-bound failures landed at 160-256ms,
+      # two of those with nothing else wrong. Lifts the floor only, to 239ms, and
+      # passes with a warning above 139ms. Never added to the ratio bound: on a
+      # 139ms-quiet leg that would pass the 500ms 3.6x regression.
+      QUERY_P99_TOLERANCE_MS: 100
       # Client-visible 4xx during the roll, which nothing gated before: 107 on the
       # candidate against 39 on the baseline. Healthy legs ran 1-9 each. A count, not a
       # rate -- revisit if SETTLE_S or WRITE_INTERVAL_S move the window.

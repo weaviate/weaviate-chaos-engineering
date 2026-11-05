@@ -213,6 +213,68 @@ class TestWriteTolerance(unittest.TestCase):
         self.assertTrue(any("FAILED: write p99 601ms over 600ms" in l for l in lines))
 
 
+class TestQueryTolerance(unittest.TestCase):
+    """
+    The floor-bound query gate failed healthy legs at 160 and 193ms against 139ms.
+    The tolerance widens that floor and nothing else.
+    """
+
+    # The leg that flaked: quiet p99 8ms, rolling 160ms, writes fine.
+    QUIET_8 = [4.0] * 98 + [8.0] * 2
+    ROLLING_160 = [4.0] * 980 + [160.0] * 20
+
+    def test_the_flaked_leg_passes_with_a_warning(self):
+        passed, lines = evaluate(
+            self.QUIET_8, self.ROLLING_160, WRITES_AFTER, 0, query_p99_tolerance_ms=100, **LIMITS
+        )
+        self.assertTrue(passed, lines)
+        self.assertTrue(any("PASSED: query p99 160ms, under 239ms" in l for l in lines))
+        self.assertTrue(any("floored at 139ms + 100ms tolerance" in l for l in lines))
+        self.assertTrue(any("warning: query p99 160ms over the 139ms target" in l for l in lines))
+
+    def test_without_the_tolerance_it_still_fails(self):
+        passed, lines = evaluate(self.QUIET_8, self.ROLLING_160, WRITES_AFTER, 0, **LIMITS)
+        self.assertFalse(passed)
+        self.assertTrue(any("FAILED: query p99 160ms over 139ms" in l for l in lines))
+
+    def test_past_the_tolerance_fails(self):
+        rolling = [4.0] * 980 + [240.0] * 20
+        passed, lines = evaluate(
+            self.QUIET_8, rolling, WRITES_AFTER, 0, query_p99_tolerance_ms=100, **LIMITS
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any("FAILED: query p99 240ms over 239ms" in l for l in lines))
+
+    def test_the_ratio_bound_gets_no_tolerance(self):
+        """3x of a 139ms quiet p99 is 417ms; +100ms would pass the 500ms regression."""
+        for tolerance in (100, 200):
+            passed, lines = evaluate(
+                AT_REST_WORST,
+                ROLLING_3_6X,
+                WRITES_AFTER,
+                0,
+                query_p99_tolerance_ms=tolerance,
+                **LIMITS,
+            )
+            self.assertFalse(passed, f"tolerance {tolerance}ms let the 3.6x regression through")
+            self.assertTrue(any("FAILED: query p99 500ms over 417ms" in l for l in lines))
+            self.assertFalse(any("warning: query p99" in l for l in lines))
+
+    def test_the_ceiling_gets_no_tolerance(self):
+        """A floor lifted past the ceiling leaves the ceiling binding."""
+        passed, lines = evaluate(
+            QUIET,
+            ROLLING_OVER_THE_CEILING,
+            WRITES_AFTER,
+            0,
+            query_p99_floor_ms=950,
+            query_p99_tolerance_ms=1000,
+            **LIMITS,
+        )
+        self.assertFalse(passed)
+        self.assertTrue(any("FAILED: query p99 1500ms over 1000ms." in l for l in lines))
+
+
 class TestDeadlineWaitsAcrossRestarts(unittest.TestCase):
     """
     These counters reset when a pod restarts, which is exactly what the window
