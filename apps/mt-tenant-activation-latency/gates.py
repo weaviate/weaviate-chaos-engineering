@@ -408,9 +408,7 @@ def evaluate(
             f"  warning: write p99 {w['p99']:.0f}ms over the {max_write_p99_ms:.0f}ms target"
         )
     if q["p99"] is not None and query_target < q["p99"] <= query_limit:
-        lines.append(
-            f"  warning: query p99 {q['p99']:.0f}ms over the {query_target:.0f}ms target"
-        )
+        lines.append(f"  warning: query p99 {q['p99']:.0f}ms over the {query_target:.0f}ms target")
 
     for label, s, failed_ms in (("query", q, query_failed_ms), ("write", w, write_failed_ms)):
         attempted, failed = int(s["count"]), len(failed_ms)
