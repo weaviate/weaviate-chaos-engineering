@@ -197,11 +197,21 @@ check_weaviate_logs() {
         bash ./check_panics.sh
     else
         local markers='panic:|fatal error:|runtime error:|SIGSEGV|SIGBUS|goroutine [0-9]+ \[running\]|Recovered from panic'
-        if docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -nE -A 40 "$markers" | head -400 | grep -q .; then
-            docker logs "$WEAVIATE_CONTAINER" 2>&1 | grep -nE -A 40 "$markers" | head -400
+        local panic_log
+        panic_log=$(mktemp) || return 1
+        if ! docker logs "$WEAVIATE_CONTAINER" > "$panic_log" 2>&1; then
+            log_error "Could not read Weaviate logs"
+            cat "$panic_log"
+            rm -f "$panic_log"
+            return 1
+        fi
+        if grep -qE "$markers" "$panic_log"; then
+            grep -nE -A 40 "$markers" "$panic_log" | sed -n '1,400p'
+            rm -f "$panic_log"
             log_error "Found panic in weaviate logs"
             return 1
         fi
+        rm -f "$panic_log"
         log_info "No panics found in logs"
     fi
 }
