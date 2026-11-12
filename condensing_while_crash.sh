@@ -135,8 +135,7 @@ for i in {1..10}; do
     fi
 
     echo "Restart the container"
-    docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
-        && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
+    crash_restart "$COMPOSE" weaviate
 
     wait_weaviate 8080 120 weaviate
 done
