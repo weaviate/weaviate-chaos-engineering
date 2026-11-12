@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Copy of crash_restart in common.sh: this image only contains run.sh.
+# crash_restart COMPOSE_FILE SERVICE: SIGKILL the service's container and start it
+# again. `compose kill` can return before the container list `compose up` reads
+# shows the container as exited; `up` then sees it "running" and starts nothing.
+# So retry `up` until the container's start time changes.
+function crash_restart() {
+  local file="$1" service="$2" cid before
+  cid=$(docker compose -f "$file" ps -q "$service")
+  before=$(docker inspect -f '{{.State.StartedAt}}' "$cid")
+  docker compose -f "$file" kill "$service"
+  for attempt in 1 2 3 4 5; do
+    docker compose -f "$file" up -d "$service"
+    [ "$(docker inspect -f '{{.State.StartedAt}}' "$cid")" != "$before" ] && return 0
+    echo "$service not restarted by up (attempt $attempt, state $(docker inspect -f '{{.State.Status}}' "$cid")), retrying in 1s"
+    sleep 1
+  done
+  echo "ERROR: $service still not restarted after 5 attempts"
+  return 1
+}
+
 while true; do
 
   # this script randomly kills either node 2 or node 3, in each iteration we
@@ -25,8 +45,7 @@ while true; do
   sleep "$sleepsec"
 
   echo killing now
-    docker compose -f apps/weaviate/docker-compose-replication-static.yml kill $container_name \
-      && docker compose -f apps/weaviate/docker-compose-replication-static.yml up -d $container_name
+  crash_restart apps/weaviate/docker-compose-replication-static.yml "$container_name"
 
 done
 

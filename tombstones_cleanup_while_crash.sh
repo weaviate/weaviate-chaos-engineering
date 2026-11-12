@@ -135,8 +135,7 @@ if ! wait_for_tombstone_cleanup; then
 fi
 
 echo "Restart the container"
-docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
-    && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
+crash_restart "$COMPOSE" weaviate
 
 wait_weaviate 8080 300 weaviate
 echo "Wait some time to let the metrics be updated"

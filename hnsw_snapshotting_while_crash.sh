@@ -156,8 +156,7 @@ if ! wait_for_hnsw_snapshot; then
 fi
 
 echo "Restart the container"
-docker compose -f apps/weaviate/docker-compose.yml kill weaviate \
-    && docker compose -f apps/weaviate/docker-compose.yml up weaviate -d
+crash_restart "$COMPOSE" weaviate
 
 wait_weaviate 8080 120 weaviate
 echo "Wait some time to let the metrics be updated"
