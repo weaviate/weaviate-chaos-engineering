@@ -19,7 +19,7 @@ apt_install() {
     echo "apt-get failed (attempt $attempt), retrying in 15s with a clean apt state..." >&2
     attempt=$((attempt + 1))
     sudo rm -rf /var/lib/apt/lists/*
-    sudo apt-get clean
+    sudo apt-get clean || true
     sleep 15
   done
 }
