@@ -1,0 +1,4 @@
+weaviate-client==4.4.0
+loguru
+wonderwords
+psutil
