@@ -224,6 +224,12 @@ run_chaos_testing() {
         
         log_info "Killing Weaviate (SIGKILL)"
         docker compose -f "$WEAVIATE_COMPOSE_FILE" kill weaviate
+        # `kill` can return before the container list `up` and `start` read shows the
+        # container as exited; they would then see it running and start nothing.
+        for _ in $(seq 1 100); do
+            [ "$(docker compose -f "$WEAVIATE_COMPOSE_FILE" ps -a --format '{{.State}}' weaviate)" = exited ] && break
+            sleep 0.1
+        done
     done
     
     # Final restart

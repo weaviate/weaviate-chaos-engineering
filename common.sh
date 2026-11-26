@@ -131,6 +131,25 @@ function wait_weaviate() {
   exit 1
 }
 
+# crash_restart COMPOSE_FILE SERVICE: SIGKILL the service's container and start it
+# again. `compose kill` can return before the container list `compose up` reads
+# shows the container as exited; `up` then sees it "running" and starts nothing.
+# So retry `up` until the container's start time changes.
+function crash_restart() {
+  local file="$1" service="$2" cid before
+  cid=$(docker compose -f "$file" ps -q "$service")
+  before=$(docker inspect -f '{{.State.StartedAt}}' "$cid")
+  docker compose -f "$file" kill "$service"
+  for attempt in 1 2 3 4 5; do
+    docker compose -f "$file" up -d "$service"
+    [ "$(docker inspect -f '{{.State.StartedAt}}' "$cid")" != "$before" ] && return 0
+    echo "$service not restarted by up (attempt $attempt, state $(docker inspect -f '{{.State.Status}}' "$cid")), retrying in 1s"
+    sleep 1
+  done
+  echo "ERROR: $service still not restarted after 5 attempts"
+  return 1
+}
+
 function shutdown() {
   echo "Cleaning up resources..."
   container_count=$(docker container ls -aq | wc -l)
