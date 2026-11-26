@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/semi-technologies/weaviate-go-client/v3/weaviate"
-	"github.com/semi-technologies/weaviate/entities/models"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate"
+	"github.com/weaviate/weaviate/entities/models"
 
 	_ "net/http/pprof"
 )
@@ -56,6 +56,8 @@ func do(ctx context.Context) error {
 		return err
 	}
 
+	rqEnabled := os.Getenv("RQ_ENABLED") == "true"
+
 	client, err := newClient(origin)
 	if err != nil {
 		return err
@@ -71,9 +73,28 @@ func do(ctx context.Context) error {
 
 	httpClient := &http.Client{}
 
+	rqAlreadyEnabled := false
 	count := 0
 	beforeAll := time.Now()
 	for count < size {
+		// Enable RQ at 50% progress
+		if rqEnabled && !rqAlreadyEnabled && count >= size/2 {
+			fmt.Println("Reached 50% of import, enabling RQ...")
+			var rqErr error
+			for attempt := 0; attempt < 20; attempt++ {
+				if rqErr = enableRQ(ctx, client); rqErr == nil {
+					break
+				}
+				fmt.Printf("Failed to enable RQ (attempt %d): %v. Retrying in 1s...\n", attempt, rqErr)
+				time.Sleep(1 * time.Second)
+			}
+			if rqErr != nil {
+				return fmt.Errorf("failed to enable RQ after 20 attempts: %w", rqErr)
+			}
+			fmt.Println("RQ enabled successfully")
+			rqAlreadyEnabled = true
+		}
+
 		batcher := newBatch()
 		for i := 0; i < batchSize; i++ {
 			batcher.addObject(fmt.Sprintf(`{"itemId":%d}`, count+1), randomVector(dims))
@@ -88,6 +109,29 @@ func do(ctx context.Context) error {
 			time.Since(before), time.Since(beforeAll))
 		batcher = newBatch()
 		count += batchSize
+	}
+
+	return nil
+}
+
+func enableRQ(ctx context.Context, client *weaviate.Client) error {
+	cls, err := client.Schema().ClassGetter().WithClassName("DemoClass").Do(ctx)
+	if err != nil {
+		return fmt.Errorf("get class: %w", err)
+	}
+
+	vic, ok := cls.VectorIndexConfig.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("unexpected vectorIndexConfig type: %T", cls.VectorIndexConfig)
+	}
+
+	vic["rq"] = map[string]interface{}{
+		"enabled": true,
+	}
+	cls.VectorIndexConfig = vic
+
+	if err := client.Schema().ClassUpdater().WithClass(cls).Do(ctx); err != nil {
+		return fmt.Errorf("update class: %w", err)
 	}
 
 	return nil
